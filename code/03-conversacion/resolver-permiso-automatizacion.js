@@ -1,20 +1,15 @@
 // ======================================================
-// RESOLVER PERMISO DE AUTOMATIZACIÓN
-// ======================================================
-//
-// Determina si el BOT puede procesar/responder este
-// mensaje.
-//
-// MODO_PRUEBA = false
-//   → cualquier teléfono puede usar el BOT.
-//
-// MODO_PRUEBA = true
-//   → solamente teléfonos autorizados.
-//
-// IMPORTANTE:
-// Si existe un problema con la configuración,
-// se adopta comportamiento seguro:
-// NO permitir automatización.
+// NODO N8N: Resolver permiso automatización
+// ARCHIVO: code/03-conversacion/resolver-permiso-automatizacion.js
+// VERSION: 1.0
+// RESPONSABILIDAD:
+// - Leer la configuración MODO_PRUEBA (valor_json: activo, telefonos_permitidos) de "Obtener configuración MODO_PRUEBA"
+// - Si MODO_PRUEBA está inactivo, permitir el BOT para cualquier teléfono
+// - Si MODO_PRUEBA está activo, permitir el BOT solo a teléfonos autorizados (comparación por dígitos)
+// - Ante configuración ausente o inválida, asumir MODO_PRUEBA activo sin teléfonos (comportamiento seguro: no automatizar)
+// - Emitir puede_responder_bot y motivo_bloqueo_bot (MODO_PRUEBA_TELEFONO_NO_IDENTIFICADO / MODO_PRUEBA_TELEFONO_NO_AUTORIZADO)
+// - Conservar ids de conversación desde "Preparar conversación" para diagnóstico
+// - NO decidir derivación a humano (lo evalúa el IF "¿Requiere atención humana?")
 // ======================================================
 
 

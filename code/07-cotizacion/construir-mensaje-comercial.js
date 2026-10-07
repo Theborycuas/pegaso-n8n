@@ -1,33 +1,15 @@
 // ======================================================
-// CONSTRUIR MENSAJE COMERCIAL
-// PEGASO ADHESIVOS - CONTRATO FINAL COMÚN
-// ======================================================
-//
-// Objetivo:
-//
-// Ser el ÚNICO punto de salida de respuestas comerciales.
-//
-// Puede recibir:
-//
-// 1. "Preparar mensaje cotización"
-// 2. "Construir mensaje no producible"
-//
-// Este nodo NO:
-// - calcula precios
-// - consulta detalles
-// - depende de nodos exclusivos de una rama
-//
-// De esta manera:
-//
-// Guardar mensaje comercial
-//
-// siempre puede leer:
-//
-// $('Construir mensaje comercial')
-//   .first()
-//   .json
-//   .mensaje_comercial
-//
+// NODO N8N: Construir mensaje comercial
+// ARCHIVO: code/07-cotizacion/construir-mensaje-comercial.js
+// VERSION: 1.0
+// RESPONSABILIDAD:
+// - Actuar como único punto de convergencia (contrato final común) de "Preparar mensaje cotización" y "Construir mensaje no producible"
+// - Validar que exista mensaje_comercial no vacío y lanzar error si falta
+// - Normalizar identidad (conversacion_id, cliente_id, prospecto_id) con respaldo en "Recuperar decisión comercial"
+// - Limpiar mensajes_comerciales (o usar mensaje_comercial como único mensaje) y resolver tipo_respuesta_comercial
+// - Garantizar que "Guardar mensaje comercial" pueda leer siempre $('Construir mensaje comercial').first().json.mensaje_comercial
+// - NO calcular precios ni consultar detalles
+// - NO depender de nodos exclusivos de una sola rama
 // ======================================================
 
 

@@ -1,45 +1,14 @@
 // ======================================================
-// VALIDAR PRODUCIBILIDAD P4
-// PEGASO ADHESIVOS - V1
-// ======================================================
-//
-// OBJETIVO:
-//
-// Validar restricciones físicas/comerciales ANTES de:
-//
-// - INSERT cotizacion_detalles
-// - cálculo de precios
-// - persistencia de una cotización inválida
-//
-// IMPORTANTE:
-//
-// Las REGLAS DE PRECIO siguen perteneciendo a:
-// "Calcular precio detalle"
-//
-// Este nodo solamente valida si la medida se puede
-// producir.
-//
-// REGLA PEGASO:
-//
-// No se producen etiquetas que tengan 1 cm o menos
-// en cualquiera de sus lados.
-//
-// Ejemplos NO válidos:
-//
-// 1x1
-// 1x5
-// 5x1
-// 0.5x10
-// 10x0.8
-//
-// Ejemplos válidos:
-//
-// 2x2
-// 2x5
-// 3x3
-// 4x4
-// 5x8
-//
+// NODO N8N: Validar producibilidad P4
+// ARCHIVO: code/07-cotizacion/validar-producibilidad-p4.js
+// VERSION: 1
+// RESPONSABILIDAD:
+// - Validar restricciones físicas ANTES de INSERT cotizacion_detalles y del cálculo de precios
+// - Marcar MEDIDAS_INCOMPLETAS si falta ancho_cm o alto_cm
+// - Marcar MEDIDA_NO_PRODUCIBLE si algún lado mide menos de 2 cm (regla Pegaso: no se producen lados de 1 cm o menos; ej no válidos 1x1, 1x5, 0.5x10, 10x0.8; válidos 2x2, 2x5, 5x8)
+// - Si hay algún detalle inválido: bloquear toda la cotización y devolver 1 solo item con mensaje_comercial para el cliente
+// - Si todo es producible: conservar cada item con cotizacion_producible = true y calcular_precio = true
+// - NO calcular precio (las reglas de precio pertenecen a "Calcular precio detalle")
 // ======================================================
 
 

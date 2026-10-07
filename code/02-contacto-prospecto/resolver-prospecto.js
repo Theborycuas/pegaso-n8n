@@ -1,10 +1,13 @@
 // ======================================================
-// RESOLVER PROSPECTO
-// ======================================================
-// Determina si el teléfono/canal ya pertenece a un
-// prospecto existente.
-//
-// Conserva siempre los datos originales del mensaje.
+// NODO N8N: Resolver prospecto
+// ARCHIVO: code/02-contacto-prospecto/resolver-prospecto.js
+// VERSION: 1.0
+// RESPONSABILIDAD:
+// - Determinar si el teléfono/canal ya pertenece a un prospecto según el resultado de "Buscar prospecto" (id no nulo)
+// - Conservar siempre los datos originales del mensaje y contacto desde "Resolver contacto"
+// - Mapear columnas del prospecto a campos prospecto_* (estado, nombre, producto_interes, ciudad, provincia, ultima_intencion, ultima_accion)
+// - Convertir requiere_humano a booleano (false si no existe prospecto)
+// - NO crear el prospecto (lo hace "Crear prospecto" en la rama false de "¿Prospecto existe?")
 // ======================================================
 
 const mensajeOriginal =

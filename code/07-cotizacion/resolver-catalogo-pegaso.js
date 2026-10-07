@@ -1,17 +1,15 @@
 // ======================================================
-// RESOLVER CATÁLOGO PEGASO
-// ======================================================
-// Entrada:
-//   1 item por detalle desde "EXPANDIR DETALLES"
-//
-// Objetivo:
-//   - Resolver producto_id del catálogo Pegaso
-//   - Resolver material_id
-//   - Determinar si requiere cotización manual
-//
-// IMPORTANTE:
-// "mora", "frutilla", "queso", etc. NO son producto_id.
-// producto_id representa el trabajo gráfico de Pegaso.
+// NODO N8N: Resolver catalogo Pegaso
+// ARCHIVO: code/07-cotizacion/resolver-catalogo-pegaso.js
+// VERSION: 1.0
+// RESPONSABILIDAD:
+// - Procesar 1 item por detalle proveniente de "EXPANDIR DETALLES"
+// - Resolver material_id desde material/material_nombre; sin material, usar P4 (Polipropileno, id 1)
+// - Resolver producto_id del catálogo Pegaso según material y forma (producto_id = trabajo gráfico, no el sabor: "mora", "frutilla", "queso" NO son producto_id)
+// - Marcar requiere_cotizacion_manual si el material no es P4, no se reconoce o no tiene producto automático
+// - Adjuntar material_resuelto para trazabilidad
+// - NO inventar IDs para materiales no reconocidos (material_id = null)
+// - NO consultar PostgreSQL: los catálogos de materiales y productos están fijos en el código
 // ======================================================
 
 const items = $input.all();

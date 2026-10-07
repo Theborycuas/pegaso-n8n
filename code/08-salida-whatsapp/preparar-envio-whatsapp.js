@@ -1,18 +1,15 @@
 // ======================================================
-// PREPARAR ENVÍO WHATSAPP - YCLOUD
-// ======================================================
-// Recibe:
-//   - Guardar mensaje saliente
-//   - Guardar mensaje comercial
-//
-// Ambos contienen el mensaje ya persistido en PostgreSQL.
-//
-// Responsabilidades:
-//   1. Resolver mensaje y teléfono destino.
-//   2. Confirmar que la ejecución nació de WhatsApp real.
-//   3. Resolver número oficial emisor de Pegaso.
-//   4. Construir body compatible con YCloud.
-//   5. Evitar envíos durante ejecuciones manuales / TEST.
+// NODO N8N: Preparar envío WhatsApp
+// ARCHIVO: code/08-salida-whatsapp/preparar-envio-whatsapp.js
+// VERSION: 1.0
+// RESPONSABILIDAD:
+// - Recibir el mensaje saliente ya persistido en PostgreSQL (Guardar mensaje saliente / transición humano / comercial)
+// - Resolver el texto de salida y el teléfono destino del cliente
+// - Confirmar que la ejecución nació de un webhook WhatsApp real de YCloud
+// - Resolver el número oficial emisor de Pegaso (con fallback fijo)
+// - Construir el body compatible con YCloud y el flag enviar_whatsapp con su motivo_no_envio
+// - NO enviar el mensaje (lo hace el nodo HTTP "YCloud Enviar Wts" tras "If ¿Enviar por WhatsApp?")
+// - NO enviar durante ejecuciones manuales / TEST
 // ======================================================
 
 const input = $input.first().json;

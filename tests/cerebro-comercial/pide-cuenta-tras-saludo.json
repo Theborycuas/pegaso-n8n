@@ -1,0 +1,39 @@
+{
+  "nombre": "Saludo y luego pide cuenta para pagar",
+  "descripcion": "Pedir datos de cuenta deriva a humano con prioridad alta; el siguiente mensaje ya no lo responde el bot.",
+  "estado": "borrador",
+  "contexto_inicial": {
+    "prospecto_estado": "NUEVO",
+    "contexto_comercial": {}
+  },
+  "turnos": [
+    {
+      "cliente": "Hola",
+      "esperado": {
+        "requiere_humano": false,
+        "clasificacion_prospecto": "C"
+      },
+      "no_esperado": {
+        "accion": "COTIZAR_P4"
+      }
+    },
+    {
+      "cliente": "pásame una cuenta",
+      "esperado": {
+        "intencion": "CONSULTAR_PAGO",
+        "accion": "DERIVAR_HUMANO",
+        "motivo_derivacion": "SOLICITA_DATOS_PAGO",
+        "clasificacion_prospecto": "A",
+        "requiere_notificacion": true,
+        "handoff_prioridad": "ALTA"
+      }
+    },
+    {
+      "cliente": "por favor",
+      "esperado": {
+        "flujo": "ATENCION_HUMANA",
+        "respuesta_automatica": false
+      }
+    }
+  ]
+}

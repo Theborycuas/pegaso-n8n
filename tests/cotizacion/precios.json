@@ -1,0 +1,13 @@
+{
+  "descripcion": "Totales esperados de calcular-precio-detalle.js (USD, IVA incluido, sin descuento).",
+  "casos": [
+    { "ancho_cm": 3, "alto_cm": 3, "forma": "RECTANGULAR", "cantidad": 1000, "total": 18, "regla": "precio fijo banda 2 a <4 cm" },
+    { "ancho_cm": 4, "alto_cm": 4, "forma": "RECTANGULAR", "cantidad": 1000, "total": 20, "regla": "precio fijo 4x4" },
+    { "ancho_cm": 10, "alto_cm": 5, "forma": "RECTANGULAR", "cantidad": 1000, "total": 36, "regla": "general 0,72" },
+    { "ancho_cm": 5, "alto_cm": 5, "forma": "RECTANGULAR", "cantidad": 1000, "total": 26, "regla": "5x5 +1 cm" },
+    { "ancho_cm": 5, "alto_cm": 5, "forma": "CIRCULAR", "cantidad": 1000, "total": 36, "regla": "5x5 +1 cm y forma +1 cm" },
+    { "ancho_cm": 10, "alto_cm": 10, "forma": "RECTANGULAR", "cantidad": 1000, "total": 67, "regla": "10x10 o mayor 0,67" },
+    { "ancho_cm": 10, "alto_cm": 10, "forma": "RECTANGULAR", "cantidad": 10000, "total": 500, "regla": "volumen 0,50" },
+    { "ancho_cm": 10, "alto_cm": 14, "forma": "RECTANGULAR", "cantidad": 5000, "total": 469, "regla": "hoy devuelve 470 por error de redondeo (pendiente técnico 7)" }
+  ]
+}

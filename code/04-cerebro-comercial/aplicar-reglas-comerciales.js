@@ -1,40 +1,15 @@
 // ======================================================
-// APLICAR REGLAS COMERCIALES DETERMINÍSTICAS
-// PEGASO ADHESIVOS - V1.1
-// ======================================================
-//
-// Este nodo está colocado DESPUÉS de:
-//
-// Resolver contexto comercial
-//
-// y ANTES de:
-//
-// Guardar contexto comercial
-//
-// OBJETIVO:
-//
-// Aplicar reglas de negocio objetivas que tienen
-// prioridad sobre la decisión realizada por la IA.
-//
-// IMPORTANTE:
-//
-// Este nodo NO reconstruye el contrato comercial.
-// Conserva SIEMPRE:
-//   ...data
-//
-// De esta manera no se pierden:
-//
-// - conversacion_id
-// - cliente_id
-// - contacto_id
-// - prospecto_id
-// - telefono
-// - intención
-// - contexto_comercial
-// - datos de cotización
-// - estado de prospecto
-// - etc.
-//
+// NODO N8N: Aplicar reglas comerciales
+// ARCHIVO: code/04-cerebro-comercial/aplicar-reglas-comerciales.js
+// VERSION: 1.1
+// RESPONSABILIDAD:
+// - Aplicar reglas de negocio determinísticas de Pegaso con prioridad sobre la decisión de la IA.
+// - Detectar medida no producible (ancho_cm o alto_cm <= 1 cm) y generar restriccion_comercial MEDIDA_MINIMA_NO_PRODUCIBLE.
+// - Si es no producible: sobrescribir accion=RESPONDER_NO_PRODUCIBLE, quitar derivación/notificación, datos_suficientes_para_cotizar=false y respuesta fija.
+// - Registrar la restricción en contexto_comercial (cotizacion.producible y ultima_restriccion_comercial).
+// - Conservar siempre el contrato completo recibido (...data) y marcar solicitud_producible.
+// - NO reconstruir el contrato comercial ni alterar la decisión cuando no hay restricción.
+// - NO escribir en PostgreSQL (lo hace "Guardar contexto comercial").
 // ======================================================
 
 const data =

@@ -1,5 +1,14 @@
 // ======================================================
-// RESOLVER CONTACTO
+// NODO N8N: Resolver contacto
+// ARCHIVO: code/02-contacto-prospecto/resolver-contacto.js
+// VERSION: 1.0
+// RESPONSABILIDAD:
+// - Recuperar el mensaje normalizado desde "Normalizar mensaje"
+// - Interpretar el resultado de "Buscar Contacto": existe si devolvió un id numérico mayor que 0
+// - Exponer contacto_id, cliente_id y contacto_nombre del contacto encontrado
+// - Marcar es_cliente_registrado cuando el contacto está vinculado a un cliente_id
+// - NO decidir la ruta (lo hace el IF siguiente "¿Cliente existente?")
+// - NO crear contactos en PostgreSQL
 // ======================================================
 
 const entrada = $('Normalizar mensaje').first().json;

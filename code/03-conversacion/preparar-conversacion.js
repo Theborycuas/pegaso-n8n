@@ -1,17 +1,15 @@
 // ======================================================
-// PREPARAR CONVERSACIÓN
-// ======================================================
-// Entrada:
-//   - conversación ya resuelta
-//   - puede pertenecer a cliente, contacto o prospecto
-//   - puede incluir contexto_comercial desde PostgreSQL
-//
-// Salida:
-//   estructura uniforme para:
-//   - guardar mensaje entrante
-//   - recuperar historial
-//   - preparar contexto IA
-//   - conservar contexto comercial persistente
+// NODO N8N: Preparar conversación
+// ARCHIVO: code/03-conversacion/preparar-conversacion.js
+// VERSION: 1.0
+// RESPONSABILIDAD:
+// - Validar que existan conversacion_id numérico y telefono (lanza error si no)
+// - Normalizar ids de cliente, contacto y prospecto, con respaldo en los conversacion_*_id
+// - Determinar tipo_actor con prioridad CLIENTE > CONTACTO > PROSPECTO (DESCONOCIDO si no hay ninguno)
+// - Parsear contexto_comercial (objeto o string JSON) desde contexto_comercial o conversacion_contexto_comercial; {} si falta o es inválido
+// - Entregar una estructura uniforme para guardar el mensaje entrante, recuperar historial y preparar el contexto IA
+// - NO escribir en PostgreSQL (lo hace el nodo siguiente "Guardar mensaje entrante")
+// - NO decidir si el BOT responde
 // ======================================================
 
 const data = $input.first().json;

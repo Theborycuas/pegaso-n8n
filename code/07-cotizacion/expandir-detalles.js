@@ -1,27 +1,15 @@
 // ======================================================
-// EXPANDIR DETALLES
-// ======================================================
-//
-// Entrada directa:
-//   "EDT Datos del detalle"
-//   - cotizacion_id
-//   - cliente_id
-//
-// Detalles comerciales:
-//   "Preparar datos cotización"
-//   - detalles[]
-//
-// Salida:
-//   1 item por cada detalle de la cotización
-//
-// IMPORTANTE:
-//   producto NO es obligatorio.
-//   Si nombre y producto vienen vacíos, se genera un
-//   nombre técnico usando medidas + forma.
-//
-// Ejemplo:
-//   5x5 + CIRCULAR
-//   -> "Etiqueta 5x5 cm circular"
+// NODO N8N: EXPANDIR DETALLES
+// ARCHIVO: code/07-cotizacion/expandir-detalles.js
+// VERSION: 1.0
+// RESPONSABILIDAD:
+// - Leer cotizacion_id y cliente_id de la entrada directa ("EDT Datos del detalle")
+// - Recuperar detalles[] desde "Preparar datos cotización"
+// - Emitir 1 item por detalle con cotizacion_id, cliente_id y detalle_index
+// - Lanzar error si falta cotizacion_id o si cantidad/ancho_cm/alto_cm no son positivos
+// - Resolver nombre por prioridad: nombre explícito > producto > nombre técnico (ej 5x5 + CIRCULAR -> "Etiqueta 5x5 cm circular")
+// - NO exigir producto (puede quedar null)
+// - NO resolver catálogo ni diseño (lo hacen "Resolver catalogo Pegaso" y "Resolver diseño")
 // ======================================================
 
 

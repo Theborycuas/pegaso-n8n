@@ -1,26 +1,16 @@
 // ======================================================
-// PREPARAR DERIVACIÓN HUMANA
-// PEGASO ADHESIVOS - V3
-// ======================================================
-//
-// Entrada:
-//   salida DERIVAR_HUMANO de "Enrutar acción comercial"
-//
-// Responsabilidad:
-//
-// Convertir la decisión comercial en un contrato estable
-// de HANDOFF.
-//
-// ESTE ES EL NODO QUE DECIDE:
-//
-// - motivo funcional
-// - clasificación del handoff
-// - prioridad
-// - si requiere notificación interna
-//
-// Los nodos posteriores deben PRESERVAR estas decisiones,
-// no reinterpretarlas.
-//
+// NODO N8N: Preparar derivación humana
+// ARCHIVO: code/06-derivacion-humana/preparar-derivacion-humana.js
+// VERSION: 3
+// RESPONSABILIDAD:
+// - Recibir la salida DERIVAR_HUMANO de "Enrutar acción comercial" y validar conversacion_id y prospecto_id
+// - Convertir la decisión comercial en un contrato estable de HANDOFF (respaldo en "Recuperar decisión comercial")
+// - Decidir el motivo funcional (explícito o derivado de la intención) y la clasificación del handoff
+// - Decidir la prioridad (IA + reglas deterministas ALTA/MEDIA por motivo)
+// - Decidir si requiere notificación interna (motivos notificables o prioridad ALTA)
+// - Preservar el mensaje original del cliente, separado del mensaje de transición de Pegaso
+// - NO escribir en PostgreSQL (lo hace "Marcar prospecto requiere humano")
+// - NO dejar que los nodos posteriores reinterpreten estas decisiones: solo deben preservarlas
 // ======================================================
 
 const input = $input.first().json;

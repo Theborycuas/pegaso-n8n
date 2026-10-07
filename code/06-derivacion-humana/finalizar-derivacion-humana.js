@@ -1,19 +1,15 @@
 // ======================================================
-// FINALIZAR DERIVACIÓN HUMANA
-// PEGASO ADHESIVOS - V3
-// ======================================================
-//
-// Objetivo:
-//
-// Crear el contrato FINAL de handoff.
-//
-// NO modifica decisiones comerciales.
-// NO recalcula prioridad.
-// NO decide notificación.
-//
-// Recupera el contrato preparado antes del INSERT de
-// mensajes para evitar pérdida de contexto.
-//
+// NODO N8N: Finalizar derivación humana
+// ARCHIVO: code/06-derivacion-humana/finalizar-derivacion-humana.js
+// VERSION: 3
+// RESPONSABILIDAD:
+// - Recibir la fila insertada por "Guardar mensaje transición humano"
+// - Recuperar el contrato de "Preparar mensaje transición humano" para no perder contexto tras el INSERT
+// - Construir el contrato FINAL de handoff (identidad, prospecto, motivo, clasificación, prioridad, mensajes)
+// - Normalizar requiere_notificacion a booleano para el IF "¿Requiere notificación?"
+// - Marcar automatizacion_comercial_finalizada = true y fijar derivado_at / handoff_at
+// - NO modificar decisiones comerciales, NO recalcular prioridad, NO decidir notificación
+// - NO escribir en PostgreSQL ni enviar mensajes
 // ======================================================
 
 

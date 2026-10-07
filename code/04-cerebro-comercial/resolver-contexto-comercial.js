@@ -1,15 +1,16 @@
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V2.2
-// ======================================================
-//
-// Objetivo:
-// - consolidar datos nuevos + contexto persistido;
-// - usar 1000 como mínimo por defecto si hay medidas;
-// - NO exigir producto para cotizar;
-// - NO convertir cualquier mensaje en COTIZAR_P4;
-// - preservar acciones informativas como INFORMAR_DISENO;
-// - recotizar solo cuando corresponde.
-//
+// NODO N8N: Resolver contexto comercial
+// ARCHIVO: code/04-cerebro-comercial/resolver-contexto-comercial.js
+// VERSION: 2.2
+// RESPONSABILIDAD:
+// - Consolidar datos del mensaje actual con contexto_comercial.cotizacion persistido (producto, material, cantidad, medidas, forma).
+// - Asumir 1000 unidades si hay medidas sin cantidad y redondear la cantidad cotizable a múltiplos de 1000 (mínimo 1000).
+// - Detectar si el mensaje modificó datos de cotización (cantidad, ancho, alto, forma) para recotizar solo cuando corresponde.
+// - Resolver la acción final: respetar DERIVAR_HUMANO y acciones informativas; forzar PEDIR_MEDIDAS o COTIZAR_P4 según datos e intención.
+// - Fijar respuesta_sugerida estándar para PEDIR_MEDIDAS y vaciarla para COTIZAR_P4.
+// - Construir el contexto_comercial nuevo que se persistirá.
+// - NO exigir producto para cotizar (PEDIR_PRODUCTO se reemplaza).
+// - NO escribir en PostgreSQL (lo hace "Guardar contexto comercial").
 // ======================================================
 
 const data = $input.first().json;

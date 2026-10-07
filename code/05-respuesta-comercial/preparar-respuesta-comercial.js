@@ -1,13 +1,14 @@
 // ======================================================
-// PREPARAR RESPUESTA COMERCIAL - V2.2
-// ======================================================
-//
-// Recibe la decisión comercial resuelta.
-//
-// Defensa adicional:
-// evita enviar exactamente el mismo texto que el último
-// mensaje saliente registrado en el historial reciente.
-//
+// NODO N8N: Preparar respuesta comercial
+// ARCHIVO: code/05-respuesta-comercial/preparar-respuesta-comercial.js
+// VERSION: 2.2
+// RESPONSABILIDAD:
+// - Recibir la decisión comercial resuelta (todos los items) y validar conversacion_id.
+// - Exigir respuesta_sugerida no vacía; lanzar error si la acción no generó texto.
+// - Evitar enviar el mismo texto que ultimo_mensaje_saliente, reemplazándolo por una pregunta neutra.
+// - Construir respuesta_final y el objeto mensaje_saliente (SALIENTE, TEXTO) para insertar en mensajes.
+// - NO generar contenido comercial nuevo ni decidir la acción.
+// - NO escribir en PostgreSQL (lo hace "Guardar mensaje saliente") ni enviar por WhatsApp.
 // ======================================================
 
 const items =

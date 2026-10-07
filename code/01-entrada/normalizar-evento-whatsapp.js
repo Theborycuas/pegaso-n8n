@@ -1,8 +1,16 @@
 // ======================================================
-// NORMALIZAR EVENTO WHATSAPP
-// Compatible con:
-// 1. YCloud Coexistence
-// 2. Meta Cloud API directo
+// NODO N8N: Normalizar evento WhatsApp
+// ARCHIVO: code/01-entrada/normalizar-evento-whatsapp.js
+// VERSION: 1.0
+// RESPONSABILIDAD:
+// - Detectar el origen del webhook: YCloud Coexistence (whatsapp.inbound_message.received) o Meta Cloud API directo (body.entry)
+// - Extraer cuenta Pegaso, cliente (teléfono, wa_id, nombre) y mensaje (id, timestamp, tipo, texto) a un objeto evento_whatsapp uniforme
+// - Extraer metadatos multimedia (media_id, mime_type, sha256, caption) de imagen, audio, documento y video
+// - Convertir sendTime ISO de YCloud a timestamp Unix en segundos y limpiar teléfonos a solo dígitos
+// - Marcar procesable cuando hay mensaje_id, teléfono del cliente y tipo (en Meta además field = 'messages')
+// - Conservar el body recibido completo en payload_original
+// - NO validar ni descartar eventos (lo decide el IF siguiente "¿Evento WhatsApp procesable?")
+// - NO descargar ni procesar archivos multimedia
 // ======================================================
 
 const input = $input.first().json;

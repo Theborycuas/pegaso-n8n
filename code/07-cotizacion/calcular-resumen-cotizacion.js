@@ -1,26 +1,15 @@
 // ======================================================
-// CALCULAR RESUMEN COTIZACIÓN
-// PEGASO ADHESIVOS - V2.3
-// ======================================================
-//
-// Entrada:
-//   varios registros de cotizacion_detalles
-//   YA calculados / actualizados.
-//
-// Salida:
-//   1 item con subtotal, IVA y total
-//   de toda la cotización.
-//
-// IMPORTANTE:
-//
-// - Cada detalle ya viene con su redondeo comercial.
-// - El resumen suma el campo "total" de cada detalle.
-// - Si por compatibilidad no existe "total",
-//   utiliza "precio_total".
-// - IVA se mantiene internamente.
-// - Ya NO depende de que el mensaje comercial
-//   muestre "IVA incluido".
-//
+// NODO N8N: Calcular resumen cotización
+// ARCHIVO: code/07-cotizacion/calcular-resumen-cotizacion.js
+// VERSION: 2.3
+// RESPONSABILIDAD:
+// - Validar que existan detalles y que todos pertenezcan al mismo cotizacion_id
+// - Sumar el "total" ya redondeado de cada detalle (o "precio_total" por compatibilidad) como total de la cotización
+// - Derivar subtotal e IVA interno 15% desde el total (IVA incluido, no se muestra al cliente)
+// - Sumar descuentos y el total calculado sin redondeo como dato de auditoría
+// - Resumir reglas de precio aplicadas y banderas de redondeo/incremento en 1 solo item
+// - NO recalcular precios por detalle (lo hace "Calcular precio detalle")
+// - NO escribir en PostgreSQL (lo hace "Update rows in a table")
 // ======================================================
 
 const items = $input.all();

@@ -1,18 +1,15 @@
 // ======================================================
-// PREPARAR CONTEXTO HANDOFF
-// PEGASO ADHESIVOS - V3
-// ======================================================
-//
-// El input inmediato viene de:
-//
-//   Marcar prospecto requiere humano
-//
-// Ese nodo PostgreSQL devuelve principalmente la fila
-// de prospectos.
-//
-// Por ello RECUPERAMOS explícitamente el contrato creado
-// por "Preparar derivación humana".
-//
+// NODO N8N: Preparar contexto handoff
+// ARCHIVO: code/06-derivacion-humana/preparar-contexto-handoff.js
+// VERSION: 3
+// RESPONSABILIDAD:
+// - Recibir la fila de prospectos devuelta por "Marcar prospecto requiere humano"
+// - Recuperar explícitamente el contrato creado por "Preparar derivación humana"
+// - Construir contexto_comercial.handoff (activo, motivo, intención, clasificación, prioridad, notificación, mensaje del cliente, iniciado_at)
+// - Fusionar fila DB + contrato handoff, dando prioridad al contrato y protegiendo prospecto_id
+// - Marcar handoff_activo = true
+// - NO escribir en PostgreSQL (lo hace "Guardar contexto handoff")
+// - NO recalcular motivo, prioridad ni notificación
 // ======================================================
 
 

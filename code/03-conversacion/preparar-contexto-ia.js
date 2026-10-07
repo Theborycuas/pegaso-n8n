@@ -1,14 +1,16 @@
 // ======================================================
-// PREPARAR CONTEXTO IA - V2.2
-// ======================================================
-// Objetivo:
-// Construir el contexto que recibirá el cerebro comercial.
-//
-// PRINCIPIOS:
-// - PostgreSQL / flujo previo es la fuente de verdad.
-// - La IA NO decide la identidad del actor.
-// - Conservamos cliente / contacto / prospecto / conversación.
-// - Exponemos contexto_comercial explícito al prompt.
+// NODO N8N: Preparar contexto IA
+// ARCHIVO: code/03-conversacion/preparar-contexto-ia.js
+// VERSION: 2.2
+// RESPONSABILIDAD:
+// - Construir el contexto que recibirá el cerebro comercial, tomando "Preparar conversación" como fuente de verdad
+// - Convertir las filas de "Recuperar historial conversación" en historial (direccion, contenido, tipo, enviado_at), descartando filas sin contenido
+// - Extraer los mensajes SALIENTE recientes y el último saliente para control anti-repetición
+// - Resolver tipo_actor (respeta el previo; si falta: CLIENTE > PROSPECTO > CONTACTO > DESCONOCIDO)
+// - Armar contexto_comercial explícito (prospecto, ubicación, diseño, última cotización con moneda USD por defecto)
+// - Derivar la clasificación A/B/C del prospecto desde su estado cuando no viene informada
+// - NO llamar a la IA ni decidir la identidad del actor (la IA no la decide)
+// - NO consultar PostgreSQL (si las cotizaciones no llegan por "Preparar conversación", hace falta una consulta previa)
 // ======================================================
 
 

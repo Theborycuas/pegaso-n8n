@@ -1,22 +1,14 @@
 // ======================================================
-// RECUPERAR DECISIÓN COMERCIAL - V2.2
-// ======================================================
-//
-// IMPORTANTE:
-// Después de "Resolver contexto comercial", esa salida es
-// el contrato comercial definitivo.
-//
-// El UPDATE de prospectos puede devolver solamente la fila
-// de PostgreSQL, por eso recuperamos aquí el resultado del
-// resolver, NO el de "Normalizar decisión IA".
-//
-// Esto evita perder:
-// - cantidad asumida = 1000;
-// - datos consolidados;
-// - acción corregida;
-// - protección contra recotización;
-// - respuestas informativas como INFORMAR_DISENO.
-//
+// NODO N8N: Recuperar decisión comercial
+// ARCHIVO: code/04-cerebro-comercial/recuperar-decision-comercial.js
+// VERSION: 2.2
+// RESPONSABILIDAD:
+// - Recuperar el contrato comercial desde "Resolver contexto comercial", porque el UPDATE de prospectos solo devuelve la fila de PostgreSQL.
+// - Preservar cantidad asumida, datos consolidados, acción corregida y respuestas informativas para el Switch "Enrutar acción comercial".
+// - Validar que la decisión exista y contenga accion; lanzar error si no.
+// - Marcar prospecto_actualizado=true.
+// - NO usar la salida de "Normalizar decisión IA".
+// - NO modificar la acción ni escribir en PostgreSQL.
 // ======================================================
 
 let decision = {};

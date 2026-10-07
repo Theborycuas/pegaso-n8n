@@ -1,16 +1,13 @@
 // ======================================================
-// FINALIZAR MENSAJE - MODO PRUEBA
-// ======================================================
-//
-// El mensaje YA fue guardado.
-//
-// Este número no tiene autorización para ser atendido
-// automáticamente mientras MODO_PRUEBA esté activo.
-//
-// No llamar IA.
-// No cotizar.
-// No responder WhatsApp.
-// No modificar la conversación comercial.
+// NODO N8N: Finalizar mensaje modo prueba
+// ARCHIVO: code/03-conversacion/finalizar-mensaje-modo-prueba.js
+// VERSION: 1.0
+// RESPONSABILIDAD:
+// - Cerrar la ejecución cuando MODO_PRUEBA está activo y el teléfono no está autorizado (el mensaje ya fue guardado)
+// - Devolver un resumen: flujo MODO_PRUEBA, respuesta_automatica = false, automatizacion_ejecutada = false
+// - Propagar el motivo de bloqueo (por defecto MODO_PRUEBA_TELEFONO_NO_AUTORIZADO), teléfono e ids de conversación y prospecto
+// - NO llamar a la IA, NO cotizar y NO responder por WhatsApp
+// - NO modificar la conversación comercial
 // ======================================================
 
 const input =

@@ -1,12 +1,15 @@
 // ======================================================
-// PREPARAR ACTUALIZACIÓN PROSPECTO
-// ======================================================
-// Objetivo:
-// - Tomar la decisión comercial ya normalizada.
-// - Conservar datos previos del prospecto cuando
-//   la nueva interacción no aporta un valor nuevo.
-// - Preparar exactamente los campos que actualizará
-//   PostgreSQL en pegaso.prospectos.
+// NODO N8N: Preparar actualización prospecto
+// ARCHIVO: code/04-cerebro-comercial/preparar-actualizacion-prospecto.js
+// VERSION: 1.0
+// RESPONSABILIDAD:
+// - Tomar la decisión comercial y preparar los campos *_update que persistirá PostgreSQL en pegaso.prospectos.
+// - Validar prospecto_id y lanzar error si no existe o es inválido.
+// - Conservar producto_interes, ciudad y provincia previos cuando el mensaje no aporta un valor nuevo.
+// - Registrar última intención, última acción y requiere_humano del prospecto.
+// - Mantener el estado actual del prospecto (por defecto NUEVO) y sellar prospecto_actualizado_at.
+// - NO implementar la máquina de estados del prospecto.
+// - NO escribir en PostgreSQL (lo hace "Actualizar prospecto comercial").
 // ======================================================
 
 const data = $input.first().json;

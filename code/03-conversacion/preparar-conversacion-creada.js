@@ -1,5 +1,13 @@
 // ======================================================
-// PREPARAR CONVERSACIÓN CREADA
+// NODO N8N: Preparar conversación creada
+// ARCHIVO: code/03-conversacion/preparar-conversacion-creada.js
+// VERSION: 1.0
+// RESPONSABILIDAD:
+// - Validar que "Crear conversación prospecto" devolvió un id mayor que 0 (lanza error si no)
+// - Combinar los datos originales de "Resolver conversación prospecto" con la conversación insertada
+// - Marcar conversacion_existe = true y conversacion_nueva = true
+// - Usar estado ACTIVA por defecto y prospecto_id original si el INSERT no los devuelve
+// - NO escribir en PostgreSQL (el INSERT ya lo hizo "Crear conversación prospecto")
 // ======================================================
 
 const creada = $input.first().json;

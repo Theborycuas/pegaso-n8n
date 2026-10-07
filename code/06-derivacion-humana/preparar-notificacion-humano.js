@@ -1,19 +1,15 @@
 // ======================================================
-// PREPARAR NOTIFICACIÓN HUMANO
-// PEGASO ADHESIVOS - V2
-// ======================================================
-//
-// Objetivo:
-//
-// Construir una notificación INTERNA para Pegaso
-// cuando una conversación requiere intervención humana.
-//
-// Este mensaje NO se envía al prospecto.
-//
-// Destinos previstos:
-// - Email Brevo
-// - WhatsApp interno futuro
-//
+// NODO N8N: Peparar notificacion humano
+// ARCHIVO: code/06-derivacion-humana/preparar-notificacion-humano.js
+// VERSION: 2
+// RESPONSABILIDAD:
+// - Construir una notificación INTERNA para Pegaso cuando una conversación requiere intervención humana
+// - Clasificar la alerta en una categoría (INTERESADO_PAGO, PAGO_REPORTADO, SOLICITA_CONTACTO, ARCHIVO_REQUIERE_REVISION, NEGOCIACION, RECLAMO, REVISION_GENERAL)
+// - Ajustar la prioridad de la alerta según la categoría
+// - Generar asunto, texto plano y HTML del email con datos del prospecto y su último mensaje
+// - Marcar canal_notificacion = EMAIL (destinos previstos: email Brevo/Resend; WhatsApp interno a futuro)
+// - NO enviar el correo (lo hacen los nodos HTTP "Brevo - Enviar notificación humana" y, como respaldo, "Resend - Enviar notificación humana")
+// - NO enviar nada al prospecto
 // ======================================================
 
 const input =

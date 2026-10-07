@@ -1,3 +1,16 @@
+// ======================================================
+// NODO N8N: Preparar diseño creado
+// ARCHIVO: code/07-cotizacion/preparar-diseno-creado.js
+// VERSION: 1.0
+// RESPONSABILIDAD:
+// - Recibir los diseños recién insertados por "Crear diseño"
+// - Relacionar cada diseño creado con su detalle original de "¿Diseño existe?" (rama false) por cliente_id, material_id, medidas, forma y nombre
+// - Devolver el detalle original con diseno_id del diseño creado, diseno_existente = false y diseno_creado = true
+// - Lanzar error si un diseño creado no puede relacionarse con ningún detalle
+// - NO crear ni modificar diseños en PostgreSQL
+// - NO validar producibilidad (lo hace "Validar producibilidad P4")
+// ======================================================
+
 const creados = $input.all();
 const originales = $('¿Diseño existe?').all();
 

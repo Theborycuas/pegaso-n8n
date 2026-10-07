@@ -1,6 +1,15 @@
 // ======================================================
-// APLICAR MÍNIMO DE IMPRESIÓN
-// PEGASO ADHESIVOS - V2.3
+// NODO N8N: Aplicar mínimo de impresión
+// ARCHIVO: code/07-cotizacion/aplicar-minimo-impresion.js
+// VERSION: 2.3
+// RESPONSABILIDAD:
+// - Asumir cantidad 1000 cuando el detalle no trae cantidad válida (null, vacía, no numérica o <= 0)
+// - Redondear hacia arriba cada cantidad al múltiplo de 1000, con mínimo de 1000 por detalle
+// - Conservar cantidad_original y marcar cantidad_asumida / minimo_aplicado por detalle
+// - Exponer banderas globales minimo_aplicado y cantidad_asumida para toda la cotización
+// - Adjuntar la nota comercial del mínimo (1000 por diseño/tamaño, múltiplos de 1000)
+// - NO validar medidas ni forma (lo hacen "Preparar datos cotización" y "Validar producibilidad P4")
+// - NO calcular precio (lo hace "Calcular precio detalle")
 // ======================================================
 
 const MINIMO_IMPRESION = 1000;

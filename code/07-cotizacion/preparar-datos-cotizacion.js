@@ -1,17 +1,16 @@
-// ============================================================
-// PREPARAR DATOS PARA COTIZACIÓN
-// PEGASO ADHESIVOS - V2.3
-// ============================================================
-//
-// Entrada:
-// input.detalles[]
-//
-// Para P4:
-// - producto NO es obligatorio
-// - material NO es obligatorio
-// - necesitamos cantidad + ancho + alto
-//
-// ============================================================
+// ======================================================
+// NODO N8N: Preparar datos cotización
+// ARCHIVO: code/07-cotizacion/preparar-datos-cotizacion.js
+// VERSION: 2.3
+// RESPONSABILIDAD:
+// - Normalizar input.detalles[]: cantidad/ancho_cm/alto_cm a número, producto/nombre recortados o null
+// - Normalizar forma a mayúsculas (RECTANGULAR por defecto si viene null)
+// - Descartar detalles sin cantidad, ancho_cm y alto_cm positivos (producto y material NO son obligatorios para P4)
+// - Devolver status READY_FOR_QUOTATION, o NO_DETAILS / NO_VALID_DETAILS con datos de debug
+// - Propagar minimo_impresion, multiplo_impresion, minimo_aplicado, cantidad_asumida y nota_minimo
+// - NO propagar material (los campos por detalle se reconstruyen de forma explícita)
+// - NO escribir en PostgreSQL (lo hace "Insert cotización")
+// ======================================================
 
 const input = $input.first().json;
 

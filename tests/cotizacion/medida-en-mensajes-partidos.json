@@ -1,0 +1,31 @@
+{
+  "nombre": "Medida y cortesía en mensajes separados",
+  "descripcion": "Con solo la medida se cotiza con el mínimo de 1000. Un 'porfa' posterior no debe recotizar. Hoy no hay debounce: cada mensaje se procesa por separado.",
+  "estado": "borrador",
+  "contexto_inicial": {
+    "prospecto_estado": "NUEVO",
+    "contexto_comercial": {}
+  },
+  "turnos": [
+    {
+      "cliente": "de 10x5 cm",
+      "esperado": {
+        "accion": "COTIZAR_P4",
+        "cantidad": 1000,
+        "ancho_cm": 10,
+        "alto_cm": 5,
+        "forma": "RECTANGULAR",
+        "total": 36
+      }
+    },
+    {
+      "cliente": "porfa",
+      "esperado": {
+        "requiere_humano": false
+      },
+      "no_esperado": {
+        "accion": "COTIZAR_P4"
+      }
+    }
+  ]
+}

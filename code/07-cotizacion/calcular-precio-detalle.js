@@ -1,77 +1,15 @@
 // ======================================================
-// CALCULAR PRECIO DETALLE
-// PEGASO ADHESIVOS - V2.5
-// ======================================================
-//
-// FUENTE ÚNICA DE VERDAD PARA REGLAS DE PRECIO.
-//
-// Mantiene compatibilidad con:
-// - cotizacion_detalles
-// - Calcular resumen cotización
-// - Recuperar detalles calculados
-// - Construir mensaje comercial
-//
-// ======================================================
-//
-// REGLAS V2.5:
-//
-// 1. MEDIDA MÍNIMA
-//    Ninguna dimensión puede ser < 2 cm.
-//    Es decir, 1 cm o menos no se produce.
-//
-// 2. BANDA FIJA PEQUEÑA $18 / 1000
-//    Cualquier medida donde:
-//      ancho >= 2 y ancho < 4
-//      alto  >= 2 y alto  < 4
-//
-//    Ejemplos:
-//      2x2
-//      2x3
-//      3x2
-//      3x3
-//      3x2.5
-//      3.2x2
-//      3.4x3.2
-//      2.2x2.5
-//
-//    Todas cuestan $18 / 1000.
-//
-//    La forma NO modifica este precio.
-//
-// 3. PRECIO FIJO 4x4
-//    4x4 cm -> $20 / 1000.
-//
-// 4. 5x5 cm
-//    Para cálculo se aumenta:
-//    +1 cm ancho
-//    +1 cm alto
-//
-// 5. PRECIO GENERAL
-//    Factor = 0.72
-//
-// 6. TAMAÑO GRANDE
-//    Si ancho >= 10 Y alto >= 10:
-//    factor = 0.67
-//
-// 7. VOLUMEN
-//    Si cantidad >= 10.000:
-//    factor = 0.50
-//
-//    IMPORTANTE:
-//    No modifica precios fijos.
-//
-// 8. FORMAS ESPECIALES
-//    circular / redondeada / troquelada
-//    +1 cm ancho
-//    +1 cm alto
-//
-//    EXCEPTO:
-//    cuando aplica una banda/precio fijo.
-//
-// 9. REDONDEO
-//    Precio comercial final:
-//    Math.ceil(...)
-//
+// NODO N8N: Calcular precio detalle
+// ARCHIVO: code/07-cotizacion/calcular-precio-detalle.js
+// VERSION: 2.5
+// RESPONSABILIDAD:
+// - Calcular el precio de cada fila insertada en cotizacion_detalles (fuente única de verdad de reglas de precio)
+// - Aplicar precios fijos por 1000: banda 2 a <4 cm en ambos lados = $18 y 4x4 exacto = $20 (la forma no los altera)
+// - Aplicar fórmula ancho x alto x factor (0.72 general, 0.67 si ambos lados >= 10 cm, 0.50 si cantidad >= 10.000) con +1 cm por lado para 5x5 exacto y para formas circular/redondeada/troquelada
+// - Restar descuento, redondear el total comercial hacia arriba (Math.ceil) y derivar subtotal/IVA interno 15%
+// - Fusionar datos del INSERT con los de "EXPANDIR DETALLES" por índice y exponer campos de auditoría del cálculo
+// - NO validar producibilidad (lo hace "Validar producibilidad P4"); solo lanza error si algún lado es < 2 cm
+// - NO escribir en PostgreSQL (lo hacen "Update rows in a table" y "Update cotizacion_detalles")
 // ======================================================
 
 

@@ -1,0 +1,32 @@
+---
+description: Convenciones para editar el código del workflow n8n de Pegaso
+alwaysApply: true
+---
+
+# Proyecto pegaso-n8n
+
+Cada `.js` de `code/` es el contenido literal de un nodo Code de n8n (script con `return` top-level, usa `$input`, `$json`, `$('Nodo')`). No es un módulo: no uses `import`, `require` de archivos locales ni `export`.
+
+Antes de cambiar una regla de negocio, lee `docs/reglas-comerciales.md` y `docs/arquitectura.md` para ubicar el nodo correcto. La fórmula de precio vive solo en `code/07-cotizacion/calcular-precio-detalle.js`.
+
+## Al editar un archivo de `code/`
+
+- Mantén el encabezado estándar (`NODO N8N`, `ARCHIVO`, `VERSION`, `RESPONSABILIDAD`).
+- Sube `VERSION`: menor (2.2 → 2.3) por ajuste de regla; mayor (→ 3.0) si cambia el contrato de entrada/salida.
+- Actualiza `RESPONSABILIDAD` si cambia lo que hace el nodo.
+- Si cambias un campo de salida, busca en `code/` quién lo lee (`$('Nombre del nodo')` o el campo).
+- Verifica sintaxis: `node -e "new (Object.getPrototypeOf(async function(){}).constructor)(require('fs').readFileSync(process.argv[1],'utf8'))" <archivo>`.
+
+## Documentación en el mismo cambio
+
+- Regla de negocio → `docs/reglas-comerciales.md`.
+- Handoff → `docs/flujo-handoff.md`.
+- Nodo nuevo o renombrado → `docs/arquitectura.md` y `workflows/pegaso-whatsapp.map.json`.
+- Si se corrige algo de `docs/pendientes-tecnicos.md`, quítalo de ahí.
+- Si el cambio afecta un caso de `tests/`, actualiza el esperado.
+
+## Sincronización con n8n
+
+- `npm run build` lleva los archivos al JSON del workflow; `npm run extract` sobrescribe archivos desde n8n (usar con cuidado).
+- Los `.md` de `prompts/` no llevan `=` inicial; el script lo agrega.
+- Nunca escribas API keys, tokens ni correos en el repo.

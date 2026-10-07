@@ -1,3 +1,17 @@
+// ======================================================
+// NODO N8N: Validar extracción Groq | Validar extracción DeepSeek | Validar extracción OpenApi
+// ARCHIVO: code/07-cotizacion/validar-extraccion-cotizacion.js
+// VERSION: 1.0
+// RESPONSABILIDAD:
+// - Verificar que la IA extractora devolvió un objeto output con detalles[] no vacío
+// - Validar tipos por detalle: cantidad/ancho_cm/alto_cm numéricos; producto/nombre/sabor texto (o null)
+// - Validar que forma pertenezca al enum del schema (RECTANGULAR, CUADRADA, CIRCULAR, IRREGULAR, NO_ESPECIFICADA, null)
+// - Devolver valid + reason para que el IF decida pasar al siguiente proveedor de IA
+// - Entregar detalles[] solo si la extracción es válida (si no, array vacío)
+// - NO aplicar mínimo de impresión ni completar datos faltantes (lo hace "Aplicar mínimo de impresión")
+// - NO exigir medidas presentes ni positivas (se filtran en "Preparar datos cotización")
+// ======================================================
+
 const item = $input.first().json;
 
 const output = item.output;

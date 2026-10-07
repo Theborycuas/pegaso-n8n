@@ -1,27 +1,14 @@
 // ======================================================
-// FINALIZAR COTIZACIÓN COMERCIAL
-// PEGASO ADHESIVOS - V2
-// ======================================================
-//
-// Objetivo:
-//
-// Cerrar formalmente el flujo de cotización.
-//
-// Este nodo soporta DOS resultados válidos:
-//
-// 1. COTIZACIÓN PRODUCIBLE
-//    - existe cotizacion_id
-//    - existe total
-//    - cotizacion_generada = true
-//
-// 2. COTIZACIÓN NO PRODUCIBLE
-//    - NO existe cotizacion_id
-//    - NO existe total
-//    - cotizacion_generada = false
-//    - existe mensaje comercial explicando el motivo
-//
-// Una cotización no producible NO constituye un error.
-//
+// NODO N8N: Finalizar cotización comercial
+// ARCHIVO: code/07-cotizacion/finalizar-cotizacion-comercial.js
+// VERSION: 2
+// RESPONSABILIDAD:
+// - Cerrar formalmente el flujo de cotización leyendo "Resolver estado post cotización"
+// - Determinar si se generó cotización (cotizacion_generada, luego cotizacion_producible, luego presencia de cotizacion_id)
+// - Caso producible: exigir cotizacion_id y total válidos y devolver flujo COTIZACION / resultado COTIZADA / estado_comercial COTIZADO
+// - Caso no producible: exigir mensaje comercial y devolver flujo COTIZACION_NO_PRODUCIBLE, estado_comercial NO_COTIZABLE y siguiente_accion_esperada SOLICITAR_NUEVA_MEDIDA
+// - Tratar la cotización no producible como resultado válido, no como error
+// - NO escribir en PostgreSQL ni enviar mensajes
 // ======================================================
 
 

@@ -1,24 +1,15 @@
 // ======================================================
-// PREPARAR MENSAJE DE TRANSICIÓN A HUMANO
-// PEGASO ADHESIVOS - V3
-// ======================================================
-//
-// El input inmediato puede venir de un UPDATE PostgreSQL.
-//
-// Por eso recuperamos explícitamente el contrato de:
-//
-//   Preparar contexto handoff
-//
-// IMPORTANTE:
-//
-// handoff_mensaje_cliente
-//     = mensaje ORIGINAL del prospecto
-//
-// mensaje_transicion
-//     = respuesta de Pegaso al prospecto
-//
-// Son conceptos diferentes.
-//
+// NODO N8N: Preparar mensaje transición humano
+// ARCHIVO: code/06-derivacion-humana/preparar-mensaje-transicion-humano.js
+// VERSION: 3
+// RESPONSABILIDAD:
+// - Recibir la salida del UPDATE "Guardar contexto handoff" y recuperar el contrato de "Preparar contexto handoff"
+// - Elegir el texto fijo de transición al prospecto según el motivo (pago, reporte de pago, pedido, llamada, archivo, negociación, reclamo)
+// - Aplicar un fallback por intención cuando el motivo no tiene texto propio
+// - Mantener separados handoff_mensaje_cliente (mensaje ORIGINAL del prospecto) y mensaje_transicion (respuesta de Pegaso)
+// - Exponer mensaje_salida y tipo_mensaje_salida = HANDOFF_HUMANO para el guardado del mensaje saliente
+// - NO insertar el mensaje (lo hace "Guardar mensaje transición humano")
+// - NO enviar por WhatsApp (lo hace "Preparar envío WhatsApp" + "YCloud Enviar Wts")
 // ======================================================
 
 

@@ -1,16 +1,17 @@
 // ======================================================
-// NORMALIZAR DECISIÓN IA - V2
-// ======================================================
-// Recibe una decisión YA VALIDADA.
-// A partir de este nodo no importa qué modelo respondió.
-//
-// Además:
-// - conserva contexto;
-// - resuelve ciudad/provincia;
-// - impide degradar clasificación A/B/C;
-// - calcula etiqueta_grande;
-// - calcula banderas operativas;
-// - normaliza derivación/notificación.
+// NODO N8N: Normalizar decisión IA
+// ARCHIVO: code/04-cerebro-comercial/normalizar-decision-ia.js
+// VERSION: 2
+// RESPONSABILIDAD:
+// - Convertir la decisión YA VALIDADA (de cualquier proveedor) en un contrato único Pegaso con tipos normalizados.
+// - Unir la decisión con el contexto de "Preparar contexto IA" (IDs, prospecto, tipo_actor, contexto_comercial) y resolver ciudad/provincia.
+// - Impedir degradar la clasificación A/B/C: máximo entre anterior, IA y mínimo por intención/motivo.
+// - Calcular etiqueta_grande (lado corto > 10 o lado largo > 15 cm) y banderas de continuidad.
+// - Forzar requiere_notificacion=requiere_humano y calcular prioridad_derivacion (ALTA/MEDIA/NORMAL).
+// - Limpiar el tono de respuesta_sugerida (😊 y aperturas robóticas).
+// - Lanzar error si hay medidas/cantidad <= 0 o requiere_humano sin DERIVAR_HUMANO.
+// - NO decidir la acción final (lo hace "Resolver contexto comercial").
+// - NO escribir en PostgreSQL.
 // ======================================================
 
 const input = $json;

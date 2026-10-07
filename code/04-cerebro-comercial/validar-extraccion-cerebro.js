@@ -1,16 +1,17 @@
 // ======================================================
-// VALIDAR EXTRACCIÓN CEREBRO COMERCIAL - V2.3
-// ======================================================
-// Valida:
-// - contrato del Cerebro Comercial;
-// - enums;
-// - cotización P4;
-// - continuidad conversacional;
-// - medidas no producibles;
-// - derivación humana;
-// - clasificación A/B/C;
-// - motivo de derivación;
-// - notificación.
+// NODO N8N: Validar extracción Cerebro comercial | Validar extracción DeepSeek1 | Validar extracción OpenApi1
+// ARCHIVO: code/04-cerebro-comercial/validar-extraccion-cerebro.js
+// VERSION: 2.3
+// RESPONSABILIDAD:
+// - Parsear la salida del LLM (output, string JSON u objeto anidado) y validar el contrato del Cerebro Comercial (campos obligatorios, tipos y enums).
+// - Validar coherencia acción/intención: COTIZAR_P4, PEDIR_MEDIDAS, MEDIDA_NO_PRODUCIBLE, PEDIR_PRODUCTO/FORMA, INFORMAR_*, REGISTRAR_ACEPTACION, RESPONDER_GENERAL.
+// - Validar derivación humana, motivo de derivación, notificación e intenciones que obligan a DERIVAR_HUMANO.
+// - Exigir clasificación A/B/C mínima según intención/motivo (casos A obligatorios).
+// - Controlar tono (sin 😊 ni muletillas iniciales) y evitar repetir el último mensaje saliente de "Preparar contexto IA".
+// - Asumir cantidad=1000 cuando existen ancho_cm y alto_cm sin cantidad.
+// - Devolver valid=true/false + validation_reason para que el If decida si pasar al siguiente proveedor de IA.
+// - NO corregir la decisión de la IA (solo rechaza; la corrección ocurre en "Normalizar decisión IA" y "Resolver contexto comercial").
+// - NO llamar a la IA ni escribir en PostgreSQL.
 // ======================================================
 
 

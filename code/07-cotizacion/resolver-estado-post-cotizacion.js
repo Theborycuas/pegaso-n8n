@@ -1,5 +1,13 @@
 // ======================================================
-// RESOLVER ESTADO POST COTIZACIÓN
+// NODO N8N: Resolver estado post cotización
+// ARCHIVO: code/07-cotizacion/resolver-estado-post-cotizacion.js
+// VERSION: 1.0
+// RESPONSABILIDAD:
+// - Leer la salida de "Preparar contexto post cotización" y conservarla completa
+// - Determinar si existe un prospecto válido (prospecto_id numérico > 0)
+// - Fijar prospecto_id_estado_update, prospecto_estado_nuevo = COTIZADO y actualizar_estado_prospecto para el IF "¿Actualizar prospecto cotizado?"
+// - Registrar estado_resuelto_at
+// - NO escribir en PostgreSQL (lo hace "Actualizar prospecto cotizado")
 // ======================================================
 
 const contexto =

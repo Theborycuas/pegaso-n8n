@@ -1,14 +1,14 @@
 // ======================================================
-// RESOLVER DISEÑO
-// ======================================================
-// Toma:
-// - los detalles ya resueltos por catálogo
-// - los diseños existentes del cliente
-//
-// Devuelve:
-// - un item por detalle
-// - diseno_id si encuentra coincidencia exacta
-// - diseno_id = null si no existe
+// NODO N8N: Resolver diseño
+// ARCHIVO: code/07-cotizacion/resolver-diseno.js
+// VERSION: 1.0
+// RESPONSABILIDAD:
+// - Tomar los detalles resueltos por catálogo y los diseños existentes del cliente (entrada desde "Buscar diseño existente")
+// - Buscar coincidencia exacta por cliente_id, material_id, ancho_cm, alto_cm, forma y nombre (sin mayúsculas/espacios) con activo = true
+// - Devolver un item por detalle con diseno_id (o null si no existe) y diseno_existente
+// - Adjuntar diseno_nombre_resuelto y conservar detalle_index
+// - NO crear diseños (lo hace "Crear diseño" en la rama false de "¿Diseño existe?")
+// - NO escribir en PostgreSQL
 // ======================================================
 
 const detalles = $('Resolver catálogo Pegaso').all();

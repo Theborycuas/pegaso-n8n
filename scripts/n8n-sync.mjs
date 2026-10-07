@@ -63,40 +63,10 @@ const fields = {
 
   prompts: {
     get(node) {
-      const p = node.parameters ?? {};
-      switch (node.type) {
-        case AI_TYPES.INFORMATION_EXTRACTOR:
-          return p.options?.systemPromptTemplate ?? '';
-        case AI_TYPES.AGENT:
-          return p.options?.systemMessage ?? '';
-        case AI_TYPES.CHAIN_LLM:
-          return findSystemMessage(p)?.message ?? '';
-        default:
-          throw new Error(`tipo de nodo sin prompt soportado (${node.type})`);
-      }
+      return stripExpressionPrefix(getPrompt(node));
     },
     set(node, value) {
-      const p = (node.parameters ??= {});
-      switch (node.type) {
-        case AI_TYPES.INFORMATION_EXTRACTOR:
-          p.options = { ...p.options, systemPromptTemplate: value };
-          return;
-        case AI_TYPES.AGENT:
-          p.options = { ...p.options, systemMessage: value };
-          return;
-        case AI_TYPES.CHAIN_LLM: {
-          const msg = findSystemMessage(p);
-          if (msg) msg.message = value;
-          else {
-            p.messages ??= {};
-            p.messages.messageValues ??= [];
-            p.messages.messageValues.unshift({ message: value });
-          }
-          return;
-        }
-        default:
-          throw new Error(`tipo de nodo sin prompt soportado (${node.type})`);
-      }
+      setPrompt(node, toExpression(value));
     },
   },
 
@@ -115,6 +85,48 @@ const fields = {
     },
   },
 };
+
+// En n8n un campo con expresiones {{ }} se guarda con "=" al inicio; los .md no lo llevan.
+const stripExpressionPrefix = (text) => (text.startsWith('=') ? text.slice(1) : text);
+const toExpression = (text) => (text.includes('{{') ? `=${text}` : text);
+
+function getPrompt(node) {
+  const p = node.parameters ?? {};
+  switch (node.type) {
+    case AI_TYPES.INFORMATION_EXTRACTOR:
+      return p.options?.systemPromptTemplate ?? '';
+    case AI_TYPES.AGENT:
+      return p.options?.systemMessage ?? '';
+    case AI_TYPES.CHAIN_LLM:
+      return findSystemMessage(p)?.message ?? '';
+    default:
+      throw new Error(`tipo de nodo sin prompt soportado (${node.type})`);
+  }
+}
+
+function setPrompt(node, value) {
+  const p = (node.parameters ??= {});
+  switch (node.type) {
+    case AI_TYPES.INFORMATION_EXTRACTOR:
+      p.options = { ...p.options, systemPromptTemplate: value };
+      return;
+    case AI_TYPES.AGENT:
+      p.options = { ...p.options, systemMessage: value };
+      return;
+    case AI_TYPES.CHAIN_LLM: {
+      const msg = findSystemMessage(p);
+      if (msg) msg.message = value;
+      else {
+        p.messages ??= {};
+        p.messages.messageValues ??= [];
+        p.messages.messageValues.unshift({ message: value });
+      }
+      return;
+    }
+    default:
+      throw new Error(`tipo de nodo sin prompt soportado (${node.type})`);
+  }
+}
 
 function findSystemMessage(params) {
   // En chainLlm el tipo por defecto es SystemMessagePromptTemplate y n8n omite el campo.

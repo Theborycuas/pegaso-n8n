@@ -1,21 +1,16 @@
 // ======================================================
-// PREPARAR ENTRADA WHATSAPP
-// ======================================================
-// Convierte el evento normalizado de Meta al formato
-// interno que utilizará el flujo comercial de Pegaso.
-//
-// Entrada esperada:
-// {
-//   evento_whatsapp: {
-//     procesable: true,
-//     telefono_cliente: "...",
-//     nombre_cliente: "...",
-//     mensaje_id: "...",
-//     tipo_mensaje: "text",
-//     texto: "...",
-//     ...
-//   }
-// }
+// NODO N8N: Preparar entrada WhatsApp
+// ARCHIVO: code/01-entrada/preparar-entrada-whatsapp.js
+// VERSION: 1.0
+// RESPONSABILIDAD:
+// - Validar que exista evento_whatsapp procesable con telefono_cliente y mensaje_id (lanza error si no)
+// - Traducir tipo_mensaje de WhatsApp a enum interno (TEXTO, IMAGEN, AUDIO, VIDEO, DOCUMENTO, STICKER, UBICACION, CONTACTO, INTERACTIVO, DESCONOCIDO)
+// - Obtener el texto utilizable: body si es texto, o caption si es imagen/video/documento
+// - Convertir el timestamp Unix a fecha ISO y agrupar datos extra en meta_whatsapp (incluido media)
+// - Emitir el contrato compatible con "Mensaje entrante TEST" (telefono, nombre_whatsapp, mensaje, tipo, canal, mensaje_externo_id)
+// - Calcular apto_para_flujo_texto y requiere_procesamiento_media
+// - NO filtrar el flujo (lo decide el IF siguiente "¿Apto para flujo de texto?")
+// - NO procesar multimedia (solo la marca)
 // ======================================================
 
 const input = $input.first().json;

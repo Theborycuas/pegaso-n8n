@@ -1,15 +1,15 @@
 // ======================================================
-// RESOLVER ESTADO PROSPECTO
-// ======================================================
-// Objetivo:
-// Resolver exclusivamente el estado COMERCIAL del prospecto.
-//
-// IMPORTANTE:
-// El input inmediato viene de "Actualizar actividad conversación"
-// y su campo `estado` corresponde a la CONVERSACIÓN ("ACTIVA").
-//
-// Por eso NO utilizamos $json.estado como estado del prospecto.
-// Recuperamos el estado comercial desde los nodos anteriores.
+// NODO N8N: Resolver estado prospecto
+// ARCHIVO: code/05-respuesta-comercial/resolver-estado-prospecto.js
+// VERSION: 1.0
+// RESPONSABILIDAD:
+// - Resolver exclusivamente el estado COMERCIAL del prospecto desde "Actualizar prospecto comercial" y "Recuperar decisión comercial".
+// - Resolver prospecto_id y lanzar error si no está disponible.
+// - Validar el estado contra el catálogo NUEVO, EN_CONVERSACION, COTIZADO, PEDIDO_CONFIRMADO, REQUIERE_HUMANO.
+// - Aplicar la única transición NUEVO -> EN_CONVERSACION y calcular actualizar_estado_prospecto para el IF siguiente.
+// - NO usar $json.estado (pertenece a la conversación, p.ej. "ACTIVA").
+// - NO marcar COTIZADO, confirmar pedido ni derivar a humano.
+// - NO escribir en PostgreSQL (lo hace "Actualizar estado prospecto").
 // ======================================================
 
 const data = $input.first().json;

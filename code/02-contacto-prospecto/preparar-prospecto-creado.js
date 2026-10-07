@@ -1,8 +1,14 @@
 // ======================================================
-// PREPARAR PROSPECTO CREADO
-// ======================================================
-// Convierte la salida del INSERT de prospectos
-// al mismo formato que usa "Resolver prospecto".
+// NODO N8N: Preparar prospecto creado
+// ARCHIVO: code/02-contacto-prospecto/preparar-prospecto-creado.js
+// VERSION: 1.0
+// RESPONSABILIDAD:
+// - Convertir la salida del INSERT "Crear prospecto" al mismo formato que emite "Resolver prospecto"
+// - Recuperar el mensaje y contacto originales desde "Resolver prospecto", con respaldo en las columnas insertadas
+// - Fijar prospecto_existe = true y usar estado NUEVO por defecto si el INSERT no lo devuelve
+// - Normalizar ids a número y flags (contacto_existe, es_cliente_registrado, prospecto_requiere_humano) a booleano
+// - NO escribir en PostgreSQL (el INSERT ya lo hizo "Crear prospecto")
+// - NO validar que el INSERT haya devuelto un id válido
 // ======================================================
 
 const prospectoCreado = $input.first().json;

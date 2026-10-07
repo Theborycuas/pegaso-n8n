@@ -1,6 +1,13 @@
 // ======================================================
-// PREPARAR MENSAJE NO PRODUCIBLE
-// PEGASO ADHESIVOS
+// NODO N8N: Construir mensaje no producible
+// ARCHIVO: code/07-cotizacion/construir-mensaje-no-producible.js
+// VERSION: 1.0
+// RESPONSABILIDAD:
+// - Tomar el primer elemento de detalles_invalidos (o ancho_cm/alto_cm del input) entregado por "Validar producibilidad P4"
+// - Redactar mensaje específico si algún lado es <= 1 cm, o uno genérico pidiendo otra medida en los demás casos
+// - Conservar todo el input y sobrescribir el contrato de mensajería (tipo NO_PRODUCIBLE, 1 mensaje, cotizacion_producible = false)
+// - NO decidir la producibilidad (lo hace "Validar producibilidad P4")
+// - NO calcular precios ni escribir en PostgreSQL
 // ======================================================
 
 const input =

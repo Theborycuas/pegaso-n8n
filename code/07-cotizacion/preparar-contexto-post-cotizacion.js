@@ -1,28 +1,15 @@
 // ======================================================
-// PREPARAR CONTEXTO POST COTIZACIÓN
-// PEGASO ADHESIVOS - V2.6
-// ======================================================
-//
-// OBJETIVO:
-//
-// Actualizar contexto_comercial después del intento
-// de cotización.
-//
-// IMPORTANTE:
-//
-// Existen DOS resultados posibles:
-//
-// 1. COTIZACIÓN PRODUCIBLE
-// 2. COTIZACIÓN NO PRODUCIBLE
-//
-// Este nodo NO puede asumir que:
-// "Preparar mensaje cotización"
-// siempre fue ejecutado.
-//
-// Tampoco debe marcar como COTIZADO a un prospecto
-// cuando las medidas no son producibles.
-//
-// PostgreSQL continúa siendo la fuente de verdad.
+// NODO N8N: Preparar contexto post cotización
+// ARCHIVO: code/07-cotizacion/preparar-contexto-post-cotizacion.js
+// VERSION: 2.6
+// RESPONSABILIDAD:
+// - Actualizar contexto_comercial tras el intento de cotización partiendo del contexto de "Resolver contexto comercial"
+// - Detectar la rama ejecutada (.isExecuted de "Preparar mensaje cotización" o "Construir mensaje no producible", con fallback a "Guardar mensaje comercial")
+// - Si es producible: exigir cotizacion_id y total, guardar contexto_comercial.cotizacion con estado COTIZADA y marcar estado_comercial COTIZADO
+// - Si no es producible: registrar el intento fallido (ultimo_error_produccion) sin sobrescribir la última cotización válida ni marcar COTIZADO
+// - Lanzar error si falta conversacion_id o si no puede determinarse el tipo de resultado
+// - NO asumir que "Preparar mensaje cotización" siempre se ejecutó
+// - NO escribir en PostgreSQL (lo hace "Guardar contexto post cotización")
 // ======================================================
 
 
