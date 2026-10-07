@@ -1,1 +1,11 @@
-// @pendiente: pegar contenido de "EXECUTOR MOMENTANEP" (o ejecutar npm run extract)
+return [
+    {
+      json: {
+       
+        message: 'LLEGO AL FINAL.',
+        details: [],
+        cantidad_detalles: 0,
+        source: 'NONE'
+      }
+    }
+  ];
