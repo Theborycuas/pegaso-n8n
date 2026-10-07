@@ -1,0 +1,1 @@
+<!-- @pendiente: pegar contenido de "Extractor → Groq Chat Model", "Extractor → DeepSeek Chat Model", "Extractor → OpenAI Chat Model" (o ejecutar npm run extract) -->

@@ -1,0 +1,14 @@
+{
+  "name": "pegaso-n8n",
+  "private": true,
+  "type": "module",
+  "description": "Código, prompts y schemas versionados del workflow Pegaso WhatsApp en n8n",
+  "scripts": {
+    "status": "node scripts/n8n-sync.mjs status",
+    "extract": "node scripts/n8n-sync.mjs extract",
+    "build": "node scripts/n8n-sync.mjs build"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

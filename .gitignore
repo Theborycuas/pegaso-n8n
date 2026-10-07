@@ -1,0 +1,10 @@
+node_modules/
+.env
+.env.*
+
+# Nunca versionar credenciales exportadas de n8n
+credentials/
+*.credentials.json
+
+.DS_Store
+Thumbs.db

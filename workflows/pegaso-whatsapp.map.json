@@ -1,0 +1,92 @@
+{
+  "workflow": "workflows/pegaso-whatsapp.json",
+  "code": {
+    "code/01-entrada/normalizar-evento-whatsapp.js": ["Normalizar evento WhatsApp"],
+    "code/01-entrada/preparar-entrada-whatsapp.js": ["Preparar entrada WhatsApp"],
+    "code/01-entrada/normalizar-mensaje.js": ["Normalizar mensaje"],
+
+    "code/02-contacto-prospecto/resolver-contacto.js": ["Resolver contacto"],
+    "code/02-contacto-prospecto/resolver-prospecto.js": ["Resolver prospecto"],
+    "code/02-contacto-prospecto/preparar-prospecto-creado.js": ["Preparar prospecto creado"],
+
+    "code/03-conversacion/resolver-conversacion-prospecto.js": ["Resolver conversación prospecto"],
+    "code/03-conversacion/preparar-conversacion-creada.js": ["Preparar conversación creada"],
+    "code/03-conversacion/preparar-conversacion.js": ["Preparar conversación"],
+    "code/03-conversacion/resolver-permiso-automatizacion.js": ["Resolver permiso automatización"],
+    "code/03-conversacion/finalizar-mensaje-atencion-humana.js": ["Finalizar mensaje atención humana"],
+    "code/03-conversacion/finalizar-mensaje-modo-prueba.js": ["Finalizar mensaje modo prueba"],
+    "code/03-conversacion/preparar-contexto-ia.js": ["Preparar contexto IA"],
+
+    "code/04-cerebro-comercial/validar-extraccion-cerebro.js": [
+      "Validar extracción Cerebro comercial",
+      "Validar extracción DeepSeek1",
+      "Validar extracción OpenApi1"
+    ],
+    "code/04-cerebro-comercial/error-ninguna-ia-cerebro.js": ["Error ninguna IA funciono cerebro"],
+    "code/04-cerebro-comercial/normalizar-decision-ia.js": ["Normalizar decisión IA"],
+    "code/04-cerebro-comercial/resolver-contexto-comercial.js": ["Resolver contexto comercial"],
+    "code/04-cerebro-comercial/aplicar-reglas-comerciales.js": ["Aplicar reglas comerciales"],
+    "code/04-cerebro-comercial/preparar-actualizacion-prospecto.js": ["Preparar actualización prospecto"],
+    "code/04-cerebro-comercial/recuperar-decision-comercial.js": ["Recuperar decisión comercial"],
+
+    "code/05-respuesta-comercial/preparar-respuesta-comercial.js": ["Preparar respuesta comercial"],
+    "code/05-respuesta-comercial/resolver-estado-prospecto.js": ["Resolver estado prospecto"],
+    "code/05-respuesta-comercial/finalizar-ciclo-comercial.js": ["Finalizar ciclo comercial"],
+    "code/05-respuesta-comercial/executor-momentaneo.js": ["EXECUTOR MOMENTANEP"],
+
+    "code/06-derivacion-humana/preparar-derivacion-humana.js": ["Preparar derivación humana"],
+    "code/06-derivacion-humana/preparar-contexto-handoff.js": ["Preparar contexto handoff"],
+    "code/06-derivacion-humana/preparar-mensaje-transicion-humano.js": ["Preparar mensaje transición humano"],
+    "code/06-derivacion-humana/finalizar-derivacion-humana.js": ["Finalizar derivación humana"],
+    "code/06-derivacion-humana/preparar-notificacion-humano.js": ["Peparar notificacion humano"],
+
+    "code/07-cotizacion/validar-extraccion-cotizacion.js": [
+      "Validar extracción Groq",
+      "Validar extracción DeepSeek",
+      "Validar extracción OpenApi"
+    ],
+    "code/07-cotizacion/error-ninguna-ia-cotizacion.js": ["Error ninguna IA funciono"],
+    "code/07-cotizacion/aplicar-minimo-impresion.js": ["Aplicar mínimo de impresión"],
+    "code/07-cotizacion/preparar-datos-cotizacion.js": ["Preparar datos cotización"],
+    "code/07-cotizacion/expandir-detalles.js": ["EXPANDIR DETALLES"],
+    "code/07-cotizacion/resolver-catalogo-pegaso.js": ["Resolver catalogo Pegaso"],
+    "code/07-cotizacion/resolver-diseno.js": ["Resolver diseño"],
+    "code/07-cotizacion/preparar-diseno-creado.js": ["Preparar diseño creado"],
+    "code/07-cotizacion/validar-producibilidad-p4.js": ["Validar producibilidad P4"],
+    "code/07-cotizacion/calcular-precio-detalle.js": ["Calcular precio detalle"],
+    "code/07-cotizacion/calcular-resumen-cotizacion.js": ["Calcular resumen cotización"],
+    "code/07-cotizacion/recuperar-detalles-calculados.js": ["Recuperar detalles calculados"],
+    "code/07-cotizacion/preparar-mensaje-cotizacion.js": ["Preparar mensaje cotización"],
+    "code/07-cotizacion/construir-mensaje-no-producible.js": ["Construir mensaje no producible"],
+    "code/07-cotizacion/construir-mensaje-comercial.js": ["Construir mensaje comercial"],
+    "code/07-cotizacion/preparar-contexto-post-cotizacion.js": ["Preparar contexto post cotización"],
+    "code/07-cotizacion/resolver-estado-post-cotizacion.js": ["Resolver estado post cotización"],
+    "code/07-cotizacion/finalizar-cotizacion-comercial.js": ["Finalizar cotización comercial"],
+
+    "code/08-salida-whatsapp/preparar-envio-whatsapp.js": ["Preparar envío WhatsApp"]
+  },
+  "prompts": {
+    "prompts/cerebro-comercial.md": [
+      "Cerebro comercial Groq",
+      "Cerebro comercial DeepSeek",
+      "Cerebro comercial OpenAI"
+    ],
+    "prompts/extractor-cotizacion.md": [
+      "Extractor → Groq Chat Model",
+      "Extractor → DeepSeek Chat Model",
+      "Extractor → OpenAI Chat Model"
+    ]
+  },
+  "schemas": {
+    "schemas/cerebro-comercial.schema.json": [
+      "Cerebro comercial Groq",
+      "Cerebro comercial DeepSeek",
+      "Cerebro comercial OpenAI"
+    ],
+    "schemas/extractor-cotizacion.schema.json": [
+      "Extractor → Groq Chat Model",
+      "Extractor → DeepSeek Chat Model",
+      "Extractor → OpenAI Chat Model"
+    ]
+  }
+}
