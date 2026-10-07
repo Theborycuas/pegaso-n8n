@@ -1,3 +1,77 @@
 {
-  "$comment": "@pendiente: pegar contenido de \"Extractor → Groq Chat Model\", \"Extractor → DeepSeek Chat Model\", \"Extractor → OpenAI Chat Model\" (o ejecutar npm run extract)"
+  "type": "object",
+  "properties": {
+    "detalles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "cantidad": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "producto": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "nombre": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sabor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ancho_cm": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "alto_cm": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "forma": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "RECTANGULAR",
+              "CUADRADA",
+              "CIRCULAR",
+              "IRREGULAR",
+              "NO_ESPECIFICADA",
+              null
+            ]
+          }
+        },
+        "required": [
+          "cantidad",
+          "producto",
+          "nombre",
+          "sabor",
+          "ancho_cm",
+          "alto_cm",
+          "forma"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "detalles"
+  ],
+  "additionalProperties": false
 }

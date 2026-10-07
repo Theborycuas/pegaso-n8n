@@ -1,3 +1,161 @@
 {
-  "$comment": "@pendiente: pegar contenido de \"Cerebro comercial Groq\", \"Cerebro comercial DeepSeek\", \"Cerebro comercial OpenAI\" (o ejecutar npm run extract)"
+  "type": "object",
+  "properties": {
+    "intencion": {
+      "type": "string",
+      "enum": [
+        "SOLICITAR_COTIZACION",
+        "APORTAR_DATOS",
+        "CONSULTAR_PRECIO",
+        "CONSULTAR_MATERIAL",
+        "CONSULTAR_MINIMO",
+        "CONSULTAR_UBICACION",
+        "CONSULTAR_METODOLOGIA",
+        "CONSULTAR_ENTREGA",
+        "CONSULTAR_DISENO",
+        "ACEPTAR_COTIZACION",
+        "CONSULTAR_PAGO",
+        "REPORTAR_PAGO",
+        "CONFIRMAR_PEDIDO",
+        "SOLICITAR_LLAMADA",
+        "SOLICITAR_HUMANO",
+        "POSPONER_DECISION",
+        "NEGOCIAR",
+        "RECLAMO",
+        "OTRO"
+      ]
+    },
+    "accion": {
+      "type": "string",
+      "enum": [
+        "PEDIR_MEDIDAS",
+        "PEDIR_PRODUCTO",
+        "PEDIR_FORMA",
+        "INFORMAR_MATERIAL",
+        "INFORMAR_MINIMO",
+        "INFORMAR_UBICACION",
+        "INFORMAR_METODOLOGIA",
+        "INFORMAR_METODOLOGIA_PAGO",
+        "INFORMAR_ENTREGA",
+        "INFORMAR_DISENO",
+        "COTIZAR_P4",
+        "REGISTRAR_ACEPTACION",
+        "DERIVAR_HUMANO",
+        "RESPONDER_GENERAL"
+      ]
+    },
+    "producto": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "material": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "cantidad": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "ancho_cm": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "alto_cm": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "forma": {
+      "type": "string",
+      "enum": [
+        "RECTANGULAR",
+        "CIRCULAR",
+        "REDONDEADA",
+        "TROQUELADA",
+        "NO_ESPECIFICADA"
+      ]
+    },
+    "ciudad_detectada": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "provincia_detectada": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "datos_suficientes_para_cotizar": {
+      "type": "boolean"
+    },
+    "requiere_humano": {
+      "type": "boolean"
+    },
+    "motivo_derivacion": {
+      "type": "string",
+      "enum": [
+        "NINGUNO",
+        "CONFIRMAR_PEDIDO",
+        "SOLICITA_DATOS_PAGO",
+        "REPORTA_PAGO",
+        "ENVIA_COMPROBANTE",
+        "SOLICITA_LLAMADA",
+        "SOLICITA_HABLAR_CON_PERSONA",
+        "ARCHIVO_DISENO",
+        "IMAGEN_REQUIERE_REVISION",
+        "ARCHIVO_NO_PROCESABLE",
+        "DISENO_ESPECIAL",
+        "NEGOCIACION",
+        "RECLAMO",
+        "PROBLEMA_PEDIDO",
+        "PROBLEMA_PAGO",
+        "PROBLEMA_ENTREGA",
+        "OTRO"
+      ]
+    },
+    "requiere_notificacion": {
+      "type": "boolean"
+    },
+    "clasificacion_prospecto": {
+      "type": "string",
+      "enum": [
+        "A",
+        "B",
+        "C"
+      ]
+    },
+    "respuesta_sugerida": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "intencion",
+    "accion",
+    "producto",
+    "material",
+    "cantidad",
+    "ancho_cm",
+    "alto_cm",
+    "forma",
+    "ciudad_detectada",
+    "provincia_detectada",
+    "datos_suficientes_para_cotizar",
+    "requiere_humano",
+    "motivo_derivacion",
+    "requiere_notificacion",
+    "clasificacion_prospecto",
+    "respuesta_sugerida"
+  ],
+  "additionalProperties": false
 }
