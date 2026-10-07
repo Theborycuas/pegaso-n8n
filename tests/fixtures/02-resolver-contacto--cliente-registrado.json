@@ -1,0 +1,31 @@
+{
+  "archivo": "code/02-contacto-prospecto/resolver-contacto.js",
+  "descripcion": "Contacto con cliente_id: es cliente registrado y el IF \"¿Cliente existente?\" corta el flujo.",
+  "input": [
+    {
+      "id": 7,
+      "cliente_id": 3,
+      "nombre": "Ana Pérez",
+      "whatsapp": "593987654321"
+    }
+  ],
+  "nodos": {
+    "Normalizar mensaje": [
+      {
+        "telefono": "593987654321",
+        "nombre_whatsapp": "Ana Pérez",
+        "mensaje": "Hola, necesito etiquetas de 10x5 cm",
+        "tipo": "TEXTO",
+        "canal": "WHATSAPP",
+        "mensaje_externo_id": "wamid.TEST001",
+        "recibido_at": "2026-10-07T23:46:19.850Z"
+      }
+    ]
+  },
+  "esperado": {
+    "contacto_existe": true,
+    "contacto_id": 7,
+    "cliente_id": 3,
+    "es_cliente_registrado": true
+  }
+}

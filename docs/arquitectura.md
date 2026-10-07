@@ -53,6 +53,8 @@ Los nodos Postgres suelen devolver **solo la fila afectada**, no el objeto anter
 
 Recibe el webhook y lo convierte en un mensaje de texto normalizado. Soporta YCloud y Meta Cloud API directo. Solo los mensajes de **texto** siguen el flujo; imágenes, audios, etc. se detectan pero no se procesan todavía.
 
+Configuración detallada de cada nodo: [etapas/01-entrada.md](etapas/01-entrada.md).
+
 | Nodo | Tipo | Archivo |
 |---|---|---|
 | Webhook YCloud | Webhook | — |
@@ -69,6 +71,8 @@ Recibe el webhook y lo convierte en un mensaje de texto normalizado. Soporta YCl
 
 Identifica quién escribe. Los **clientes registrados** salen del flujo sin respuesta automática. Los demás se tratan como prospectos (se crean si no existen, estado inicial `NUEVO`).
 
+Configuración detallada de cada nodo: [etapas/02-contacto-prospecto.md](etapas/02-contacto-prospecto.md).
+
 | Nodo | Tipo | Archivo |
 |---|---|---|
 | Buscar Contacto | Postgres select | — |
@@ -84,6 +88,8 @@ Identifica quién escribe. Los **clientes registrados** salen del flujo sin resp
 ## 03 · Conversación (`code/03-conversacion/`)
 
 Busca o crea la conversación (estado `ACTIVA`), guarda el mensaje entrante, aplica `MODO_PRUEBA` y arma el contexto para la IA.
+
+Configuración detallada de cada nodo: [etapas/03-conversacion.md](etapas/03-conversacion.md).
 
 | Nodo | Tipo | Archivo |
 |---|---|---|

@@ -1,0 +1,27 @@
+{
+  "archivo": "code/02-contacto-prospecto/resolver-contacto.js",
+  "descripcion": "Buscar Contacto sin resultados (item vacío por Always Output Data): sigue como prospecto.",
+  "input": [
+    {}
+  ],
+  "nodos": {
+    "Normalizar mensaje": [
+      {
+        "telefono": "593987654321",
+        "nombre_whatsapp": "Ana Pérez",
+        "mensaje": "Hola, necesito etiquetas de 10x5 cm",
+        "tipo": "TEXTO",
+        "canal": "WHATSAPP",
+        "mensaje_externo_id": "wamid.TEST001",
+        "recibido_at": "2026-10-07T23:46:19.850Z"
+      }
+    ]
+  },
+  "esperado": {
+    "telefono": "593987654321",
+    "contacto_existe": false,
+    "contacto_id": null,
+    "cliente_id": null,
+    "es_cliente_registrado": false
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "archivo": "code/01-entrada/normalizar-mensaje.js",
+  "descripcion": "Mensaje entrante TEST con teléfono local 09…: se convierte a 5939…; tipo y canal por defecto.",
+  "input": [
+    {
+      "telefono": "0987654321",
+      "nombre_whatsapp": "Prueba",
+      "mensaje": "  de 10x5 cm  "
+    }
+  ],
+  "esperado": {
+    "telefono": "593987654321",
+    "mensaje": "de 10x5 cm",
+    "tipo": "TEXTO",
+    "canal": "WHATSAPP"
+  }
+}

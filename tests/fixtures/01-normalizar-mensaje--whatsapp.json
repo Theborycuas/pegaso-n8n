@@ -1,0 +1,42 @@
+{
+  "archivo": "code/01-entrada/normalizar-mensaje.js",
+  "descripcion": "Entrada real de WhatsApp normalizada al contrato mínimo.",
+  "input": [
+    {
+      "telefono": "593987654321",
+      "nombre_whatsapp": "Ana Pérez",
+      "mensaje": "Hola, necesito etiquetas de 10x5 cm",
+      "tipo": "TEXTO",
+      "canal": "WHATSAPP",
+      "mensaje_externo_id": "wamid.TEST001",
+      "meta_whatsapp": {
+        "wa_id": "593987654321",
+        "user_id": null,
+        "phone_number_id": null,
+        "display_phone_number": "593962645735",
+        "timestamp": "1791414000",
+        "fecha_mensaje": "2026-10-07T23:00:00.000Z",
+        "tipo_original": "text",
+        "media": {
+          "presente": false,
+          "requiere_procesamiento": false,
+          "id": null,
+          "mime_type": null,
+          "sha256": null,
+          "caption": null
+        }
+      },
+      "entrada_whatsapp_preparada": true,
+      "apto_para_flujo_texto": true,
+      "requiere_procesamiento_media": false
+    }
+  ],
+  "esperado": {
+    "telefono": "593987654321",
+    "nombre_whatsapp": "Ana Pérez",
+    "mensaje": "Hola, necesito etiquetas de 10x5 cm",
+    "tipo": "TEXTO",
+    "canal": "WHATSAPP",
+    "mensaje_externo_id": "wamid.TEST001"
+  }
+}

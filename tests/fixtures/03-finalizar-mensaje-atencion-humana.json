@@ -1,0 +1,14 @@
+{
+  "archivo": "code/03-conversacion/finalizar-mensaje-atencion-humana.js",
+  "descripcion": "Cierre cuando el prospecto ya está con un humano: mensaje guardado, sin respuesta.",
+  "input": [
+    {}
+  ],
+  "esperado": {
+    "flujo": "ATENCION_HUMANA",
+    "mensaje_guardado": true,
+    "requiere_humano": true,
+    "respuesta_automatica": false,
+    "motivo": "PROSPECTO_DERIVADO_A_HUMANO"
+  }
+}

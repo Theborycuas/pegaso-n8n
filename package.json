@@ -6,7 +6,8 @@
   "scripts": {
     "status": "node scripts/n8n-sync.mjs status",
     "extract": "node scripts/n8n-sync.mjs extract",
-    "build": "node scripts/n8n-sync.mjs build"
+    "build": "node scripts/n8n-sync.mjs build",
+    "test": "node scripts/run-node.mjs"
   },
   "engines": {
     "node": ">=18"

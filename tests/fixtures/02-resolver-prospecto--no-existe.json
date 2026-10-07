@@ -1,0 +1,30 @@
+{
+  "archivo": "code/02-contacto-prospecto/resolver-prospecto.js",
+  "descripcion": "Buscar prospecto sin resultados: prospecto_existe false (va a Crear prospecto).",
+  "input": [
+    {}
+  ],
+  "nodos": {
+    "Resolver contacto": [
+      {
+        "telefono": "593987654321",
+        "nombre_whatsapp": "Ana Pérez",
+        "mensaje": "Hola, necesito etiquetas de 10x5 cm",
+        "tipo": "TEXTO",
+        "canal": "WHATSAPP",
+        "mensaje_externo_id": "wamid.TEST001",
+        "recibido_at": "2026-10-07T23:46:19.850Z",
+        "contacto_existe": false,
+        "contacto_id": null,
+        "cliente_id": null,
+        "contacto_nombre": null,
+        "es_cliente_registrado": false
+      }
+    ]
+  },
+  "esperado": {
+    "prospecto_existe": false,
+    "prospecto_id": null,
+    "prospecto_requiere_humano": false
+  }
+}

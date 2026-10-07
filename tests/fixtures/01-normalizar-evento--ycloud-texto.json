@@ -1,0 +1,46 @@
+{
+  "archivo": "code/01-entrada/normalizar-evento-whatsapp.js",
+  "descripcion": "Webhook YCloud con mensaje de texto: queda procesable y con teléfono solo dígitos.",
+  "input": [
+    {
+      "headers": {
+        "content-type": "application/json"
+      },
+      "params": {},
+      "query": {},
+      "body": {
+        "id": "evt_test_001",
+        "type": "whatsapp.inbound_message.received",
+        "apiVersion": "v2",
+        "createTime": "2026-10-07T23:00:00.000Z",
+        "whatsappInboundMessage": {
+          "id": "msg_ycloud_001",
+          "wamid": "wamid.TEST001",
+          "wabaId": "123456789012345",
+          "from": "+593987654321",
+          "customerProfile": {
+            "name": "Ana Pérez"
+          },
+          "to": "+593962645735",
+          "sendTime": "2026-10-07T23:00:00.000Z",
+          "type": "text",
+          "text": {
+            "body": "Hola, necesito etiquetas de 10x5 cm"
+          }
+        }
+      }
+    }
+  ],
+  "esperado": {
+    "evento_whatsapp": {
+      "procesable": true,
+      "origen": "YCLOUD",
+      "telefono_cliente": "593987654321",
+      "nombre_cliente": "Ana Pérez",
+      "mensaje_id": "wamid.TEST001",
+      "tipo_mensaje": "text",
+      "texto": "Hola, necesito etiquetas de 10x5 cm",
+      "display_phone_number": "593962645735"
+    }
+  }
+}

@@ -1,51 +1,72 @@
 # Modelo de datos (PostgreSQL)
 
-> Deducido de los campos que leen y escriben los nodos Code. El repo todavía no tiene el SQL de las tablas ni la configuración de los nodos Postgres; cuando se exporte el workflow (`workflows/pegaso-whatsapp.json`) o se agregue el esquema, hay que confirmar nombres y tipos aquí.
+Esquema `pegaso`, credencial de n8n **Postgres account 2**.
 
-El esquema es `pegaso` (por ejemplo `pegaso.prospectos`).
+Las tablas marcadas ✅ tienen sus columnas confirmadas con la configuración de los nodos Postgres (etapas 01–03). El resto se deduce de los campos que usan los nodos Code y debe confirmarse cuando se documenten las etapas 04–08 o se agregue el SQL del esquema.
 
 ## contactos
 
 Personas ya conocidas; si tienen `cliente_id` son clientes registrados y el bot no les responde.
 
-`id`, `cliente_id`, `nombre`, `telefono`.
-
-## prospectos
-
-Personas que escriben y aún no son clientes.
-
 | Columna | Notas |
 |---|---|
 | `id` | |
-| `telefono`, `canal`, `nombre_whatsapp` | `canal = WHATSAPP` |
-| `estado` | ver [reglas-comerciales.md §11](reglas-comerciales.md#11-estados-del-prospecto) |
-| `producto_interes`, `ciudad`, `provincia` | |
-| `ultima_intencion`, `ultima_accion` | última decisión de la IA |
-| `requiere_humano` | `true` = el bot deja de responder |
-| `clasificacion` | A/B/C (hoy no se persiste, ver pendientes) |
-| `contexto_comercial` | JSON, lo actualiza "Guardar contexto handoff" |
+| `whatsapp` | ✅ filtro de "Buscar Contacto"; debe estar como `5939…` (solo dígitos) |
+| `cliente_id` | si tiene valor, es cliente registrado |
+| `nombre` | |
+
+## prospectos ✅
+
+Personas que escriben y aún no son clientes. Columnas completas según "Crear prospecto":
+
+| Columna | Valor al crear | Notas |
+|---|---|---|
+| `id` | automático | |
+| `telefono` | teléfono normalizado | |
+| `nombre_whatsapp` | nombre del perfil | |
+| `canal` | `WHATSAPP` | |
+| `origen` | `WHATSAPP` | |
+| `fuente` | vacío | |
+| `estado` | `NUEVO` | ver [reglas-comerciales.md §11](reglas-comerciales.md#11-estados-del-prospecto) |
+| `producto_interes`, `ciudad`, `provincia` | vacío | los actualiza "Actualizar prospecto comercial" |
+| `ultima_intencion`, `ultima_accion` | vacío | última decisión de la IA |
+| `requiere_humano` | `false` | `true` = el bot deja de responder |
+| `activo` | `true` | |
+| `creado_at`, `actualizado_at` | `null` | |
+
+No existe columna de clasificación A/B/C ni `contexto_comercial` en esta tabla.
 
 ## conversaciones
 
-| Columna | Notas |
-|---|---|
-| `id` | |
-| `estado` | `ACTIVA` por defecto |
-| `cliente_id`, `contacto_id`, `prospecto_id` | |
-| `contexto_comercial` | JSON: memoria comercial (ver abajo) |
-| actividad (fecha de último mensaje) | la actualizan "Actualizar actividad conversación…" |
+Columnas confirmadas por "Crear conversación prospecto" (la captura no muestra todas):
 
-## mensajes
+| Columna | Valor al crear | Notas |
+|---|---|---|
+| `id` | automático | |
+| `cliente_id`, `contacto_id` | vacío | |
+| `telefono` | teléfono normalizado | |
+| `canal` | `WHATSAPP` | |
+| `estado` | `ACTIVA` | |
+| `ultimo_mensaje_at` | `recibido_at` | lo actualizan "Actualizar actividad conversación…" |
+| `creada_at` | vacío | |
+| `prospecto_id` | id del prospecto | |
+| `contexto_comercial` | (por confirmar) | JSON: memoria comercial (ver abajo). Lo escriben las etapas 04, 06 y 07 |
 
-| Columna | Notas |
-|---|---|
-| `id`, `conversacion_id`, `cliente_id` | |
-| `direccion` | `ENTRANTE` / `SALIENTE` |
-| `tipo` | `TEXTO` (solo este tipo se envía por WhatsApp) |
-| `contenido` | |
-| `mensaje_externo_id` | id de WhatsApp/YCloud del mensaje entrante |
-| `enviado_at` | el historial se ordena por esta columna |
-| procesado | "Marcar mensaje entrante procesado" |
+## mensajes ✅
+
+Columnas completas según "Guardar mensaje entrante":
+
+| Columna | Entrante | Notas |
+|---|---|---|
+| `id` | automático | |
+| `conversacion_id` | id de la conversación | filtro de "Recuperar historial conversación" |
+| `cliente_id` | `null` en prospectos | |
+| `direccion` | `ENTRANTE` | `SALIENTE` para respuestas del bot |
+| `tipo` | `TEXTO` | solo `TEXTO` se envía por WhatsApp |
+| `contenido` | texto del mensaje | |
+| `mensaje_externo_id` | wamid de WhatsApp | |
+| `enviado_at` | `recibido_at` | el historial se ordena por esta columna ASC |
+| `procesado` | `false` | lo pone en `true` "Marcar mensaje entrante procesado" |
 
 ## cotizaciones
 
@@ -59,9 +80,9 @@ Personas que escriben y aún no son clientes.
 
 `id`, `cliente_id`, `material_id`, `nombre`, `ancho_cm`, `alto_cm`, `forma`, `activo`.
 
-## configuración
+## configuracion_bot
 
-Fila con clave `MODO_PRUEBA` y columna `valor_json` (`jsonb`):
+Tabla de configuración clave/valor. "Obtener configuración MODO_PRUEBA" busca `clave = 'MODO_PRUEBA'` y usa la columna `valor_json`:
 
 ```json
 { "activo": true, "telefonos_permitidos": ["593999999999"] }

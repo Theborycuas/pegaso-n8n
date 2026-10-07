@@ -1,0 +1,45 @@
+{
+  "archivo": "code/02-contacto-prospecto/resolver-prospecto.js",
+  "descripcion": "Prospecto existente marcado requiere_humano: el IF \"¿Requiere atención humana?\" lo detendrá más adelante.",
+  "input": [
+    {
+      "id": 15,
+      "telefono": "593987654321",
+      "canal": "WHATSAPP",
+      "estado": "EN_CONVERSACION",
+      "nombre_whatsapp": "Ana Pérez",
+      "producto_interes": "etiquetas",
+      "ciudad": "Quito",
+      "provincia": "Pichincha",
+      "ultima_intencion": "CONSULTAR_PAGO",
+      "ultima_accion": "DERIVAR_HUMANO",
+      "requiere_humano": true,
+      "activo": true
+    }
+  ],
+  "nodos": {
+    "Resolver contacto": [
+      {
+        "telefono": "593987654321",
+        "nombre_whatsapp": "Ana Pérez",
+        "mensaje": "Hola, necesito etiquetas de 10x5 cm",
+        "tipo": "TEXTO",
+        "canal": "WHATSAPP",
+        "mensaje_externo_id": "wamid.TEST001",
+        "recibido_at": "2026-10-07T23:46:19.850Z",
+        "contacto_existe": false,
+        "contacto_id": null,
+        "cliente_id": null,
+        "contacto_nombre": null,
+        "es_cliente_registrado": false
+      }
+    ]
+  },
+  "esperado": {
+    "prospecto_existe": true,
+    "prospecto_id": 15,
+    "prospecto_estado": "EN_CONVERSACION",
+    "prospecto_ciudad": "Quito",
+    "prospecto_requiere_humano": true
+  }
+}

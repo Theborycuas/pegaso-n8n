@@ -1,0 +1,59 @@
+{
+  "archivo": "code/02-contacto-prospecto/preparar-prospecto-creado.js",
+  "descripcion": "Fila devuelta por Crear prospecto convertida al mismo contrato que Resolver prospecto.",
+  "input": [
+    {
+      "id": 16,
+      "telefono": "593987654321",
+      "nombre_whatsapp": "Ana Pérez",
+      "canal": "WHATSAPP",
+      "origen": "WHATSAPP",
+      "fuente": null,
+      "estado": "NUEVO",
+      "producto_interes": null,
+      "ciudad": null,
+      "provincia": null,
+      "ultima_intencion": null,
+      "ultima_accion": null,
+      "requiere_humano": false,
+      "activo": true
+    }
+  ],
+  "nodos": {
+    "Resolver prospecto": [
+      {
+        "telefono": "593987654321",
+        "nombre_whatsapp": "Ana Pérez",
+        "mensaje": "Hola, necesito etiquetas de 10x5 cm",
+        "tipo": "TEXTO",
+        "canal": "WHATSAPP",
+        "mensaje_externo_id": "wamid.TEST001",
+        "recibido_at": "2026-10-07T23:46:19.850Z",
+        "contacto_existe": false,
+        "contacto_id": null,
+        "cliente_id": null,
+        "contacto_nombre": null,
+        "es_cliente_registrado": false,
+        "prospecto_existe": false,
+        "prospecto_id": null,
+        "prospecto_estado": null,
+        "prospecto_nombre": null,
+        "prospecto_producto_interes": null,
+        "prospecto_ciudad": null,
+        "prospecto_provincia": null,
+        "prospecto_ultima_intencion": null,
+        "prospecto_ultima_accion": null,
+        "prospecto_requiere_humano": false
+      }
+    ]
+  },
+  "esperado": {
+    "telefono": "593987654321",
+    "mensaje": "Hola, necesito etiquetas de 10x5 cm",
+    "prospecto_existe": true,
+    "prospecto_id": 16,
+    "prospecto_estado": "NUEVO",
+    "prospecto_requiere_humano": false,
+    "es_cliente_registrado": false
+  }
+}

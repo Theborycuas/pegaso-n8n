@@ -1,0 +1,18 @@
+{
+  "archivo": "code/01-entrada/normalizar-evento-whatsapp.js",
+  "descripcion": "Evento de YCloud que no es mensaje entrante (p. ej. estado de entrega): no procesable.",
+  "input": [
+    {
+      "body": {
+        "id": "evt_status",
+        "type": "whatsapp.message.updated"
+      }
+    }
+  ],
+  "esperado": {
+    "evento_whatsapp": {
+      "procesable": false,
+      "origen": null
+    }
+  }
+}

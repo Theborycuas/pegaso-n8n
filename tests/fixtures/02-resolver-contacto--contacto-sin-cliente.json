@@ -1,0 +1,30 @@
+{
+  "archivo": "code/02-contacto-prospecto/resolver-contacto.js",
+  "descripcion": "Contacto sin cliente_id: NO es cliente registrado, sigue por el camino de prospecto.",
+  "input": [
+    {
+      "id": 8,
+      "cliente_id": null,
+      "nombre": "Luis",
+      "whatsapp": "593987654321"
+    }
+  ],
+  "nodos": {
+    "Normalizar mensaje": [
+      {
+        "telefono": "593987654321",
+        "nombre_whatsapp": "Ana Pérez",
+        "mensaje": "Hola, necesito etiquetas de 10x5 cm",
+        "tipo": "TEXTO",
+        "canal": "WHATSAPP",
+        "mensaje_externo_id": "wamid.TEST001",
+        "recibido_at": "2026-10-07T23:46:19.850Z"
+      }
+    ]
+  },
+  "esperado": {
+    "contacto_existe": true,
+    "contacto_id": 8,
+    "es_cliente_registrado": false
+  }
+}

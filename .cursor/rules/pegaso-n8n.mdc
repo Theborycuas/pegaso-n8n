@@ -15,13 +15,14 @@ Antes de cambiar una regla de negocio, lee `docs/reglas-comerciales.md` y `docs/
 - Sube `VERSION`: menor (2.2 → 2.3) por ajuste de regla; mayor (→ 3.0) si cambia el contrato de entrada/salida.
 - Actualiza `RESPONSABILIDAD` si cambia lo que hace el nodo.
 - Si cambias un campo de salida, busca en `code/` quién lo lee (`$('Nombre del nodo')` o el campo).
-- Verifica sintaxis: `node -e "new (Object.getPrototypeOf(async function(){}).constructor)(require('fs').readFileSync(process.argv[1],'utf8'))" <archivo>`.
+- Ejecuta `npm test` (fixtures en `tests/fixtures/`). Si el cambio altera un resultado a propósito, actualiza el `esperado`; si agregas una regla, agrega un fixture.
+- La configuración de nodos no-Code (Postgres, IF, Merge) está en `docs/etapas/`; respétala al cambiar nombres de campos.
 
 ## Documentación en el mismo cambio
 
 - Regla de negocio → `docs/reglas-comerciales.md`.
 - Handoff → `docs/flujo-handoff.md`.
-- Nodo nuevo o renombrado → `docs/arquitectura.md` y `workflows/pegaso-whatsapp.map.json`.
+- Nodo nuevo, renombrado o reconfigurado → `docs/arquitectura.md`, `docs/etapas/<etapa>.md` y `workflows/pegaso-whatsapp.map.json`.
 - Si se corrige algo de `docs/pendientes-tecnicos.md`, quítalo de ahí.
 - Si el cambio afecta un caso de `tests/`, actualiza el esperado.
 

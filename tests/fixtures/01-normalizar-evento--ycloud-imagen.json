@@ -1,0 +1,47 @@
+{
+  "archivo": "code/01-entrada/normalizar-evento-whatsapp.js",
+  "descripcion": "Webhook YCloud con imagen: procesable, sin texto, con media_id y caption.",
+  "input": [
+    {
+      "headers": {
+        "content-type": "application/json"
+      },
+      "params": {},
+      "query": {},
+      "body": {
+        "id": "evt_test_001",
+        "type": "whatsapp.inbound_message.received",
+        "apiVersion": "v2",
+        "createTime": "2026-10-07T23:00:00.000Z",
+        "whatsappInboundMessage": {
+          "id": "msg_ycloud_001",
+          "wamid": "wamid.TEST001",
+          "wabaId": "123456789012345",
+          "from": "+593987654321",
+          "customerProfile": {
+            "name": "Ana Pérez"
+          },
+          "to": "+593962645735",
+          "sendTime": "2026-10-07T23:00:00.000Z",
+          "type": "image",
+          "image": {
+            "id": "media_001",
+            "mimeType": "image/jpeg",
+            "sha256": "abc",
+            "caption": "este diseño"
+          }
+        }
+      }
+    }
+  ],
+  "esperado": {
+    "evento_whatsapp": {
+      "procesable": true,
+      "tipo_mensaje": "image",
+      "texto": null,
+      "caption": "este diseño",
+      "media_id": "media_001",
+      "media_mime_type": "image/jpeg"
+    }
+  }
+}

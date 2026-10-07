@@ -1,0 +1,27 @@
+{
+  "archivo": "code/03-conversacion/finalizar-mensaje-modo-prueba.js",
+  "descripcion": "Cierre cuando el bot no puede responder: mensaje guardado, sin respuesta.",
+  "input": [
+    {
+      "telefono": "593987654321",
+      "mensaje_actual": null,
+      "tipo_mensaje": "TEXTO",
+      "conversacion_id": 41,
+      "prospecto_id": 16,
+      "cliente_id": null,
+      "modo_prueba": true,
+      "telefono_prueba_permitido": false,
+      "puede_responder_bot": false,
+      "motivo_bloqueo_bot": "MODO_PRUEBA_TELEFONO_NO_AUTORIZADO",
+      "telefonos_permitidos_configurados": 1,
+      "permiso_resuelto_at": "2026-10-07T23:46:19.857Z"
+    }
+  ],
+  "esperado": {
+    "flujo": "MODO_PRUEBA",
+    "mensaje_guardado": true,
+    "respuesta_automatica": false,
+    "puede_responder_bot": false,
+    "motivo": "MODO_PRUEBA_TELEFONO_NO_AUTORIZADO"
+  }
+}

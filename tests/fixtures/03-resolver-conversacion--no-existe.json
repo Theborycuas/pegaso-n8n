@@ -1,0 +1,40 @@
+{
+  "archivo": "code/03-conversacion/resolver-conversacion-prospecto.js",
+  "descripcion": "Buscar conversación sin resultados: conversacion_existe false (va a Crear conversación prospecto).",
+  "input": [
+    {}
+  ],
+  "nodos": {
+    "Unificar prospecto": [
+      {
+        "telefono": "593987654321",
+        "nombre_whatsapp": "Ana Pérez",
+        "mensaje": "Hola, necesito etiquetas de 10x5 cm",
+        "tipo": "TEXTO",
+        "canal": "WHATSAPP",
+        "mensaje_externo_id": "wamid.TEST001",
+        "recibido_at": "2026-10-07T23:46:19.850Z",
+        "contacto_existe": false,
+        "contacto_id": null,
+        "cliente_id": null,
+        "contacto_nombre": null,
+        "es_cliente_registrado": false,
+        "prospecto_existe": true,
+        "prospecto_id": 16,
+        "prospecto_estado": "NUEVO",
+        "prospecto_nombre": "Ana Pérez",
+        "prospecto_producto_interes": null,
+        "prospecto_ciudad": null,
+        "prospecto_provincia": null,
+        "prospecto_ultima_intencion": null,
+        "prospecto_ultima_accion": null,
+        "prospecto_requiere_humano": false
+      }
+    ]
+  },
+  "esperado": {
+    "prospecto_id": 16,
+    "conversacion_existe": false,
+    "conversacion_id": null
+  }
+}

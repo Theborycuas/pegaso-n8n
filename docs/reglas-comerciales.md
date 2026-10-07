@@ -15,7 +15,7 @@ Reglas de negocio que aplica hoy el bot, con el archivo donde vive cada una. Cua
 
 ### MODO_PRUEBA
 
-Configuración en PostgreSQL (clave `MODO_PRUEBA`, columna `valor_json`):
+Configuración en PostgreSQL (`pegaso.configuracion_bot`, clave `MODO_PRUEBA`, columna `valor_json`):
 
 ```json
 { "activo": true, "telefonos_permitidos": ["593999999999"] }

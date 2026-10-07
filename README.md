@@ -9,6 +9,7 @@ n8n guarda todo el workflow como un único JSON, con el código de cada nodo emb
 | Documento | Para qué |
 |---|---|
 | [docs/arquitectura.md](docs/arquitectura.md) | Recorrido completo del mensaje, etapas y qué archivo implementa cada nodo |
+| [docs/etapas/](docs/etapas/) | Configuración exacta de cada nodo por etapa (Postgres, IF, Merge, Code). Hoy: 01, 02 y 03 |
 | [docs/reglas-comerciales.md](docs/reglas-comerciales.md) | Mínimos, medidas, catálogo, fórmula de precio, clasificación A/B/C, acciones |
 | [docs/flujo-handoff.md](docs/flujo-handoff.md) | Derivación a humano, mensajes de transición y correos internos |
 | [docs/modelo-datos.md](docs/modelo-datos.md) | Tablas PostgreSQL y estructura de `contexto_comercial` |
@@ -33,9 +34,12 @@ pegaso-n8n/
 │   └── 08-salida-whatsapp/         # Envío por YCloud
 ├── prompts/                        # Prompt de sistema de cada cerebro IA
 ├── schemas/                        # JSON Schema de salida de cada cerebro IA
-├── tests/                          # Casos de conversación, precios y fixtures
+├── tests/                          # Casos de conversación, precios y fixtures (npm test)
 ├── docs/
-└── scripts/n8n-sync.mjs            # status | extract | build
+│   └── etapas/                     # Configuración nodo por nodo de cada etapa
+└── scripts/
+    ├── n8n-sync.mjs                # status | extract | build
+    └── run-node.mjs                # Ejecuta nodos Code con fixtures (npm test)
 ```
 
 Cuando varios nodos comparten la misma lógica (por ejemplo, los tres "Validar extracción" del fallback Groq → DeepSeek → OpenAI), apuntan al mismo archivo en el mapa. Un cambio de regla se hace una sola vez.
@@ -65,7 +69,7 @@ Todo archivo de `code/` empieza con este bloque, que también queda visible dent
 1. **Exportar** el workflow desde n8n (menú `...` → *Download*) y guardarlo como `workflows/pegaso-whatsapp.json`.
    Con CLI: `n8n export:workflow --id=<ID> --pretty --output=workflows/pegaso-whatsapp.json`.
 2. **Comparar**: `npm run status` muestra qué archivos difieren del workflow y qué nodos no están mapeados.
-3. **Editar** el `.js`, `.md` o `.schema.json` que corresponda al cambio de negocio (subir `VERSION`).
+3. **Editar** el `.js`, `.md` o `.schema.json` que corresponda al cambio de negocio (subir `VERSION`) y ejecutar `npm test`. Si el cambio altera un resultado a propósito, actualiza el `esperado` del fixture.
 4. **Construir**: `npm run build` inyecta los cambios en `workflows/pegaso-whatsapp.json`.
 5. **Importar** ese JSON en n8n (*Import from File* sobre el workflow) o con `n8n import:workflow --input=workflows/pegaso-whatsapp.json`. Antes de un cambio grande, guarda una copia en `workflows/snapshots/`.
 6. **Commit** de los archivos editados y del JSON.

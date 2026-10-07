@@ -1,0 +1,69 @@
+{
+  "archivo": "code/01-entrada/preparar-entrada-whatsapp.js",
+  "descripcion": "Evento de texto: apto para el flujo de texto con el contrato de Mensaje entrante TEST.",
+  "input": [
+    {
+      "evento_whatsapp": {
+        "procesable": true,
+        "object": "whatsapp_business_account",
+        "field": "messages",
+        "phone_number_id": null,
+        "display_phone_number": "593962645735",
+        "waba_id": "123456789012345",
+        "telefono_cliente": "593987654321",
+        "wa_id": "593987654321",
+        "user_id": null,
+        "nombre_cliente": "Ana Pérez",
+        "mensaje_id": "wamid.TEST001",
+        "timestamp": "1791414000",
+        "tipo_mensaje": "text",
+        "texto": "Hola, necesito etiquetas de 10x5 cm",
+        "caption": null,
+        "media_id": null,
+        "media_mime_type": null,
+        "media_sha256": null,
+        "canal": "WHATSAPP",
+        "origen": "YCLOUD",
+        "proveedor_evento_id": "evt_test_001"
+      },
+      "payload_original": {
+        "headers": {
+          "content-type": "application/json"
+        },
+        "params": {},
+        "query": {},
+        "body": {
+          "id": "evt_test_001",
+          "type": "whatsapp.inbound_message.received",
+          "apiVersion": "v2",
+          "createTime": "2026-10-07T23:00:00.000Z",
+          "whatsappInboundMessage": {
+            "id": "msg_ycloud_001",
+            "wamid": "wamid.TEST001",
+            "wabaId": "123456789012345",
+            "from": "+593987654321",
+            "customerProfile": {
+              "name": "Ana Pérez"
+            },
+            "to": "+593962645735",
+            "sendTime": "2026-10-07T23:00:00.000Z",
+            "type": "text",
+            "text": {
+              "body": "Hola, necesito etiquetas de 10x5 cm"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "esperado": {
+    "telefono": "593987654321",
+    "nombre_whatsapp": "Ana Pérez",
+    "mensaje": "Hola, necesito etiquetas de 10x5 cm",
+    "tipo": "TEXTO",
+    "canal": "WHATSAPP",
+    "mensaje_externo_id": "wamid.TEST001",
+    "apto_para_flujo_texto": true,
+    "requiere_procesamiento_media": false
+  }
+}

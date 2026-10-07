@@ -1,0 +1,69 @@
+{
+  "archivo": "code/03-conversacion/resolver-permiso-automatizacion.js",
+  "descripcion": "MODO_PRUEBA activo y teléfono en la lista: el bot responde.",
+  "input": [
+    {
+      "clave": "MODO_PRUEBA",
+      "valor_json": {
+        "activo": true,
+        "telefonos_permitidos": [
+          "593987654321"
+        ]
+      }
+    }
+  ],
+  "nodos": {
+    "Normalizar mensaje": [
+      {
+        "telefono": "593987654321",
+        "nombre_whatsapp": "Ana Pérez",
+        "mensaje": "Hola, necesito etiquetas de 10x5 cm",
+        "tipo": "TEXTO",
+        "canal": "WHATSAPP",
+        "mensaje_externo_id": "wamid.TEST001",
+        "recibido_at": "2026-10-07T23:46:19.850Z"
+      }
+    ],
+    "Preparar conversación": [
+      {
+        "telefono": "593987654321",
+        "nombre_whatsapp": "Ana Pérez",
+        "mensaje": "Hola, necesito etiquetas de 10x5 cm",
+        "tipo": "TEXTO",
+        "canal": "WHATSAPP",
+        "mensaje_externo_id": "wamid.TEST001",
+        "recibido_at": "2026-10-07T23:46:19.850Z",
+        "contacto_existe": false,
+        "contacto_id": null,
+        "cliente_id": null,
+        "contacto_nombre": null,
+        "es_cliente_registrado": false,
+        "prospecto_existe": true,
+        "prospecto_id": 16,
+        "prospecto_estado": "NUEVO",
+        "prospecto_nombre": "Ana Pérez",
+        "prospecto_producto_interes": null,
+        "prospecto_ciudad": null,
+        "prospecto_provincia": null,
+        "prospecto_ultima_intencion": null,
+        "prospecto_ultima_accion": null,
+        "prospecto_requiere_humano": false,
+        "conversacion_existe": true,
+        "conversacion_id": 41,
+        "conversacion_estado": "ACTIVA",
+        "conversacion_cliente_id": null,
+        "conversacion_contacto_id": null,
+        "conversacion_prospecto_id": 16,
+        "conversacion_nueva": true,
+        "contexto_comercial": {},
+        "tipo_actor": "PROSPECTO"
+      }
+    ]
+  },
+  "esperado": {
+    "modo_prueba": true,
+    "telefono_prueba_permitido": true,
+    "puede_responder_bot": true,
+    "motivo_bloqueo_bot": null
+  }
+}

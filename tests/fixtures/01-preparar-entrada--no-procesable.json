@@ -1,0 +1,12 @@
+{
+  "archivo": "code/01-entrada/preparar-entrada-whatsapp.js",
+  "descripcion": "Si llega un evento no procesable lanza error (normalmente el IF anterior lo detiene antes).",
+  "input": [
+    {
+      "evento_whatsapp": {
+        "procesable": false
+      }
+    }
+  ],
+  "error": "procesable"
+}

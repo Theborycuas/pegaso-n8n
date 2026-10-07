@@ -1,13 +1,16 @@
 # Pendientes técnicos
 
-Posibles bugs e inconsistencias detectados al revisar el código (octubre 2026). **Ninguno está corregido todavía.** Algunos dependen de cómo están configurados los nodos IF/Postgres en n8n; se marcan como "verificar" hasta tener el JSON exportado del workflow.
+Posibles bugs e inconsistencias detectados al revisar el código y la configuración de los nodos (octubre 2026). **Ninguno está corregido todavía.** Los que dependen de configuración aún no documentada se marcan "verificar". Las etapas 01–03 ya tienen su configuración revisada (ver `docs/etapas/`).
 
-Al resolver uno, bórralo de aquí y actualiza la doc afectada.
+Los números son identificadores fijos (los citan tests y otros documentos): no se renumeran. Al resolver uno, márcalo ~~tachado~~ con la fecha o bórralo, y actualiza la doc afectada.
 
 ## Prioridad alta (afectan al cliente o a los datos)
 
+28. **El webhook no tiene autenticación.**
+    "Webhook YCloud" tiene `Authentication: None`. Cualquiera que conozca la URL puede enviar mensajes falsos: gasta créditos de IA, crea prospectos basura y puede hacer que el bot escriba por WhatsApp a números arbitrarios desde el número de Pegaso. Solución: verificar la firma que YCloud envía en cada webhook (cabecera de firma con el secreto del endpoint) o, como mínimo, un *Header Auth* en el nodo.
+
 1. **El contexto comercial guardado no llega a la IA.**
-   `resolver-conversacion-prospecto.js` y `preparar-conversacion-creada.js` no copian `contexto_comercial` de la fila de `conversaciones`. Resultado: la cotización previa, la clasificación y el diseño siempre llegan vacíos a "Preparar contexto IA", y el bot "olvida" lo cotizado. *Verificar* si "Buscar conversación" devuelve esa columna.
+   Confirmado en código: `resolver-conversacion-prospecto.js` y `preparar-conversacion-creada.js` no copian `contexto_comercial` de la fila de `conversaciones` (ver fixture `03-resolver-conversacion--existente`). "Buscar conversación" es un Select sin columnas restringidas, así que la fila sí trae la columna si existe. Resultado: la cotización previa y el diseño siempre llegan vacíos a "Preparar contexto IA", y el bot "olvida" lo cotizado. *Verificar* que `conversaciones` tiene la columna `contexto_comercial` (la captura de "Crear conversación prospecto" no la muestra completa).
 
 2. **La regla de medida no producible se pierde.**
    `recuperar-decision-comercial.js` lee `$('Resolver contexto comercial')`, que va **antes** de "Aplicar reglas comerciales". El cambio a `RESPONDER_NO_PRODUCIBLE` no llega al Switch. Además, esa acción no existe en el Switch (que tiene `MEDIDA_NO_PRODUCIBLE`).
@@ -51,11 +54,19 @@ Al resolver uno, bórralo de aquí y actualiza la doc afectada.
 
 16. **Motivo de no producible siempre genérico**: `preparar-contexto-post-cotizacion.js` busca `motivo_no_producible`, pero P4 entrega `motivo_bloqueo`.
 
+29. **La clasificación A/B/C no se guarda.** `pegaso.prospectos` no tiene columna de clasificación (confirmado en "Crear prospecto"). Cada mensaje la recalcula desde `estado`, así que la regla "la clasificación nunca baja" solo vale dentro de una misma ejecución: un prospecto que llegó a A por pedir cuenta vuelve a C/B en el siguiente mensaje si su estado no cambió.
+
+30. **El historial no tiene límite.** "Recuperar historial conversación" usa *Return All* sin límite: en conversaciones largas el prompt del cerebro crece sin tope (más costo, más lentitud y riesgo de superar el contexto del modelo). Además incluye el mensaje actual, que también va aparte como `mensaje_actual`. Sugerencia: limitar a los últimos 20–30 mensajes (orden DESC + limit, y revertir en código) y excluir el `id` recién guardado.
+
+31. **"Buscar conversación" no tiene orden.** Select con `Limit 1` y sin *Sort*: si un prospecto tiene más de una conversación que cumple las 3 condiciones, PostgreSQL devuelve cualquiera. *Verificar* las condiciones; si no filtran por `estado = ACTIVA`, agregar orden por `ultimo_mensaje_at DESC`.
+
+32. **Formato de teléfono en `contactos.whatsapp`.** "Buscar Contacto" compara exacto contra el teléfono normalizado (`5939…`). Si en `contactos` hay números como `09…` o `+593…`, el cliente registrado no se reconoce y el bot le responde como prospecto. *Verificar* los datos o normalizar la columna.
+
 ## Prioridad baja (limpieza)
 
-17. `resolver-permiso-automatizacion.js`: `mensaje_actual` siempre `null` (el texto viene en `mensaje`), y su salida no incluye `prospecto_requiere_humano` (*verificar* de dónde lo lee el IF siguiente).
+17. `resolver-permiso-automatizacion.js`: `mensaje_actual` siempre `null` (el texto viene en `mensaje`). Sin impacto hoy: ningún nodo posterior lo lee de ahí. (Resuelto: el IF "¿Requiere atención humana?" lee `prospecto_requiere_humano` de `$('Unificar prospecto')`.)
 18. Prioridad de `tipo_actor` invertida entre `preparar-conversacion.js` (CONTACTO antes que PROSPECTO) y `preparar-contexto-ia.js`.
-19. `ultimo_mensaje_saliente` depende de que el historial venga ordenado ascendente; además se pierde en "Normalizar decisión IA", así que el anti-repetición de "Preparar respuesta comercial" no funciona.
+19. `ultimo_mensaje_saliente` se pierde en "Normalizar decisión IA", así que el anti-repetición de "Preparar respuesta comercial" no funciona. (El orden del historial está confirmado: `enviado_at ASC`, correcto.)
 20. `preparar-prospecto-creado.js` no valida el `id` devuelto por el INSERT.
 21. `preparar-notificacion-humano.js` inserta nombre y mensaje del cliente en el HTML del correo **sin escapar**.
 22. `preparar-envio-whatsapp.js` lanza error (detiene la ejecución) cuando falta teléfono o contenido, en vez de marcar "no enviar".
@@ -64,3 +75,6 @@ Al resolver uno, bórralo de aquí y actualiza la doc afectada.
 25. "Error ninguna IA funciono" usa `details` en vez de `detalles`.
 26. "Le adjunto la cotización" pero no se adjunta archivo; "$36.00 dólares" repite la moneda.
 27. Código muerto: ternarios con ramas iguales (`resolver-contexto-comercial.js`, `expandir-detalles.js`), reglas repetidas en `validar-extraccion-cerebro.js`, alias de formas que nunca llegan.
+33. "Crear prospecto" y "Crear conversación prospecto" mandan `creado_at` / `actualizado_at` en `null` y `creada_at` vacío. Si la tabla tiene `DEFAULT now()`, un `null` explícito lo anula y la fecha queda vacía. *Verificar* en la base; si quedan nulas, quitar esas columnas del mapeo (icono de papelera) para que actúe el default.
+34. "Crear conversación prospecto" deja `contacto_id` vacío aunque el remitente sea un contacto sin cliente. n8n además muestra ⚠️ en *Values to Send*: refrescar columnas del mapeo.
+35. Mensajes no procesables (imagen, audio, documento) y de clientes registrados terminan sin guardarse en `mensajes`: no queda rastro de que escribieron.
