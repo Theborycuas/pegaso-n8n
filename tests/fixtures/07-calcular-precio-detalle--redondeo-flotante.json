@@ -1,0 +1,46 @@
+{
+  "archivo": "code/07-cotizacion/calcular-precio-detalle.js",
+  "descripcion": "10x14 x 5000: 10 x 14 x 0,67 x 5 = 469, pero el punto flotante da 469,00000000000006 y Math.ceil cobra 470 (pendiente técnico 7). Al corregirlo, el esperado es 469.",
+  "input": [
+    {
+      "id": 301,
+      "cotizacion_id": 77,
+      "material_id": 1,
+      "diseno_id": 5,
+      "descripcion": null,
+      "cantidad": 5000,
+      "ancho_cm": "10.00",
+      "alto_cm": "14.00",
+      "forma": "RECTANGULAR",
+      "precio_unitario": null,
+      "precio_total": null,
+      "descuento": null,
+      "requiere_cotizacion_manual": false,
+      "observaciones": null,
+      "producto_id": 2
+    }
+  ],
+  "nodos": {
+    "EXPANDIR DETALLES": [
+      {
+        "cotizacion_id": 77,
+        "cliente_id": 1,
+        "detalle_index": 0,
+        "cantidad": 5000,
+        "producto": null,
+        "nombre": "Etiqueta 10x14 cm rectangular",
+        "sabor": null,
+        "ancho_cm": 10,
+        "alto_cm": 14,
+        "forma": "RECTANGULAR",
+        "cantidad_original": 5000,
+        "minimo_aplicado": false
+      }
+    ]
+  },
+  "esperado": {
+    "regla_precio": "TAMANO_10X10_O_MAYOR",
+    "factor_aplicado": 0.67,
+    "total": 470
+  }
+}

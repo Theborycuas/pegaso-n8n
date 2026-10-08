@@ -50,6 +50,8 @@ Texto al cliente: *"La cantidad mínima de impresión es de 1000 etiquetas por d
 
 Mensaje al cliente (`construir-mensaje-no-producible.js`): *"La medida de AxB cm no es posible de producir. No trabajamos etiquetas que tengan 1 cm o menos en cualquiera de sus lados. Indíquenos otra medida y con gusto le cotizamos."*
 
+Ese texto sale solo si un lado mide ≤ 1 cm. Entre 1 y 2 cm (p. ej. 1,5) el mensaje es genérico: *"No podemos producir las etiquetas con las medidas indicadas. Indíquenos otra medida y con gusto le cotizamos."* (pendiente técnico 8).
+
 Un solo detalle no producible bloquea **toda** la cotización. No hay medida máxima.
 
 ## 4. Catálogo
@@ -132,7 +134,7 @@ No existe vigencia de cotización ni descuentos comerciales automáticos.
 
 ## 7. Mensaje de cotización
 
-Archivo: `07-cotizacion/preparar-mensaje-cotizacion.js`. Se envían dos mensajes:
+Archivo: `07-cotizacion/preparar-mensaje-cotizacion.js`. Genera dos mensajes, pero ⚠️ hoy solo el primero se guarda y se envía (pendiente técnico 43):
 
 ```
 Le adjunto la cotización:
@@ -146,12 +148,14 @@ Adjúntenos su diseño para verificarle por favor
 El precio se calcula en base a las medidas de la etiqueta. Si aumenta o disminuye las medidas, el precio también varía.
 ```
 
-- Si se ajustó la cantidad a múltiplos de 1000 (y no fue asumida), se agrega la línea *"Trabajamos únicamente en múltiplos de 1000 unidades…"*.
+- Si se ajustó la cantidad a múltiplos de 1000 (y no fue asumida), se agrega la línea *"Trabajamos únicamente en múltiplos de 1000 unidades, por lo que las cantidades solicitadas se ajustan así: 1.500 → 2.000."*. ⚠️ Hoy también aparece como "1.000 → 1.000" cuando el cliente no dio cantidad (pendiente técnico 45).
+- Formas: rectangular/cuadrada → "AxB cm rectangulares"; redondeada → "AxB cm con puntas redondeadas"; troquelada/irregular → "AxB cm troqueladas"; circular → "A cm circulares" (solo el ancho, pendiente 49).
+- Una medida no producible responde con el texto de §3 y no genera precio.
 - Reglas de presentación: no mostrar nombre largo del producto, ni línea "Total", ni "IVA incluido", ni repetir material, ni cerrar con "Si está de acuerdo…".
 
 ## 8. Diseños
 
-Archivo: `07-cotizacion/resolver-diseno.js`. Un diseño existente se reutiliza si coinciden cliente, material, ancho, alto, forma y nombre (sin distinguir mayúsculas) y está activo. Si no, se crea uno nuevo. ⚠️ El campo `sabor` no se compara.
+Archivo: `07-cotizacion/resolver-diseno.js`. Un diseño existente se reutiliza si coinciden cliente, material, ancho, alto, forma y nombre (sin distinguir mayúsculas) y está activo. Si no, se crea uno nuevo (versión 1, activo). ⚠️ El campo `sabor` no se compara, y como hoy todos los diseños se guardan con `cliente_id = 1`, se comparten entre prospectos (pendiente técnico 41).
 
 ## 9. Clasificación de prospectos A/B/C
 

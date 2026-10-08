@@ -1,0 +1,16 @@
+{
+  "archivo": "code/07-cotizacion/validar-extraccion-cotizacion.js",
+  "descripcion": "La IA devuelve detalles vacío: inválido.",
+  "input": [
+    {
+      "output": {
+        "detalles": []
+      }
+    }
+  ],
+  "esperado": {
+    "valid": false,
+    "reason": "La IA devolvió detalles vacío.",
+    "cantidad_detalles": 0
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "archivo": "code/07-cotizacion/expandir-detalles.js",
+  "descripcion": "Un item por detalle con el cliente_id fijo 1 de \"EDT Datos cotización\" (pendiente técnico 41). Sin nombre ni producto genera el nombre técnico. No propaga cantidad_asumida y cambia cantidad_original null por la cantidad (pendiente técnico 45).",
+  "input": [
+    {
+      "cotizacion_id": 77,
+      "cliente_id": 1
+    }
+  ],
+  "nodos": {
+    "Preparar datos cotización": [
+      {
+        "success": true,
+        "can_quote": true,
+        "status": "READY_FOR_QUOTATION",
+        "detalles": [
+          {
+            "cantidad": 1000,
+            "producto": null,
+            "nombre": null,
+            "sabor": null,
+            "ancho_cm": 10,
+            "alto_cm": 5,
+            "forma": "RECTANGULAR",
+            "cantidad_original": null,
+            "cantidad_asumida": true,
+            "minimo_aplicado": true
+          }
+        ],
+        "cantidad_detalles": 1,
+        "minimo_impresion": 1000,
+        "multiplo_impresion": 1000,
+        "minimo_aplicado": true,
+        "cantidad_asumida": true,
+        "nota_minimo": "La cantidad mínima de impresión es de 1000 etiquetas por diseño o tamaño y trabajamos en múltiplos de 1000. Si cambia una letra o palabra ya se considera otro diseño."
+      }
+    ]
+  },
+  "esperado": {
+    "cotizacion_id": 77,
+    "cliente_id": 1,
+    "detalle_index": 0,
+    "cantidad": 1000,
+    "producto": null,
+    "nombre": "Etiqueta 10x5 cm rectangular",
+    "ancho_cm": 10,
+    "alto_cm": 5,
+    "forma": "RECTANGULAR",
+    "cantidad_original": 1000,
+    "minimo_aplicado": true
+  }
+}

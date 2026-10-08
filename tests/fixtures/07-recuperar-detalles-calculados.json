@@ -1,0 +1,70 @@
+{
+  "archivo": "code/07-cotizacion/recuperar-detalles-calculados.js",
+  "descripcion": "Reemite los detalles de \"Calcular precio detalle\" después del UPDATE de cotizaciones (que deja un solo item).",
+  "input": [
+    {
+      "id": 77,
+      "cliente_id": 1,
+      "contacto_id": 1,
+      "estado": "PENDIENTE",
+      "fecha_cotizacion": "2026-10-07T18:53:20.000Z",
+      "subtotal": 31.3,
+      "iva": 4.7,
+      "total": 36,
+      "descuento": null
+    }
+  ],
+  "nodos": {
+    "Calcular precio detalle": [
+      {
+        "id": 301,
+        "cotizacion_id": 77,
+        "cliente_id": 1,
+        "detalle_index": 0,
+        "producto_id": 2,
+        "material_id": 1,
+        "diseno_id": 5,
+        "producto": "",
+        "nombre": "Etiqueta 10x5 cm rectangular",
+        "sabor": null,
+        "cantidad": 1000,
+        "cantidad_original": 1000,
+        "cantidad_asumida": false,
+        "minimo_aplicado": true,
+        "ancho_cm": 10,
+        "alto_cm": 5,
+        "medida_permitida": true,
+        "medida_minima_permitida_cm": 2,
+        "forma_original": "RECTANGULAR",
+        "forma": "RECTANGULAR",
+        "ancho_calculado_cm": 10,
+        "alto_calculado_cm": 5,
+        "precio_fijo_aplicado": false,
+        "precio_fijo_1000": null,
+        "banda_pequena_18_aplicada": false,
+        "incremento_5x5_aplicado": false,
+        "incremento_pequena_aplicado": false,
+        "incremento_forma_aplicado": false,
+        "regla_precio": "GENERAL",
+        "factor_aplicado": 0.72,
+        "precio_1000_calculado": 36,
+        "precio_total_calculado": 36,
+        "precio_despues_descuento": 36,
+        "precio_1000": 36,
+        "precio_unitario": 0.036,
+        "precio_total": 36,
+        "subtotal": 31.3,
+        "iva": 4.7,
+        "descuento": 0,
+        "total": 36,
+        "precio_redondeado": true,
+        "requiere_cotizacion_manual": false,
+        "observaciones": ""
+      }
+    ]
+  },
+  "esperado": {
+    "id": 301,
+    "precio_total": 36
+  }
+}

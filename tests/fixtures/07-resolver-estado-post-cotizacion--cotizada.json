@@ -1,0 +1,123 @@
+{
+  "archivo": "code/07-cotizacion/resolver-estado-post-cotizacion.js",
+  "descripcion": "Con prospecto: lo lleva a COTIZADO.",
+  "input": [
+    {
+      "id": 41,
+      "cliente_id": null,
+      "contacto_id": null,
+      "telefono": "593987654321",
+      "canal": "WHATSAPP",
+      "estado": "ACTIVA",
+      "ultimo_mensaje_at": "2026-10-07T18:53:22.839Z",
+      "creada_at": "2026-10-07T18:40:00.000Z",
+      "prospecto_id": 16,
+      "contexto_comercial": {
+        "prospecto": {
+          "id": 16,
+          "estado": "NUEVO",
+          "clasificacion": "B",
+          "producto_interes": null,
+          "requiere_humano": false,
+          "ultima_intencion": null,
+          "ultima_accion": null
+        },
+        "ubicacion": {
+          "ciudad": null,
+          "provincia": null
+        },
+        "diseno": {
+          "estado": null
+        },
+        "cotizacion": {
+          "existe": false,
+          "id": null,
+          "estado": "COTIZADA",
+          "cantidad": null,
+          "ancho_cm": 10,
+          "alto_cm": 5,
+          "forma": "RECTANGULAR",
+          "precio_total": null,
+          "moneda": "USD",
+          "producto": null,
+          "material": null,
+          "cantidad_solicitada": 1000,
+          "cantidad_cotizable": 1000,
+          "cantidad_ajustada": false,
+          "cantidad_asumida": true,
+          "cotizacion_id": 77,
+          "total": 36,
+          "cantidad_detalles": 1,
+          "cotizada_at": "2026-10-08T00:16:05.975Z",
+          "ultimo_intento_producible": true,
+          "ultimo_error_produccion": null
+        }
+      }
+    }
+  ],
+  "nodos": {
+    "Preparar contexto post cotización": [
+      {
+        "conversacion_id": 41,
+        "prospecto_id": 16,
+        "cliente_id": null,
+        "contacto_id": null,
+        "cotizacion_id": 77,
+        "total": 36,
+        "mensaje_comercial": "Le adjunto la cotización:\n\nTrabajamos únicamente en múltiplos de 1000 unidades, por lo que las cantidades solicitadas se ajustan así: 1.000 → 1.000.\n\n-1.000 Etiquetas adhesivas de 10x5 cm rectangulares le saldrían en $36.00 dólares\n\nAdjúntenos su diseño para verificarle por favor",
+        "contexto_comercial": {
+          "prospecto": {
+            "id": 16,
+            "estado": "NUEVO",
+            "clasificacion": "B",
+            "producto_interes": null,
+            "requiere_humano": false,
+            "ultima_intencion": null,
+            "ultima_accion": null
+          },
+          "ubicacion": {
+            "ciudad": null,
+            "provincia": null
+          },
+          "diseno": {
+            "estado": null
+          },
+          "cotizacion": {
+            "existe": false,
+            "id": null,
+            "estado": "COTIZADA",
+            "cantidad": null,
+            "ancho_cm": 10,
+            "alto_cm": 5,
+            "forma": "RECTANGULAR",
+            "precio_total": null,
+            "moneda": "USD",
+            "producto": null,
+            "material": null,
+            "cantidad_solicitada": 1000,
+            "cantidad_cotizable": 1000,
+            "cantidad_ajustada": false,
+            "cantidad_asumida": true,
+            "cotizacion_id": 77,
+            "total": 36,
+            "cantidad_detalles": 1,
+            "cotizada_at": "2026-10-08T00:16:05.975Z",
+            "ultimo_intento_producible": true,
+            "ultimo_error_produccion": null
+          }
+        },
+        "cotizacion_generada": true,
+        "cotizacion_producible": true,
+        "bloquear_cotizacion": false,
+        "estado_comercial": "COTIZADO",
+        "actualizar_estado_prospecto": true
+      }
+    ]
+  },
+  "esperado": {
+    "prospecto_id_estado_update": 16,
+    "prospecto_estado_nuevo": "COTIZADO",
+    "actualizar_estado_prospecto": true,
+    "cotizacion_id": 77
+  }
+}

@@ -49,7 +49,7 @@
     "code/07-cotizacion/aplicar-minimo-impresion.js": ["Aplicar mínimo de impresión"],
     "code/07-cotizacion/preparar-datos-cotizacion.js": ["Preparar datos cotización"],
     "code/07-cotizacion/expandir-detalles.js": ["EXPANDIR DETALLES"],
-    "code/07-cotizacion/resolver-catalogo-pegaso.js": ["Resolver catalogo Pegaso"],
+    "code/07-cotizacion/resolver-catalogo-pegaso.js": ["Resolver catálogo Pegaso"],
     "code/07-cotizacion/resolver-diseno.js": ["Resolver diseño"],
     "code/07-cotizacion/preparar-diseno-creado.js": ["Preparar diseño creado"],
     "code/07-cotizacion/validar-producibilidad-p4.js": ["Validar producibilidad P4"],
@@ -74,7 +74,7 @@
     "prompts/extractor-cotizacion.md": [
       "Extractor → Groq Chat Model",
       "Extractor → DeepSeek Chat Model",
-      "Extractor → OpenAI Chat Model"
+      "Extractor → OpenAI Chat Model1"
     ]
   },
   "schemas": {
@@ -86,7 +86,7 @@
     "schemas/extractor-cotizacion.schema.json": [
       "Extractor → Groq Chat Model",
       "Extractor → DeepSeek Chat Model",
-      "Extractor → OpenAI Chat Model"
+      "Extractor → OpenAI Chat Model1"
     ]
   }
 }

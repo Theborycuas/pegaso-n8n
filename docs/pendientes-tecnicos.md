@@ -1,6 +1,6 @@
 # Pendientes técnicos
 
-Posibles bugs e inconsistencias detectados al revisar el código y la configuración de los nodos (octubre 2026). **Ninguno está corregido todavía.** Los que dependen de configuración aún no documentada se marcan "verificar". Las etapas 01–06 ya tienen su configuración revisada (ver `docs/etapas/`).
+Posibles bugs e inconsistencias detectados al revisar el código y la configuración de los nodos (octubre 2026). **Ninguno está corregido todavía.** Los que dependen de configuración aún no documentada se marcan "verificar". Las etapas 01–08 ya tienen su configuración revisada (ver `docs/etapas/`).
 
 Los números son identificadores fijos (los citan tests y otros documentos): no se renumeran. Al resolver uno, márcalo ~~tachado~~ con la fecha o bórralo, y actualiza la doc afectada.
 
@@ -11,6 +11,14 @@ Los números son identificadores fijos (los citan tests y otros documentos): no 
 
 36. **"Preparar actualización prospecto" pisa el prospecto en cada mensaje.**
     Recibe `$input` de "Guardar contexto comercial", que es un UPDATE y devuelve la **fila de conversaciones**, no la decisión. Esa fila no tiene `intencion`, `accion`, `producto`, `prospecto_estado` ni `prospecto_ciudad`, así que "Actualizar prospecto comercial" escribe `estado = NUEVO`, `ultima_intencion`, `ultima_accion`, `producto_interes`, `ciudad` y `provincia` en `null`, y `requiere_humano = false`. Un prospecto COTIZADO vuelve a NUEVO con el siguiente mensaje (y la rama de respuesta lo pasa a EN_CONVERSACION). Fixture: `04-preparar-actualizacion-prospecto--recibe-fila-conversacion`. *Verificar* con una ejecución (entrada del nodo) o con `SELECT estado, ultima_intencion, ultima_accion FROM pegaso.prospectos`: si `ultima_intencion` está siempre vacía, está confirmado. Solución: leer `$('Aplicar reglas comerciales determinísticas').first().json` en lugar de `$input`.
+
+41. **Todas las cotizaciones quedan a nombre del cliente 1.**
+    "EDT Datos cotización" tiene `cliente_id: 1` y `contacto_id: 1` escritos a mano. Ese `cliente_id` viaja por toda la etapa 07:
+    - las cotizaciones y los diseños de **todos** los prospectos quedan en el cliente 1;
+    - un prospecto puede reutilizar el diseño "Etiqueta 10x5 cm rectangular" creado para otro;
+    - en la rama no producible, "Guardar mensaje comercial" guarda el mensaje del prospecto con `cliente_id = 1`.
+
+    La cotización tampoco queda ligada al prospecto ni a la conversación (solo vía `contexto_comercial`). Fixtures: `07-expandir-detalles--nombre-tecnico`, `07-validar-producibilidad-p4--medida-1x5` y `07-construir-mensaje-comercial--no-producible-hereda-cliente-1`. Solución: usar `$('Recuperar decisión comercial').first().json.cliente_id` / `contacto_id`. Si un prospecto no tiene cliente, decidir si la cotización se guarda con `prospecto_id`, lo que requiere una columna nueva o un cliente por prospecto. *Verificar* el mapeo de "Insert cotización".
 
 1. **El contexto comercial guardado no llega a la IA, y cada mensaje lo borra.**
    Confirmado en código: `resolver-conversacion-prospecto.js` y `preparar-conversacion-creada.js` no copian `contexto_comercial` de la fila de `conversaciones` (fixture `03-resolver-conversacion--existente`). La columna existe: la escribe "Guardar contexto comercial". Resultado: la cotización previa y el diseño llegan vacíos a la IA, y como "Guardar contexto comercial" reemplaza la columna en cada mensaje, la memoria anterior (incluido el `handoff`) se pierde.
@@ -26,17 +34,32 @@ Los números son identificadores fijos (los citan tests y otros documentos): no 
    "Error ninguna IA funciono" (cerebro y cotización) devuelve un objeto fijo sin responder, sin marcar el mensaje ni avisar al equipo.
 
 5. **El prospecto pasa a COTIZADO aunque la medida no sea producible.**
-   `resolver-estado-post-cotizacion.js` pone `actualizar_estado_prospecto = true` siempre que haya prospecto, deshaciendo lo que decidió "Preparar contexto post cotización". *Verificar* la condición del IF "¿Actualizar prospecto cotizado?".
+   `resolver-estado-post-cotizacion.js` pone `actualizar_estado_prospecto = true` siempre que haya prospecto, deshaciendo lo que decidió "Preparar contexto post cotización". Confirmado: el IF "IF ¿Actualizar prospecto cotizado" evalúa ese campo, y "Actualizar prospecto cotizado" escribe `COTIZADO` con `ultima_intencion = SOLICITAR_COTIZACION` y `ultima_accion = COTIZAR_P4` fijos. Fixture: `07-resolver-estado-post-cotizacion--no-producible-marca-cotizado`. Solución: respetar `contexto.actualizar_estado_prospecto` en el `existeProspecto && …`.
 
 6. **Se guardan cotización y diseños antes de validar producibilidad.**
-   "Validar producibilidad P4" corre después de "Insert cotización" y "Crear diseño": una medida 1×1 deja una cotización y diseños huérfanos en la base.
+   "Validar producibilidad P4" corre después de "Insert cotización" y "Crear diseño": una medida 1×1 deja una cotización sin detalles ni totales y diseños de una medida imposible en la base. Confirmado con la configuración ([etapas/07](etapas/07-cotizacion.md)). Fixture: `07-validar-producibilidad-p4--medida-1x5`.
 
 7. **Redondeo con error de punto flotante cobra $1 de más.**
-   `Math.ceil(469.00000000000006)` = 470. Ejemplo: 10×14 rectangular × 5000 unidades. Se corrige redondeando a centavos antes del `ceil`.
+   `Math.ceil(469.00000000000006)` = 470. Ejemplo: 10×14 rectangular × 5000 unidades. Se corrige redondeando a centavos antes del `ceil`. Fixture: `07-calcular-precio-detalle--redondeo-flotante` (al corregirlo, su esperado pasa a 469).
 
 ## Prioridad media (reglas inconsistentes)
 
-8. **Umbral de medida mínima distinto**: ≤ 1 cm en el cerebro, < 2 cm en cotización. Una etiqueta de 1,5 cm pasa el cerebro y se bloquea en cotización con un mensaje que habla de "1 cm o menos".
+8. **Umbral de medida mínima distinto**: ≤ 1 cm en el cerebro, < 2 cm en cotización. Una etiqueta de 1,5 cm pasa el cerebro y se bloquea en cotización con un mensaje genérico ("No podemos producir las etiquetas con las medidas indicadas…"). Fixture: `07-construir-mensaje-no-producible--medida-1-5cm`.
+
+42. **"Calcular precio detalle" empareja por posición.**
+    Toma nombre, sabor, `cantidad_original` y `minimo_aplicado` de `$('EXPANDIR DETALLES').all()[index]`. Pero sus items vienen de "Unificar diseños" (Append), que pone primero una rama y luego la otra. Con detalles de diseño existente y nuevo mezclados, cada fila recibe los datos de otro detalle. El precio es correcto, porque usa las medidas de la fila, pero el nombre y la aclaración de cantidad del mensaje no. Fixture: `07-calcular-precio-detalle--emparejado-por-indice`. Solución: emparejar por `detalle_index`, que requiere guardarlo o propagarlo, o por medidas y diseño.
+
+43. **El segundo mensaje de la cotización nunca sale.**
+    "Preparar mensaje cotización" genera `mensaje_variacion_precio` ("El precio se calcula en base a las medidas…") y `mensajes_comerciales` con dos textos. Pero "Guardar mensaje comercial" solo guarda `mensaje_comercial`, y la etapa 08 envía una fila. Decidir si se envía, por ejemplo con un segundo INSERT o un Split de `mensajes_comerciales`, o si se elimina.
+
+45. **"1.000 → 1.000" cuando el cliente no dio cantidad.**
+    "EXPANDIR DETALLES" no propaga `cantidad_asumida` y cambia `cantidad_original: null` por la cantidad. "Preparar mensaje cotización" ve entonces `minimo_aplicado = true`, `cantidad_asumida = false` y `cantidad_original = 1000`, y agrega "…las cantidades solicitadas se ajustan así: 1.000 → 1.000." Ocurre cuando el extractor devuelve `cantidad: null`. Fixtures: `07-expandir-detalles--nombre-tecnico` y `07-preparar-mensaje-cotizacion`. Solución: en `expandir-detalles.js` conservar `cantidad_original` tal cual y propagar `cantidad_asumida`.
+
+46. **Sin detalles válidos igual se crea la cotización y la ejecución falla.**
+    Después de "Preparar datos cotización" no hay un IF sobre `can_quote`. Con `NO_VALID_DETAILS` (p. ej. el extractor no encontró medidas) se ejecuta "Insert cotización" y luego "EXPANDIR DETALLES" lanza error: el cliente no recibe respuesta y queda una cotización vacía. Fixtures: `07-preparar-datos-cotizacion--sin-medidas` y `07-expandir-detalles--sin-detalles`.
+
+47. **"Update cotizacion_detalles" pone `requiere_cotizacion_manual = false` siempre.**
+    El toggle de esa columna está apagado en el mapeo, así que pisa el valor del INSERT. Hoy no se nota porque todo es P4 (pendiente 12). Solución: mapear `{{ $json.requiere_cotizacion_manual }}` o quitar la columna del UPDATE.
 
 9. **Precios que no suben con el tamaño**:
    - 4×2 cm ($5,76/mil → $6) es mucho más barato que 3×3 ($18).
@@ -48,7 +71,7 @@ Los números son identificadores fijos (los citan tests y otros documentos): no 
 
 11. **Motivos de handoff con nombres distintos** entre `preparar-derivacion-humana.js` (SOLICITA_DATOS_PAGO, NEGOCIACION_COMERCIAL, DESEA_CONTINUAR_PEDIDO), el schema del cerebro (CONFIRMAR_PEDIDO, NEGOCIACION…) y `preparar-notificacion-humano.js` (SOLICITA_CUENTA, NEGOCIAR_PRECIO…). El caso más común —pedir datos de pago— sale con asunto genérico, y la notificación puede **bajar** la prioridad de ALTA a MEDIA. Fixtures: `06-preparar-notificacion-humano--datos-pago-categoria-general` y `--llamada-baja-prioridad`.
 
-12. **El material nunca llega al catálogo.** El schema del extractor no tiene `material` y "Preparar datos cotización" lo elimina; todo se cotiza como P4 y `requiere_cotizacion_manual` nunca se activa.
+12. **El material nunca llega al catálogo.** El schema del extractor no tiene `material` y "Preparar datos cotización" lo elimina; todo se cotiza como P4 y `requiere_cotizacion_manual` nunca se activa (y si se activara, "Update cotizacion_detalles" la vuelve a `false`, pendiente 47). Fixture de lo que pasaría con couché: `07-resolver-catalogo-pegaso--couche-manual`.
 
 13. **`MODO_PRUEBA` abierto por error**: si `valor_json` no trae `activo`, el bot responde a todos.
 
@@ -56,7 +79,7 @@ Los números son identificadores fijos (los citan tests y otros documentos): no 
 
 15. **Diseños que solo difieren en sabor colisionan** (`resolver-diseno.js`, `preparar-diseno-creado.js`). Dos detalles idénticos en la misma cotización pueden duplicar uno y perder otro.
 
-16. **Motivo de no producible siempre genérico**: `preparar-contexto-post-cotizacion.js` busca `motivo_no_producible`, pero P4 entrega `motivo_bloqueo`.
+16. **Motivo de no producible siempre genérico**: `preparar-contexto-post-cotizacion.js` busca `motivo_no_producible`, pero P4 entrega `motivo_bloqueo`. Fixture: `07-preparar-contexto-post-cotizacion--no-producible`.
 
 29. **La clasificación A/B/C no se guarda.** `pegaso.prospectos` no tiene columna de clasificación (confirmado en "Crear prospecto"). Cada mensaje la recalcula desde `estado`, así que la regla "la clasificación nunca baja" solo vale dentro de una misma ejecución: un prospecto que llegó a A por pedir cuenta vuelve a C/B en el siguiente mensaje si su estado no cambió.
 
@@ -79,14 +102,20 @@ Los números son identificadores fijos (los citan tests y otros documentos): no 
 19. `ultimo_mensaje_saliente` se pierde en "Normalizar decisión IA", así que el anti-repetición de "Preparar respuesta comercial" no funciona (fixture `05-preparar-respuesta-comercial--duplicada`). El validador sí lo controla. (El orden del historial está confirmado: `enviado_at ASC`, correcto.)
 20. `preparar-prospecto-creado.js` no valida el `id` devuelto por el INSERT.
 21. `preparar-notificacion-humano.js` inserta nombre y mensaje del cliente en el HTML del correo **sin escapar**.
-22. `preparar-envio-whatsapp.js` lanza error (detiene la ejecución) cuando falta teléfono o contenido, en vez de marcar "no enviar".
-23. `resolver-diseno.js` usa `$('Resolver catálogo Pegaso')` con tilde; el mapa tiene `Resolver catalogo Pegaso`. *Verificar* el nombre real del nodo.
+22. `preparar-envio-whatsapp.js` lanza error (detiene la ejecución) cuando falta teléfono o contenido, en vez de marcar "no enviar". Fixture: `08-preparar-envio-whatsapp--sin-contenido`.
 24. Erratas en nombres de nodo: "Peparar notificacion humano", "EXECUTOR MOMENTANEP", y "siclo" en `finalizar-ciclo-comercial.js`.
-25. "Error ninguna IA funciono" usa `details` en vez de `detalles`.
+25. "Error ninguna IA funciono" usa `details` en vez de `detalles` (fixture `07-error-ninguna-ia-cotizacion`).
 26. "Le adjunto la cotización" pero no se adjunta archivo; "$36.00 dólares" repite la moneda.
 27. Código muerto: ternarios con ramas iguales (`resolver-contexto-comercial.js`, `expandir-detalles.js`), reglas repetidas en `validar-extraccion-cerebro.js`, alias de formas que nunca llegan.
 33. "Crear prospecto" y "Crear conversación prospecto" mandan `creado_at` / `actualizado_at` en `null` y `creada_at` vacío. Si la tabla tiene `DEFAULT now()`, un `null` explícito lo anula y la fecha queda vacía. *Verificar* en la base; si quedan nulas, quitar esas columnas del mapeo (icono de papelera) para que actúe el default.
 34. "Crear conversación prospecto" deja `contacto_id` vacío aunque el remitente sea un contacto sin cliente. n8n además muestra ⚠️ en *Values to Send*: refrescar columnas del mapeo.
 35. Mensajes no procesables (imagen, audio, documento) y de clientes registrados terminan sin guardarse en `mensajes`: no queda rastro de que escribieron.
-39. `procesado` inconsistente entre ramas: en la respuesta comercial el saliente se guarda `procesado = true` (antes de enviarlo a YCloud) y el entrante se marca procesado; en la derivación humana el saliente queda `false` y el entrante nunca se marca. El id que devuelve YCloud no se guarda en ningún saliente.
-40. "Actualizar actividad conversación" repite el `ultimo_mensaje_at` que ya escribió "Guardar contexto comercial", con la hora del mensaje entrante (en el handoff se usa `$now`). n8n muestra ⚠️ en sus columnas: refrescar el mapeo.
+39. `procesado` inconsistente entre ramas:
+    - En la respuesta comercial (05) y en la cotización (07) el saliente se guarda con `procesado = true`, antes de enviarlo a YCloud.
+    - Solo la 05 marca el entrante como procesado; en la derivación humana (06) y en la cotización (07) el entrante queda `false`.
+    - En la derivación humana el saliente queda `false`.
+    - El id que devuelve YCloud no se guarda en ningún saliente.
+40. "Actualizar actividad conversación" repite el `ultimo_mensaje_at` que ya escribió "Guardar contexto comercial", con la hora del mensaje entrante (en el handoff se usa `$now`). n8n muestra ⚠️ en sus columnas: refrescar el mapeo. En la cotización pasa lo mismo: "Actualizar actividad conversación cotización" y "Guardar contexto post cotización" escriben los dos `$now`.
+44. Los Set "EDT Datos cotización" y "EDT Datos del detalle" leen `$json.details` / `.item.json.details`, pero "Preparar datos cotización" devuelve `detalles`: el campo `detalles` de ambos queda vacío. Sin impacto (EXPANDIR lee los detalles directamente), pero confunde. Fixture: `07-preparar-datos-cotizacion--listo`.
+48. `cotizacion_detalles.descripcion` siempre queda vacía: ningún nodo produce `descripcion`. El nombre y el sabor del detalle solo quedan en `disenos`, y el sabor se pierde (ver 15).
+49. Etiquetas circulares: "Preparar mensaje cotización" describe solo el ancho ("5 cm circulares"). Si el cliente pide 5x3 circular (ovalada), el mensaje no muestra el alto, aunque el precio sí lo usa.

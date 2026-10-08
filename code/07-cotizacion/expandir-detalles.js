@@ -9,7 +9,7 @@
 // - Lanzar error si falta cotizacion_id o si cantidad/ancho_cm/alto_cm no son positivos
 // - Resolver nombre por prioridad: nombre explícito > producto > nombre técnico (ej 5x5 + CIRCULAR -> "Etiqueta 5x5 cm circular")
 // - NO exigir producto (puede quedar null)
-// - NO resolver catálogo ni diseño (lo hacen "Resolver catalogo Pegaso" y "Resolver diseño")
+// - NO resolver catálogo ni diseño (lo hacen "Resolver catálogo Pegaso" y "Resolver diseño")
 // ======================================================
 
 

@@ -1,0 +1,44 @@
+{
+  "archivo": "code/07-cotizacion/preparar-datos-cotizacion.js",
+  "descripcion": "Detalle válido: READY_FOR_QUOTATION. El campo es \"detalles\"; los Set \"EDT Datos cotización\" y \"EDT Datos del detalle\" leen \"details\", que no existe (pendiente técnico 44).",
+  "input": [
+    {
+      "valid": true,
+      "detalles": [
+        {
+          "cantidad": 1000,
+          "producto": null,
+          "nombre": null,
+          "sabor": null,
+          "ancho_cm": 10,
+          "alto_cm": 5,
+          "forma": "RECTANGULAR",
+          "cantidad_original": null,
+          "cantidad_asumida": true,
+          "minimo_aplicado": true
+        }
+      ],
+      "cantidad_detalles": 1,
+      "minimo_impresion": 1000,
+      "multiplo_impresion": 1000,
+      "minimo_aplicado": true,
+      "cantidad_asumida": true,
+      "nota_minimo": "La cantidad mínima de impresión es de 1000 etiquetas por diseño o tamaño y trabajamos en múltiplos de 1000. Si cambia una letra o palabra ya se considera otro diseño."
+    }
+  ],
+  "esperado": {
+    "success": true,
+    "status": "READY_FOR_QUOTATION",
+    "cantidad_detalles": 1,
+    "detalles": {
+      "0": {
+        "cantidad": 1000,
+        "ancho_cm": 10,
+        "alto_cm": 5,
+        "forma": "RECTANGULAR",
+        "cantidad_asumida": true,
+        "minimo_aplicado": true
+      }
+    }
+  }
+}

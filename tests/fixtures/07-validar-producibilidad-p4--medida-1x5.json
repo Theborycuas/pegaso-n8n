@@ -1,0 +1,42 @@
+{
+  "archivo": "code/07-cotizacion/validar-producibilidad-p4.js",
+  "descripcion": "1x5: bloquea toda la cotización, pero la cotización y el diseño ya se guardaron (pendiente técnico 6). El item conserva cliente_id 1 (pendiente 41).",
+  "input": [
+    {
+      "cotizacion_id": 78,
+      "cliente_id": 1,
+      "detalle_index": 0,
+      "cantidad": 1000,
+      "producto": null,
+      "nombre": "Etiqueta 1x5 cm rectangular",
+      "sabor": null,
+      "ancho_cm": 1,
+      "alto_cm": 5,
+      "forma": "RECTANGULAR",
+      "cantidad_original": 1000,
+      "minimo_aplicado": true,
+      "producto_id": 2,
+      "material_id": 1,
+      "material_resuelto": "Polipropileno P4",
+      "requiere_cotizacion_manual": false,
+      "diseno_id": 9,
+      "diseno_existente": false,
+      "diseno_nombre_resuelto": "Etiqueta 1x5 cm rectangular",
+      "diseno_creado": true
+    }
+  ],
+  "esperado": {
+    "cotizacion_producible": false,
+    "bloquear_cotizacion": true,
+    "motivo_bloqueo": "MEDIDA_NO_PRODUCIBLE",
+    "cliente_id": 1,
+    "detalles_invalidos": [
+      {
+        "index": 0,
+        "motivo": "MEDIDA_NO_PRODUCIBLE",
+        "ancho_cm": 1,
+        "alto_cm": 5
+      }
+    ]
+  }
+}

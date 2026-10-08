@@ -1,0 +1,37 @@
+{
+  "archivo": "code/07-cotizacion/validar-extraccion-cotizacion.js",
+  "descripcion": "Extracción 10x5 rectangular sin cantidad: es válida (el validador no exige cantidad ni medidas).",
+  "input": [
+    {
+      "output": {
+        "detalles": [
+          {
+            "cantidad": null,
+            "producto": null,
+            "nombre": null,
+            "sabor": null,
+            "ancho_cm": 10,
+            "alto_cm": 5,
+            "forma": "RECTANGULAR"
+          }
+        ]
+      }
+    }
+  ],
+  "esperado": {
+    "valid": true,
+    "reason": null,
+    "cantidad_detalles": 1,
+    "detalles": [
+      {
+        "cantidad": null,
+        "producto": null,
+        "nombre": null,
+        "sabor": null,
+        "ancho_cm": 10,
+        "alto_cm": 5,
+        "forma": "RECTANGULAR"
+      }
+    ]
+  }
+}

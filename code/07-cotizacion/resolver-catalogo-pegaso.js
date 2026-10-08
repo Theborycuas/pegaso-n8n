@@ -1,5 +1,5 @@
 // ======================================================
-// NODO N8N: Resolver catalogo Pegaso
+// NODO N8N: Resolver catálogo Pegaso
 // ARCHIVO: code/07-cotizacion/resolver-catalogo-pegaso.js
 // VERSION: 1.0
 // RESPONSABILIDAD:

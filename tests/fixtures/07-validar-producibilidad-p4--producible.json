@@ -1,0 +1,34 @@
+{
+  "archivo": "code/07-cotizacion/validar-producibilidad-p4.js",
+  "descripcion": "10x5: producible, sigue a \"Insert cotizacion_detalles\".",
+  "input": [
+    {
+      "cotizacion_id": 77,
+      "cliente_id": 1,
+      "detalle_index": 0,
+      "cantidad": 1000,
+      "producto": null,
+      "nombre": "Etiqueta 10x5 cm rectangular",
+      "sabor": null,
+      "ancho_cm": 10,
+      "alto_cm": 5,
+      "forma": "RECTANGULAR",
+      "cantidad_original": 1000,
+      "minimo_aplicado": true,
+      "producto_id": 2,
+      "material_id": 1,
+      "material_resuelto": "Polipropileno P4",
+      "requiere_cotizacion_manual": false,
+      "diseno_id": 5,
+      "diseno_existente": true,
+      "diseno_nombre_resuelto": "Etiqueta 10x5 cm rectangular"
+    }
+  ],
+  "esperado": {
+    "cotizacion_producible": true,
+    "calcular_precio": true,
+    "bloquear_cotizacion": false,
+    "motivo_bloqueo": null,
+    "diseno_id": 5
+  }
+}

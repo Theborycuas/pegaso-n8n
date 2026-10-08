@@ -1,0 +1,35 @@
+{
+  "archivo": "code/07-cotizacion/aplicar-minimo-impresion.js",
+  "descripcion": "Sin cantidad se asume el mínimo de 1000.",
+  "input": [
+    {
+      "valid": true,
+      "reason": null,
+      "detalles": [
+        {
+          "cantidad": null,
+          "producto": null,
+          "nombre": null,
+          "sabor": null,
+          "ancho_cm": 10,
+          "alto_cm": 5,
+          "forma": "RECTANGULAR"
+        }
+      ],
+      "cantidad_detalles": 1
+    }
+  ],
+  "esperado": {
+    "valid": true,
+    "minimo_aplicado": true,
+    "cantidad_asumida": true,
+    "detalles": {
+      "0": {
+        "cantidad": 1000,
+        "cantidad_original": null,
+        "cantidad_asumida": true,
+        "minimo_aplicado": true
+      }
+    }
+  }
+}

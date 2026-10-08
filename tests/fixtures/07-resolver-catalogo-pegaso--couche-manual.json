@@ -1,0 +1,26 @@
+{
+  "archivo": "code/07-cotizacion/resolver-catalogo-pegaso.js",
+  "descripcion": "Si llegara material couché, sería cotización manual. Hoy el material nunca llega (pendiente técnico 12) y \"Update cotizacion_detalles\" pone la bandera en false (pendiente 47).",
+  "input": [
+    {
+      "cotizacion_id": 77,
+      "cliente_id": 1,
+      "detalle_index": 0,
+      "cantidad": 1000,
+      "producto": null,
+      "nombre": "Etiqueta 10x5 cm rectangular",
+      "sabor": null,
+      "ancho_cm": 10,
+      "alto_cm": 5,
+      "forma": "RECTANGULAR",
+      "cantidad_original": 1000,
+      "minimo_aplicado": true,
+      "material": "couché"
+    }
+  ],
+  "esperado": {
+    "material_id": 2,
+    "producto_id": 8,
+    "requiere_cotizacion_manual": true
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "archivo": "code/07-cotizacion/error-ninguna-ia-cotizacion.js",
+  "descripcion": "Fallo de las tres IA extractoras: resultado fijo, sin responder al cliente (pendiente técnico 4). Usa \"details\" en vez de \"detalles\" (pendiente 25).",
+  "input": [
+    {}
+  ],
+  "esperado": {
+    "valid": false,
+    "can_quote": false,
+    "status": "AI_EXTRACTION_FAILED",
+    "error_code": "ALL_AI_FAILED",
+    "details": []
+  }
+}

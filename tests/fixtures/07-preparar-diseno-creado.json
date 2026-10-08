@@ -1,0 +1,53 @@
+{
+  "archivo": "code/07-cotizacion/preparar-diseno-creado.js",
+  "descripcion": "Relaciona la fila insertada en disenos con su detalle de la rama false de \"¿Diseño existe?\".",
+  "input": [
+    {
+      "id": 9,
+      "cliente_id": 1,
+      "material_id": 1,
+      "nombre": "Etiqueta 1x5 cm rectangular",
+      "codigo": null,
+      "ancho_cm": "1.00",
+      "alto_cm": "5.00",
+      "forma": "RECTANGULAR",
+      "version": 1,
+      "archivo_original": null,
+      "activo": true,
+      "notas": null
+    }
+  ],
+  "nodos": {
+    "¿Diseño existe?": [
+      {
+        "cotizacion_id": 78,
+        "cliente_id": 1,
+        "detalle_index": 0,
+        "cantidad": 1000,
+        "producto": null,
+        "nombre": "Etiqueta 1x5 cm rectangular",
+        "sabor": null,
+        "ancho_cm": 1,
+        "alto_cm": 5,
+        "forma": "RECTANGULAR",
+        "cantidad_original": 1000,
+        "minimo_aplicado": true,
+        "producto_id": 2,
+        "material_id": 1,
+        "material_resuelto": "Polipropileno P4",
+        "requiere_cotizacion_manual": false,
+        "diseno_id": null,
+        "diseno_existente": false,
+        "diseno_nombre_resuelto": null
+      }
+    ]
+  },
+  "esperado": {
+    "cotizacion_id": 78,
+    "diseno_id": 9,
+    "diseno_existente": false,
+    "diseno_creado": true,
+    "ancho_cm": 1,
+    "alto_cm": 5
+  }
+}

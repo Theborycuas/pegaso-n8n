@@ -26,7 +26,7 @@ flowchart TD
     C -->|prospecto ya con humano| X3((fin atención humana))
     C --> D[04 Cerebro comercial IA<br/>Groq → DeepSeek → OpenAI]
     D --> S{Enrutar acción comercial}
-    S -->|COTIZAR| F[07 Cotización]
+    S -->|COTIZAR_P4| F[07 Cotización]
     S -->|DERIVAR_HUMANO| E[06 Derivación humana]
     S -->|demás acciones| R[05 Respuesta comercial]
     F --> W[08 Salida WhatsApp<br/>YCloud]
@@ -194,21 +194,23 @@ Cuando la acción es `DERIVAR_HUMANO`: marca al prospecto, guarda el handoff en 
 
 ## 07 · Cotización (`code/07-cotizacion/`)
 
-Cuando la acción es `COTIZAR`: un segundo modelo de IA extrae los **detalles** a cotizar (puede haber varios productos en un mensaje), y el código aplica mínimos, catálogo, diseño, producibilidad y precio.
+Cuando la acción es `COTIZAR_P4`: un segundo modelo de IA extrae los **detalles** a cotizar (puede haber varios productos en un mensaje), y el código aplica mínimos, catálogo, diseño, producibilidad y precio.
+
+Configuración detallada de cada nodo: [etapas/07-cotizacion.md](etapas/07-cotizacion.md).
 
 | Nodo | Tipo | Archivo |
 |---|---|---|
-| Extractor → Groq / DeepSeek / OpenAI Chat | LLM + modelo | `prompts/extractor-cotizacion.md`, `schemas/extractor-cotizacion.schema.json` |
+| Extractor → Groq Chat Model / DeepSeek Chat Model / OpenAI Chat Model1 | LLM + modelo | `prompts/extractor-cotizacion.md`, `schemas/extractor-cotizacion.schema.json` |
 | Validar extracción Groq / DeepSeek / OpenApi | Code (los 3 comparten archivo) | `validar-extraccion-cotizacion.js` |
 | If GROQ / If1 / If2 | IF | — (`valid`) |
 | Error ninguna IA funciono | Code | `error-ninguna-ia-cotizacion.js` |
 | Aplicar mínimo de impresión | Code | `aplicar-minimo-impresion.js` |
 | Preparar datos cotización | Code | `preparar-datos-cotizacion.js` |
-| EDT Datos cotización | Set | — |
+| EDT Datos cotización | Set (⚠️ `cliente_id` fijo en 1, pendiente 41) | — |
 | Insert cotización | Postgres insert | — |
 | EDT Datos del detalle | Set | — |
 | EXPANDIR DETALLES | Code (1 item por detalle) | `expandir-detalles.js` |
-| Resolver catalogo Pegaso | Code | `resolver-catalogo-pegaso.js` |
+| Resolver catálogo Pegaso | Code | `resolver-catalogo-pegaso.js` |
 | Buscar diseño existente | Postgres select | — |
 | Resolver diseño | Code | `resolver-diseno.js` |
 | ¿Diseño existe? | IF | — |
@@ -231,21 +233,23 @@ Cuando la acción es `COTIZAR`: un segundo modelo de IA extrae los **detalles** 
 | Preparar contexto post cotización | Code | `preparar-contexto-post-cotizacion.js` |
 | Guardar contexto post cotización | Postgres update | — |
 | Resolver estado post cotización | Code | `resolver-estado-post-cotizacion.js` |
-| ¿Actualizar prospecto cotizado? | IF | — |
+| IF ¿Actualizar prospecto cotizado | IF | — (`actualizar_estado_prospecto`) |
 | Actualizar prospecto cotizado | Postgres update | — |
 | Finalizar cotización comercial | Code | `finalizar-cotizacion-comercial.js` |
 
 La fórmula de precio vive **solo** en `calcular-precio-detalle.js` (sección "POLÍTICA CENTRAL DE PRECIOS PEGASO").
 
+Los INSERT de cotización y diseños ocurren **antes** de validar producibilidad. Una medida no producible deja una cotización vacía y lleva igual al prospecto a `COTIZADO` (pendientes 5 y 6).
+
 ## 08 · Salida WhatsApp (`code/08-salida-whatsapp/`)
 
-Punto común de envío. Lo alimentan los tres nodos que guardan mensajes salientes (respuesta comercial, transición humano y mensaje comercial de cotización).
+Punto común de envío. Lo alimentan los tres nodos que guardan mensajes salientes (respuesta comercial, transición humano y mensaje comercial de cotización). Configuración detallada: [etapas/08-salida-whatsapp.md](etapas/08-salida-whatsapp.md).
 
 | Nodo | Tipo | Archivo |
 |---|---|---|
 | Preparar envío WhatsApp | Code | `preparar-envio-whatsapp.js` |
-| If: ¿Enviar por WhatsApp? | IF | — (`enviar_whatsapp`) |
-| YCloud Enviar Wts | HTTP POST | — |
+| If:¿Enviar por WhatsApp? | IF | — (`enviar_whatsapp`) |
+| YCloud Enviar Wts | HTTP POST (Header Auth) | — |
 
 Solo se envía si la ejecución vino de un webhook real de YCloud y el mensaje es de tipo `TEXTO`. En ejecuciones manuales (Mensaje entrante TEST) el mensaje se guarda pero **no** se envía (`motivo_no_envio = EJECUCION_NO_ORIGINADA_EN_WEBHOOK_WHATSAPP`). El número emisor de Pegaso `593962645735` está como valor de respaldo en el código.
 

@@ -1,0 +1,203 @@
+{
+  "archivo": "code/07-cotizacion/preparar-contexto-post-cotizacion.js",
+  "descripcion": "Si ninguna rama se ejecutó y la fila de \"Guardar mensaje comercial\" no trae banderas, no puede decidir: error.",
+  "input": [
+    {
+      "id": 41,
+      "cliente_id": null,
+      "contacto_id": null,
+      "telefono": "593987654321",
+      "canal": "WHATSAPP",
+      "estado": "ACTIVA",
+      "ultimo_mensaje_at": "2026-10-07T18:53:22.839Z",
+      "creada_at": "2026-10-07T18:40:00.000Z",
+      "prospecto_id": 16,
+      "contexto_comercial": {
+        "prospecto": {
+          "id": 16,
+          "estado": "NUEVO",
+          "clasificacion": "B",
+          "producto_interes": null,
+          "requiere_humano": false,
+          "ultima_intencion": null,
+          "ultima_accion": null
+        },
+        "ubicacion": {
+          "ciudad": null,
+          "provincia": null
+        },
+        "diseno": {
+          "estado": null
+        },
+        "cotizacion": {
+          "existe": false,
+          "id": null,
+          "estado": null,
+          "cantidad": null,
+          "ancho_cm": 10,
+          "alto_cm": 5,
+          "forma": "RECTANGULAR",
+          "precio_total": null,
+          "moneda": "USD",
+          "producto": null,
+          "material": null,
+          "cantidad_solicitada": 1000,
+          "cantidad_cotizable": 1000,
+          "cantidad_ajustada": false,
+          "cantidad_asumida": true
+        }
+      }
+    }
+  ],
+  "nodos": {
+    "Recuperar decisión comercial": [
+      {
+        "conversacion_id": 41,
+        "cliente_id": null,
+        "contacto_id": null,
+        "telefono": "593987654321",
+        "nombre_whatsapp": "Ana Pérez",
+        "es_cliente_registrado": false,
+        "mensaje_actual": "Hola, necesito etiquetas de 10x5 cm",
+        "tipo_mensaje": "TEXTO",
+        "prospecto_existe": true,
+        "prospecto_id": 16,
+        "prospecto_estado": "NUEVO",
+        "clasificacion_prospecto": "B",
+        "tipo_actor": "PROSPECTO",
+        "intencion": "SOLICITAR_COTIZACION",
+        "accion": "COTIZAR_P4",
+        "producto": null,
+        "material": null,
+        "cantidad": 1000,
+        "ancho_cm": 10,
+        "alto_cm": 5,
+        "forma": "RECTANGULAR",
+        "requiere_humano": false,
+        "motivo_derivacion": "NINGUNO",
+        "respuesta_sugerida": "",
+        "contexto_comercial": {
+          "prospecto": {
+            "id": 16,
+            "estado": "NUEVO",
+            "clasificacion": "B",
+            "producto_interes": null,
+            "requiere_humano": false,
+            "ultima_intencion": null,
+            "ultima_accion": null
+          },
+          "ubicacion": {
+            "ciudad": null,
+            "provincia": null
+          },
+          "diseno": {
+            "estado": null
+          },
+          "cotizacion": {
+            "existe": false,
+            "id": null,
+            "estado": null,
+            "cantidad": null,
+            "ancho_cm": 10,
+            "alto_cm": 5,
+            "forma": "RECTANGULAR",
+            "precio_total": null,
+            "moneda": "USD",
+            "producto": null,
+            "material": null,
+            "cantidad_solicitada": 1000,
+            "cantidad_cotizable": 1000,
+            "cantidad_ajustada": false,
+            "cantidad_asumida": true
+          }
+        },
+        "cantidad_solicitada": 1000,
+        "cantidad_cotizable": 1000,
+        "cantidad_ajustada": false,
+        "cantidad_asumida": true,
+        "prospecto_actualizado": true
+      }
+    ],
+    "Resolver contexto comercial": [
+      {
+        "conversacion_id": 41,
+        "cliente_id": null,
+        "contacto_id": null,
+        "telefono": "593987654321",
+        "nombre_whatsapp": "Ana Pérez",
+        "es_cliente_registrado": false,
+        "mensaje_actual": "Hola, necesito etiquetas de 10x5 cm",
+        "tipo_mensaje": "TEXTO",
+        "prospecto_existe": true,
+        "prospecto_id": 16,
+        "prospecto_estado": "NUEVO",
+        "clasificacion_prospecto": "B",
+        "tipo_actor": "PROSPECTO",
+        "intencion": "SOLICITAR_COTIZACION",
+        "accion": "COTIZAR_P4",
+        "producto": null,
+        "material": null,
+        "cantidad": 1000,
+        "ancho_cm": 10,
+        "alto_cm": 5,
+        "forma": "RECTANGULAR",
+        "requiere_humano": false,
+        "motivo_derivacion": "NINGUNO",
+        "respuesta_sugerida": "",
+        "contexto_comercial": {
+          "prospecto": {
+            "id": 16,
+            "estado": "NUEVO",
+            "clasificacion": "B",
+            "producto_interes": null,
+            "requiere_humano": false,
+            "ultima_intencion": null,
+            "ultima_accion": null
+          },
+          "ubicacion": {
+            "ciudad": null,
+            "provincia": null
+          },
+          "diseno": {
+            "estado": null
+          },
+          "cotizacion": {
+            "existe": false,
+            "id": null,
+            "estado": null,
+            "cantidad": null,
+            "ancho_cm": 10,
+            "alto_cm": 5,
+            "forma": "RECTANGULAR",
+            "precio_total": null,
+            "moneda": "USD",
+            "producto": null,
+            "material": null,
+            "cantidad_solicitada": 1000,
+            "cantidad_cotizable": 1000,
+            "cantidad_ajustada": false,
+            "cantidad_asumida": true
+          }
+        },
+        "cantidad_solicitada": 1000,
+        "cantidad_cotizable": 1000,
+        "cantidad_ajustada": false,
+        "cantidad_asumida": true
+      }
+    ],
+    "Guardar mensaje comercial": [
+      {
+        "id": 501,
+        "conversacion_id": 41,
+        "cliente_id": null,
+        "direccion": "SALIENTE",
+        "tipo": "TEXTO",
+        "contenido": "Le adjunto la cotización:\n\nTrabajamos únicamente en múltiplos de 1000 unidades, por lo que las cantidades solicitadas se ajustan así: 1.000 → 1.000.\n\n-1.000 Etiquetas adhesivas de 10x5 cm rectangulares le saldrían en $36.00 dólares\n\nAdjúntenos su diseño para verificarle por favor",
+        "mensaje_externo_id": null,
+        "enviado_at": "2026-10-07T18:53:22.839Z",
+        "procesado": true
+      }
+    ]
+  },
+  "error": "no se pudo determinar"
+}

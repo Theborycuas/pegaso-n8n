@@ -1,0 +1,20 @@
+{
+  "archivo": "code/07-cotizacion/expandir-detalles.js",
+  "descripcion": "Si \"Preparar datos cotización\" no dejó detalles válidos, el nodo lanza error (la cotización ya quedó insertada).",
+  "input": [
+    {
+      "cotizacion_id": 77,
+      "cliente_id": 1
+    }
+  ],
+  "nodos": {
+    "Preparar datos cotización": [
+      {
+        "success": false,
+        "status": "NO_VALID_DETAILS",
+        "detalles": []
+      }
+    ]
+  },
+  "error": "no existen detalles preparados"
+}

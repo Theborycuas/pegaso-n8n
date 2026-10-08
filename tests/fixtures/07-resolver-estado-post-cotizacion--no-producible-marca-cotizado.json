@@ -1,0 +1,114 @@
+{
+  "archivo": "code/07-cotizacion/resolver-estado-post-cotizacion.js",
+  "descripcion": "Aunque \"Preparar contexto post cotización\" dijo actualizar_estado_prospecto = false, aquí vuelve a true y el prospecto pasa a COTIZADO sin cotización (pendiente técnico 5).",
+  "input": [
+    {
+      "id": 41,
+      "cliente_id": null,
+      "contacto_id": null,
+      "telefono": "593987654321",
+      "canal": "WHATSAPP",
+      "estado": "ACTIVA",
+      "ultimo_mensaje_at": "2026-10-07T18:53:22.839Z",
+      "creada_at": "2026-10-07T18:40:00.000Z",
+      "prospecto_id": 16,
+      "contexto_comercial": {
+        "prospecto": {
+          "id": 16,
+          "estado": "NUEVO",
+          "clasificacion": "B",
+          "producto_interes": null,
+          "requiere_humano": false,
+          "ultima_intencion": null,
+          "ultima_accion": null
+        },
+        "ubicacion": {
+          "ciudad": null,
+          "provincia": null
+        },
+        "diseno": {
+          "estado": null
+        },
+        "cotizacion": {
+          "existe": false,
+          "id": null,
+          "estado": null,
+          "cantidad": null,
+          "ancho_cm": 10,
+          "alto_cm": 5,
+          "forma": "RECTANGULAR",
+          "precio_total": null,
+          "moneda": "USD",
+          "producto": null,
+          "material": null,
+          "cantidad_solicitada": 1000,
+          "cantidad_cotizable": 1000,
+          "cantidad_ajustada": false,
+          "cantidad_asumida": true
+        }
+      }
+    }
+  ],
+  "nodos": {
+    "Preparar contexto post cotización": [
+      {
+        "conversacion_id": 41,
+        "prospecto_id": 16,
+        "cliente_id": null,
+        "contacto_id": null,
+        "cotizacion_id": null,
+        "total": null,
+        "mensaje_comercial": "La medida de 1x5 cm no es posible de producir.\n\nNo trabajamos etiquetas que tengan 1 cm o menos en cualquiera de sus lados.\n\nIndíquenos otra medida y con gusto le cotizamos.",
+        "contexto_comercial": {
+          "prospecto": {
+            "id": 16,
+            "estado": "NUEVO",
+            "clasificacion": "B",
+            "producto_interes": null,
+            "requiere_humano": false,
+            "ultima_intencion": null,
+            "ultima_accion": null
+          },
+          "ubicacion": {
+            "ciudad": null,
+            "provincia": null
+          },
+          "diseno": {
+            "estado": null
+          },
+          "cotizacion": {
+            "existe": false,
+            "id": null,
+            "estado": null,
+            "cantidad": null,
+            "ancho_cm": 1,
+            "alto_cm": 5,
+            "forma": "RECTANGULAR",
+            "precio_total": null,
+            "moneda": "USD",
+            "producto": null,
+            "material": null,
+            "cantidad_solicitada": 1000,
+            "cantidad_cotizable": 1000,
+            "cantidad_ajustada": false,
+            "cantidad_asumida": true,
+            "ultimo_intento_producible": false,
+            "ultimo_error_produccion": "MEDIDAS_NO_PRODUCIBLES",
+            "ultimo_intento_at": "2026-10-08T00:16:05.980Z"
+          }
+        },
+        "cotizacion_generada": false,
+        "cotizacion_producible": false,
+        "bloquear_cotizacion": true,
+        "motivo_no_producible": "MEDIDAS_NO_PRODUCIBLES",
+        "estado_comercial": "NUEVO",
+        "actualizar_estado_prospecto": false
+      }
+    ]
+  },
+  "esperado": {
+    "cotizacion_generada": false,
+    "prospecto_estado_nuevo": "COTIZADO",
+    "actualizar_estado_prospecto": true
+  }
+}

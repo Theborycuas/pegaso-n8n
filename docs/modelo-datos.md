@@ -2,7 +2,7 @@
 
 Esquema `pegaso`, credencial de n8n **Postgres account 2**.
 
-Las tablas marcadas ✅ tienen sus columnas confirmadas con la configuración de los nodos Postgres (etapas 01–06). El resto se deduce de los campos que usan los nodos Code y debe confirmarse cuando se documenten las etapas 07–08 o se agregue el SQL del esquema.
+Las tablas marcadas ✅ tienen sus columnas confirmadas con la configuración de los nodos Postgres (etapas 01–08). El resto se deduce de los campos que usan los nodos Code y debe confirmarse cuando se agregue el SQL del esquema.
 
 ## contactos
 
@@ -43,6 +43,7 @@ Quién la actualiza después de crearla:
 | Actualizar prospecto comercial (04) | `estado`, `producto_interes`, `ciudad`, `provincia`, `ultima_intencion`, `ultima_accion`, `requiere_humano`, `actualizado_at` (⚠️ pendiente técnico 36) |
 | Actualizar estado prospecto (05) | `estado`, `actualizado_at` |
 | Marcar prospecto requiere humano (06) | `ultima_accion = DERIVAR_HUMANO`, `requiere_humano = true`, `actualizado_at` |
+| Actualizar prospecto cotizado (07) | `estado = COTIZADO`, `ultima_intencion = SOLICITAR_COTIZACION`, `ultima_accion = COTIZAR_P4` (fijos), `actualizado_at` (⚠️ también si la medida no era producible, pendiente 5) |
 
 ## conversaciones
 
@@ -55,7 +56,7 @@ Columnas confirmadas por "Crear conversación prospecto" (la captura no muestra 
 | `telefono` | teléfono normalizado | |
 | `canal` | `WHATSAPP` | |
 | `estado` | `ACTIVA` | |
-| `ultimo_mensaje_at` | `recibido_at` | lo actualizan "Guardar contexto comercial", "Actualizar actividad conversación", "Guardar contexto handoff" y la etapa 07 |
+| `ultimo_mensaje_at` | `recibido_at` | lo actualizan "Guardar contexto comercial", "Actualizar actividad conversación", "Guardar contexto handoff", "Actualizar actividad conversación cotización" y "Guardar contexto post cotización" |
 | `creada_at` | vacío | |
 | `prospecto_id` | id del prospecto | |
 | `contexto_comercial` | (por confirmar al crear) | ✅ existe: JSON (se escribe con `JSON.stringify`) con la memoria comercial (ver abajo) |
@@ -76,19 +77,53 @@ Columnas completas según "Guardar mensaje entrante":
 | `enviado_at` | `recibido_at` | el historial se ordena por esta columna ASC |
 | `procesado` | `false` | lo pone en `true` "Marcar mensaje entrante procesado" (solo en la etapa 05) |
 
-Mensajes salientes: "Guardar mensaje saliente" (05) y "Guardar mensaje transición humano" (06) guardan `direccion = SALIENTE`, `tipo = TEXTO`, `enviado_at = $now` y `mensaje_externo_id` vacío; `procesado` es `true` en 05 y `false` en 06 (pendiente técnico 39).
+Mensajes salientes: "Guardar mensaje saliente" (05), "Guardar mensaje transición humano" (06) y "Guardar mensaje comercial" (07) guardan `direccion = SALIENTE`, `tipo = TEXTO`, `enviado_at = $now` y `mensaje_externo_id` vacío; `procesado` es `true` en 05 y 07 y `false` en 06 (pendiente técnico 39). Desde ahí van a la etapa 08, que los envía por YCloud.
 
-## cotizaciones
+## cotizaciones ✅
 
-`id`, `cliente_id`, `subtotal`, `iva`, `total`, `descuento_total`.
+Columnas vistas en "Update rows in a table" y "EDT Datos cotización". El mapeo de "Insert cotización" está por documentar.
 
-## cotizacion_detalles
+| Columna | Quién la escribe | Notas |
+|---|---|---|
+| `id` | automático | es el `cotizacion_id` de toda la etapa 07 |
+| `cliente_id` | Insert cotización | ⚠️ hoy siempre `1` (pendiente técnico 41) |
+| `contacto_id`, `estado` | Insert cotización (probable) | "EDT Datos cotización" manda `contacto_id: 1` y `estado: PENDIENTE` |
+| `fecha_cotizacion` | (por confirmar) | |
+| `subtotal`, `iva`, `total` | Update rows in a table | `total` = suma de detalles redondeados; IVA 15 % incluido |
+| `descuento` | nadie | el resumen calcula `descuento_total`, pero no se mapea |
 
-`id`, `cotizacion_id`, `diseno_id`, `producto_id`, `material_id`, `cantidad`, `cantidad_original`, `ancho_cm`, `alto_cm`, `forma`, `nombre`, `sabor`, `descuento`, `observaciones`, `precio_1000`, `precio_unitario`, `precio_total`, `subtotal`, `iva`, `total`.
+No tiene `prospecto_id` ni `conversacion_id`: la relación con el prospecto solo queda en `conversaciones.contexto_comercial.cotizacion.cotizacion_id`.
 
-## disenos
+## cotizacion_detalles ✅
 
-`id`, `cliente_id`, `material_id`, `nombre`, `ancho_cm`, `alto_cm`, `forma`, `activo`.
+Columnas según "Insert cotizacion_detalles" y "Update cotizacion_detalles":
+
+| Columna | Notas |
+|---|---|
+| `id` | automático; lo usa "Update cotizacion_detalles" |
+| `cotizacion_id`, `material_id`, `diseno_id`, `producto_id` | |
+| `descripcion` | siempre vacía (pendiente técnico 48) |
+| `cantidad`, `ancho_cm`, `alto_cm`, `forma` | |
+| `precio_unitario`, `precio_total` | `null` al insertar; los completa el UPDATE |
+| `descuento`, `observaciones` | `null` |
+| `requiere_cotizacion_manual` | el UPDATE la deja en `false` (pendiente técnico 47) |
+
+Nombre, sabor, `cantidad_original` y precio por 1000 no se guardan aquí.
+
+## disenos ✅
+
+Columnas según "Crear diseño":
+
+| Columna | Valor al crear |
+|---|---|
+| `id` | automático |
+| `cliente_id` | del detalle (⚠️ hoy siempre `1`) |
+| `material_id` | del catálogo |
+| `nombre` | nombre del detalle o producto (p. ej. "Etiqueta 10x5 cm rectangular") |
+| `codigo`, `archivo_original`, `notas` | vacíos |
+| `ancho_cm`, `alto_cm`, `forma` | del detalle |
+| `version` | `1` |
+| `activo` | `true` |
 
 ## configuracion_bot
 

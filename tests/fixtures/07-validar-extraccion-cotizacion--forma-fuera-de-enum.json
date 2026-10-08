@@ -1,0 +1,26 @@
+{
+  "archivo": "code/07-cotizacion/validar-extraccion-cotizacion.js",
+  "descripcion": "Una forma fuera del enum del schema (OVALADA) invalida la extracción y pasa al siguiente proveedor de IA.",
+  "input": [
+    {
+      "output": {
+        "detalles": [
+          {
+            "cantidad": null,
+            "producto": null,
+            "nombre": null,
+            "sabor": null,
+            "ancho_cm": 10,
+            "alto_cm": 5,
+            "forma": "OVALADA"
+          }
+        ]
+      }
+    }
+  ],
+  "esperado": {
+    "valid": false,
+    "reason": "La forma del detalle 1 no es válida.",
+    "detalles": []
+  }
+}

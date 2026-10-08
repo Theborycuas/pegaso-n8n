@@ -1,0 +1,165 @@
+{
+  "archivo": "code/07-cotizacion/preparar-mensaje-cotizacion.js",
+  "descripcion": "Mensaje de cotización 10x5 x 1000. Como EXPANDIR perdió cantidad_asumida, aparece la aclaración \"1000 → 1000\" aunque el cliente no dio cantidad (pendiente técnico 45). cotizacion_id sale del id de la fila de cotizaciones. El segundo mensaje (variación de precio) no se guarda ni se envía (pendiente 43).",
+  "input": [
+    {
+      "id": 301,
+      "cotizacion_id": 77,
+      "material_id": 1,
+      "diseno_id": 5,
+      "descripcion": null,
+      "cantidad": 1000,
+      "ancho_cm": "10.00",
+      "alto_cm": "5.00",
+      "forma": "RECTANGULAR",
+      "precio_unitario": 0.036,
+      "precio_total": 36,
+      "descuento": null,
+      "requiere_cotizacion_manual": false,
+      "observaciones": null,
+      "producto_id": 2
+    }
+  ],
+  "nodos": {
+    "Update rows in a table": [
+      {
+        "id": 77,
+        "cliente_id": 1,
+        "contacto_id": 1,
+        "estado": "PENDIENTE",
+        "fecha_cotizacion": "2026-10-07T18:53:20.000Z",
+        "subtotal": 31.3,
+        "iva": 4.7,
+        "total": 36,
+        "descuento": null
+      }
+    ],
+    "Recuperar detalles calculados": [
+      {
+        "id": 301,
+        "cotizacion_id": 77,
+        "cliente_id": 1,
+        "detalle_index": 0,
+        "producto_id": 2,
+        "material_id": 1,
+        "diseno_id": 5,
+        "producto": "",
+        "nombre": "Etiqueta 10x5 cm rectangular",
+        "sabor": null,
+        "cantidad": 1000,
+        "cantidad_original": 1000,
+        "cantidad_asumida": false,
+        "minimo_aplicado": true,
+        "ancho_cm": 10,
+        "alto_cm": 5,
+        "medida_permitida": true,
+        "medida_minima_permitida_cm": 2,
+        "forma_original": "RECTANGULAR",
+        "forma": "RECTANGULAR",
+        "ancho_calculado_cm": 10,
+        "alto_calculado_cm": 5,
+        "precio_fijo_aplicado": false,
+        "precio_fijo_1000": null,
+        "banda_pequena_18_aplicada": false,
+        "incremento_5x5_aplicado": false,
+        "incremento_pequena_aplicado": false,
+        "incremento_forma_aplicado": false,
+        "regla_precio": "GENERAL",
+        "factor_aplicado": 0.72,
+        "precio_1000_calculado": 36,
+        "precio_total_calculado": 36,
+        "precio_despues_descuento": 36,
+        "precio_1000": 36,
+        "precio_unitario": 0.036,
+        "precio_total": 36,
+        "subtotal": 31.3,
+        "iva": 4.7,
+        "descuento": 0,
+        "total": 36,
+        "precio_redondeado": true,
+        "requiere_cotizacion_manual": false,
+        "observaciones": ""
+      }
+    ],
+    "Recuperar decisión comercial": [
+      {
+        "conversacion_id": 41,
+        "cliente_id": null,
+        "contacto_id": null,
+        "telefono": "593987654321",
+        "nombre_whatsapp": "Ana Pérez",
+        "es_cliente_registrado": false,
+        "mensaje_actual": "Hola, necesito etiquetas de 10x5 cm",
+        "tipo_mensaje": "TEXTO",
+        "prospecto_existe": true,
+        "prospecto_id": 16,
+        "prospecto_estado": "NUEVO",
+        "clasificacion_prospecto": "B",
+        "tipo_actor": "PROSPECTO",
+        "intencion": "SOLICITAR_COTIZACION",
+        "accion": "COTIZAR_P4",
+        "producto": null,
+        "material": null,
+        "cantidad": 1000,
+        "ancho_cm": 10,
+        "alto_cm": 5,
+        "forma": "RECTANGULAR",
+        "requiere_humano": false,
+        "motivo_derivacion": "NINGUNO",
+        "respuesta_sugerida": "",
+        "contexto_comercial": {
+          "prospecto": {
+            "id": 16,
+            "estado": "NUEVO",
+            "clasificacion": "B",
+            "producto_interes": null,
+            "requiere_humano": false,
+            "ultima_intencion": null,
+            "ultima_accion": null
+          },
+          "ubicacion": {
+            "ciudad": null,
+            "provincia": null
+          },
+          "diseno": {
+            "estado": null
+          },
+          "cotizacion": {
+            "existe": false,
+            "id": null,
+            "estado": null,
+            "cantidad": null,
+            "ancho_cm": 10,
+            "alto_cm": 5,
+            "forma": "RECTANGULAR",
+            "precio_total": null,
+            "moneda": "USD",
+            "producto": null,
+            "material": null,
+            "cantidad_solicitada": 1000,
+            "cantidad_cotizable": 1000,
+            "cantidad_ajustada": false,
+            "cantidad_asumida": true
+          }
+        },
+        "cantidad_solicitada": 1000,
+        "cantidad_cotizable": 1000,
+        "cantidad_ajustada": false,
+        "cantidad_asumida": true,
+        "prospecto_actualizado": true
+      }
+    ]
+  },
+  "esperado": {
+    "conversacion_id": 41,
+    "cliente_id": null,
+    "prospecto_id": 16,
+    "tipo_respuesta_comercial": "COTIZACION",
+    "cotizacion_id": 77,
+    "total": 36,
+    "cantidad_detalles": 1,
+    "mensaje_comercial": "Le adjunto la cotización:\n\nTrabajamos únicamente en múltiplos de 1000 unidades, por lo que las cantidades solicitadas se ajustan así: 1.000 → 1.000.\n\n-1.000 Etiquetas adhesivas de 10x5 cm rectangulares le saldrían en $36.00 dólares\n\nAdjúntenos su diseño para verificarle por favor",
+    "cantidad_mensajes_comerciales": 2,
+    "cotizacion_producible": true
+  }
+}

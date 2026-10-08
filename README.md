@@ -9,7 +9,7 @@ n8n guarda todo el workflow como un único JSON, con el código de cada nodo emb
 | Documento | Para qué |
 |---|---|
 | [docs/arquitectura.md](docs/arquitectura.md) | Recorrido completo del mensaje, etapas y qué archivo implementa cada nodo |
-| [docs/etapas/](docs/etapas/) | Configuración exacta de cada nodo por etapa (Postgres, IF, Merge, Code). Hoy: 01 a 06 |
+| [docs/etapas/](docs/etapas/) | Configuración exacta de cada nodo por etapa (Postgres, IF, Merge, Code). Hoy: 01 a 08 (todas) |
 | [docs/reglas-comerciales.md](docs/reglas-comerciales.md) | Mínimos, medidas, catálogo, fórmula de precio, clasificación A/B/C, acciones |
 | [docs/flujo-handoff.md](docs/flujo-handoff.md) | Derivación a humano, mensajes de transición y correos internos |
 | [docs/modelo-datos.md](docs/modelo-datos.md) | Tablas PostgreSQL y estructura de `contexto_comercial` |

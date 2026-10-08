@@ -1,0 +1,54 @@
+{
+  "archivo": "code/07-cotizacion/calcular-precio-detalle.js",
+  "descripcion": "10x5 rectangular x 1000: 10 x 5 x 0,72 = $36.",
+  "input": [
+    {
+      "id": 301,
+      "cotizacion_id": 77,
+      "material_id": 1,
+      "diseno_id": 5,
+      "descripcion": null,
+      "cantidad": 1000,
+      "ancho_cm": "10.00",
+      "alto_cm": "5.00",
+      "forma": "RECTANGULAR",
+      "precio_unitario": null,
+      "precio_total": null,
+      "descuento": null,
+      "requiere_cotizacion_manual": false,
+      "observaciones": null,
+      "producto_id": 2
+    }
+  ],
+  "nodos": {
+    "EXPANDIR DETALLES": [
+      {
+        "cotizacion_id": 77,
+        "cliente_id": 1,
+        "detalle_index": 0,
+        "cantidad": 1000,
+        "producto": null,
+        "nombre": "Etiqueta 10x5 cm rectangular",
+        "sabor": null,
+        "ancho_cm": 10,
+        "alto_cm": 5,
+        "forma": "RECTANGULAR",
+        "cantidad_original": 1000,
+        "minimo_aplicado": true
+      }
+    ]
+  },
+  "esperado": {
+    "id": 301,
+    "cotizacion_id": 77,
+    "regla_precio": "GENERAL",
+    "factor_aplicado": 0.72,
+    "precio_1000": 36,
+    "precio_total": 36,
+    "total": 36,
+    "subtotal": 31.3,
+    "iva": 4.7,
+    "precio_unitario": 0.036,
+    "requiere_cotizacion_manual": false
+  }
+}

@@ -36,16 +36,19 @@ node scripts/run-node.mjs tests/fixtures/<archivo>    # corre uno e imprime la s
 | `archivo` | Nodo Code a ejecutar |
 | `input` | Items que recibe el nodo (`$input`). Un Postgres sin resultados con *Always Output Data* entrega `[{}]` |
 | `nodos` | Salida de otros nodos que el código lee con `$('...')` |
-| `esperado` | Campos que debe tener el primer item de salida (solo se comparan los que pongas) |
+| `esperado` | Campos que debe tener el primer item de salida (solo se comparan los que pongas). Los arrays se comparan completos; para revisar solo parte de un elemento usa el índice como clave: `"detalles": { "0": { "cantidad": 1000 } }` |
 | `error` | En lugar de `esperado`: texto que debe contener el error que lanza el nodo |
 
 Nombre: `<etapa>-<nodo>--<caso>.json`, por ejemplo `03-resolver-permiso--modo-prueba-autorizado.json`.
 
-Los fixtures de las etapas 01–06 encadenan el mismo prospecto (Ana Pérez, `593987654321`, conversación 41, prospecto 16): la entrada de cada nodo es la salida real del anterior. Hay tres casos:
+Los fixtures de las etapas 01–08 encadenan el mismo prospecto (Ana Pérez, `593987654321`, conversación 41, prospecto 16): la entrada de cada nodo es la salida real del anterior. Hay cuatro casos:
 
-- "Hola, necesito etiquetas de 10x5 cm": del webhook de YCloud hasta el Switch (`COTIZAR_P4`).
+- "Hola, necesito etiquetas de 10x5 cm", del webhook de YCloud al Switch (`COTIZAR_P4`). Sigue por la cotización (07): sin cantidad, diseño existente, cotización 77 por $36, cierre y envío por YCloud (08).
+- La variante 1x5, que llega al cotizador (pendiente 2) y sale por la rama no producible.
 - Pregunta por el material: rama de respuesta comercial (05).
-- "Pásame una cuenta para pagar": rama de derivación humana (06) hasta el correo interno. Los que documentan un bug actual lo dicen en `descripcion` y citan el número de [pendientes técnicos](../docs/pendientes-tecnicos.md); al corregirlo, actualiza su `esperado`.
+- "Pásame una cuenta para pagar": rama de derivación humana (06) hasta el correo interno.
+
+Los que documentan un bug actual lo dicen en `descripcion` y citan el número de [pendientes técnicos](../docs/pendientes-tecnicos.md); al corregirlo, actualiza su `esperado`.
 
 **Cómo crear uno desde n8n**: abre una ejecución real, entra al nodo, copia el JSON de *Input* en `input` y el de los nodos que referencia en `nodos`.
 

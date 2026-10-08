@@ -1,0 +1,48 @@
+{
+  "archivo": "code/07-cotizacion/resolver-diseno.js",
+  "descripcion": "Coincide cliente, material, medidas, forma y nombre con un diseño activo (la base devuelve numéricos como texto).",
+  "input": [
+    {
+      "id": 5,
+      "cliente_id": 1,
+      "material_id": 1,
+      "nombre": "Etiqueta 10x5 cm rectangular",
+      "codigo": null,
+      "ancho_cm": "10.00",
+      "alto_cm": "5.00",
+      "forma": "RECTANGULAR",
+      "version": 1,
+      "archivo_original": null,
+      "activo": true,
+      "notas": null
+    }
+  ],
+  "nodos": {
+    "Resolver catálogo Pegaso": [
+      {
+        "cotizacion_id": 77,
+        "cliente_id": 1,
+        "detalle_index": 0,
+        "cantidad": 1000,
+        "producto": null,
+        "nombre": "Etiqueta 10x5 cm rectangular",
+        "sabor": null,
+        "ancho_cm": 10,
+        "alto_cm": 5,
+        "forma": "RECTANGULAR",
+        "cantidad_original": 1000,
+        "minimo_aplicado": true,
+        "producto_id": 2,
+        "material_id": 1,
+        "material_resuelto": "Polipropileno P4",
+        "requiere_cotizacion_manual": false
+      }
+    ]
+  },
+  "esperado": {
+    "diseno_id": 5,
+    "diseno_existente": true,
+    "diseno_nombre_resuelto": "Etiqueta 10x5 cm rectangular",
+    "detalle_index": 0
+  }
+}

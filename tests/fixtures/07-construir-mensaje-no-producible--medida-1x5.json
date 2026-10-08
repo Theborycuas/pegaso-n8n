@@ -1,0 +1,54 @@
+{
+  "archivo": "code/07-cotizacion/construir-mensaje-no-producible.js",
+  "descripcion": "Lado de 1 cm: mensaje específico.",
+  "input": [
+    {
+      "cotizacion_id": 78,
+      "cliente_id": 1,
+      "detalle_index": 0,
+      "cantidad": 1000,
+      "producto": null,
+      "nombre": "Etiqueta 1x5 cm rectangular",
+      "sabor": null,
+      "ancho_cm": 1,
+      "alto_cm": 5,
+      "forma": "RECTANGULAR",
+      "cantidad_original": 1000,
+      "minimo_aplicado": true,
+      "producto_id": 2,
+      "material_id": 1,
+      "material_resuelto": "Polipropileno P4",
+      "requiere_cotizacion_manual": false,
+      "diseno_id": 9,
+      "diseno_existente": false,
+      "diseno_nombre_resuelto": "Etiqueta 1x5 cm rectangular",
+      "diseno_creado": true,
+      "cotizacion_producible": false,
+      "validacion_produccion_ok": false,
+      "motivo_bloqueo": "MEDIDA_NO_PRODUCIBLE",
+      "medida_minima_cm": 2,
+      "detalles_invalidos": [
+        {
+          "index": 0,
+          "motivo": "MEDIDA_NO_PRODUCIBLE",
+          "ancho_cm": 1,
+          "alto_cm": 5
+        }
+      ],
+      "bloquear_cotizacion": true,
+      "calcular_precio": false,
+      "mensaje_comercial": "La medida de 1x5 cm no es posible de producir.\n\nNo trabajamos etiquetas que tengan 1 cm o menos en cualquiera de sus lados. La medida mínima que podemos producir es de 2 cm.\n\nIndíquenos otra medida y con gusto le cotizamos.",
+      "mensajes_comerciales": [
+        "La medida de 1x5 cm no es posible de producir.\n\nNo trabajamos etiquetas que tengan 1 cm o menos en cualquiera de sus lados. La medida mínima que podemos producir es de 2 cm.\n\nIndíquenos otra medida y con gusto le cotizamos."
+      ],
+      "cantidad_mensajes_comerciales": 1,
+      "validacion_produccion_at": "2026-10-08T00:16:05.979Z"
+    }
+  ],
+  "esperado": {
+    "tipo_respuesta_comercial": "NO_PRODUCIBLE",
+    "cotizacion_producible": false,
+    "cantidad_mensajes_comerciales": 1,
+    "mensaje_comercial": "La medida de 1x5 cm no es posible de producir.\n\nNo trabajamos etiquetas que tengan 1 cm o menos en cualquiera de sus lados.\n\nIndíquenos otra medida y con gusto le cotizamos."
+  }
+}

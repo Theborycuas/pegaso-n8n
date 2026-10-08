@@ -1,0 +1,26 @@
+{
+  "archivo": "code/07-cotizacion/preparar-datos-cotizacion.js",
+  "descripcion": "Detalle sin medidas: NO_VALID_DETAILS. No hay IF después: \"Insert cotización\" igual crea la cotización y \"EXPANDIR DETALLES\" falla (pendiente técnico 46).",
+  "input": [
+    {
+      "valid": true,
+      "detalles": [
+        {
+          "cantidad": 1000,
+          "producto": null,
+          "nombre": null,
+          "sabor": null,
+          "ancho_cm": null,
+          "alto_cm": null,
+          "forma": "RECTANGULAR"
+        }
+      ]
+    }
+  ],
+  "esperado": {
+    "success": false,
+    "can_quote": false,
+    "status": "NO_VALID_DETAILS",
+    "detalles": []
+  }
+}

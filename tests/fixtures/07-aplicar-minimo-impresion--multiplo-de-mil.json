@@ -1,0 +1,32 @@
+{
+  "archivo": "code/07-cotizacion/aplicar-minimo-impresion.js",
+  "descripcion": "1500 se redondea hacia arriba a 2000 (múltiplos de 1000).",
+  "input": [
+    {
+      "valid": true,
+      "detalles": [
+        {
+          "cantidad": 1500,
+          "producto": null,
+          "nombre": null,
+          "sabor": null,
+          "ancho_cm": 10,
+          "alto_cm": 5,
+          "forma": "RECTANGULAR"
+        }
+      ]
+    }
+  ],
+  "esperado": {
+    "minimo_aplicado": true,
+    "cantidad_asumida": false,
+    "detalles": {
+      "0": {
+        "cantidad": 2000,
+        "cantidad_original": 1500,
+        "cantidad_asumida": false,
+        "minimo_aplicado": true
+      }
+    }
+  }
+}

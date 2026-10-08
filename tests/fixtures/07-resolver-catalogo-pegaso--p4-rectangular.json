@@ -1,0 +1,26 @@
+{
+  "archivo": "code/07-cotizacion/resolver-catalogo-pegaso.js",
+  "descripcion": "Sin material se asume P4 (id 1); rectangular = producto 2. No requiere cotización manual.",
+  "input": [
+    {
+      "cotizacion_id": 77,
+      "cliente_id": 1,
+      "detalle_index": 0,
+      "cantidad": 1000,
+      "producto": null,
+      "nombre": "Etiqueta 10x5 cm rectangular",
+      "sabor": null,
+      "ancho_cm": 10,
+      "alto_cm": 5,
+      "forma": "RECTANGULAR",
+      "cantidad_original": 1000,
+      "minimo_aplicado": true
+    }
+  ],
+  "esperado": {
+    "material_id": 1,
+    "producto_id": 2,
+    "material_resuelto": "Polipropileno P4",
+    "requiere_cotizacion_manual": false
+  }
+}
