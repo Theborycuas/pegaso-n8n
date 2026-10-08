@@ -1,0 +1,136 @@
+{
+  "archivo": "code/06-derivacion-humana/preparar-contexto-handoff.js",
+  "descripcion": "Entra la fila de prospectos de \"Marcar prospecto requiere humano\"; agrega contexto_comercial.handoff sin perder conversacion_id.",
+  "input": [
+    {
+      "id": 16,
+      "telefono": "593987654321",
+      "nombre_whatsapp": "Ana Pérez",
+      "canal": "WHATSAPP",
+      "origen": "WHATSAPP",
+      "fuente": null,
+      "estado": "NUEVO",
+      "producto_interes": null,
+      "ciudad": null,
+      "provincia": null,
+      "ultima_intencion": "SOLICITAR_COTIZACION",
+      "ultima_accion": "DERIVAR_HUMANO",
+      "requiere_humano": true,
+      "activo": true
+    }
+  ],
+  "nodos": {
+    "Preparar derivación humana": [
+      {
+        "conversacion_id": 41,
+        "cliente_id": null,
+        "contacto_id": null,
+        "telefono": "593987654321",
+        "nombre_whatsapp": "Ana Pérez",
+        "es_cliente_registrado": false,
+        "mensaje_actual": "Pásame una cuenta para pagar",
+        "tipo_mensaje": "TEXTO",
+        "prospecto_existe": true,
+        "prospecto_id": 16,
+        "prospecto_estado": "NUEVO",
+        "prospecto_clasificacion_anterior": "C",
+        "clasificacion_prospecto": "A",
+        "prospecto_nombre": "Ana Pérez",
+        "prospecto_producto_interes": null,
+        "prospecto_ciudad": null,
+        "prospecto_provincia": null,
+        "prospecto_ultima_intencion": null,
+        "prospecto_ultima_accion": null,
+        "prospecto_requiere_humano": false,
+        "tipo_actor": "PROSPECTO",
+        "intencion": "CONSULTAR_PAGO",
+        "accion": "DERIVAR_HUMANO",
+        "producto": null,
+        "material": null,
+        "cantidad": null,
+        "ancho_cm": null,
+        "alto_cm": null,
+        "forma": "NO_ESPECIFICADA",
+        "ciudad_detectada": null,
+        "provincia_detectada": null,
+        "datos_suficientes_para_cotizar": false,
+        "etiqueta_grande": false,
+        "debe_pedir_ciudad_despues_cotizacion": false,
+        "cierre_cordial": false,
+        "requiere_humano": true,
+        "motivo_derivacion": "SOLICITA_DATOS_PAGO",
+        "requiere_notificacion": true,
+        "prioridad_derivacion": "ALTA",
+        "respuesta_sugerida": "En breve le pasamos los datos para el pago.",
+        "contexto_comercial": {
+          "prospecto": {
+            "id": 16,
+            "estado": "NUEVO",
+            "clasificacion": "C",
+            "producto_interes": null,
+            "requiere_humano": false,
+            "ultima_intencion": null,
+            "ultima_accion": null
+          },
+          "ubicacion": {
+            "ciudad": null,
+            "provincia": null
+          },
+          "diseno": {
+            "estado": null
+          },
+          "cotizacion": {
+            "existe": false,
+            "id": null,
+            "estado": null,
+            "cantidad": null,
+            "ancho_cm": null,
+            "alto_cm": null,
+            "forma": "NO_ESPECIFICADA",
+            "precio_total": null,
+            "moneda": "USD",
+            "producto": null,
+            "material": null,
+            "cantidad_solicitada": null,
+            "cantidad_cotizable": null,
+            "cantidad_ajustada": false,
+            "cantidad_asumida": false
+          }
+        },
+        "decision_ia_valida": true,
+        "cantidad_solicitada": null,
+        "cantidad_cotizable": null,
+        "cantidad_ajustada": false,
+        "cantidad_asumida": false,
+        "modifico_datos_cotizacion": false,
+        "prospecto_actualizado": true,
+        "prospecto_clasificacion": "A",
+        "accion_original": "DERIVAR_HUMANO",
+        "handoff_motivo": "SOLICITA_DATOS_PAGO",
+        "handoff_clasificacion": "CIERRE_COMERCIAL",
+        "clasificacion_handoff": "CIERRE_COMERCIAL",
+        "handoff_prioridad": "ALTA",
+        "handoff_requiere_notificacion": true,
+        "mensaje_cliente_original": "Pásame una cuenta para pagar",
+        "handoff_mensaje_cliente": "Pásame una cuenta para pagar",
+        "handoff_at": "2026-10-07T23:53:47.512Z"
+      }
+    ]
+  },
+  "esperado": {
+    "conversacion_id": 41,
+    "prospecto_id": 16,
+    "handoff_activo": true,
+    "contexto_comercial": {
+      "handoff": {
+        "activo": true,
+        "motivo": "SOLICITA_DATOS_PAGO",
+        "intencion": "CONSULTAR_PAGO",
+        "clasificacion": "CIERRE_COMERCIAL",
+        "prioridad": "ALTA",
+        "requiere_notificacion": true,
+        "mensaje_cliente": "Pásame una cuenta para pagar"
+      }
+    }
+  }
+}

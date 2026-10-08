@@ -1,0 +1,122 @@
+{
+  "archivo": "code/04-cerebro-comercial/validar-extraccion-cerebro.js",
+  "descripcion": "Salida del LLM (\"output\") con COTIZAR_P4 10x5 x1000: pasa la validación.",
+  "input": [
+    {
+      "output": {
+        "intencion": "SOLICITAR_COTIZACION",
+        "accion": "COTIZAR_P4",
+        "producto": null,
+        "material": null,
+        "cantidad": 1000,
+        "ancho_cm": 10,
+        "alto_cm": 5,
+        "forma": "NO_ESPECIFICADA",
+        "ciudad_detectada": null,
+        "provincia_detectada": null,
+        "datos_suficientes_para_cotizar": true,
+        "requiere_humano": false,
+        "motivo_derivacion": "NINGUNO",
+        "requiere_notificacion": false,
+        "clasificacion_prospecto": "B",
+        "respuesta_sugerida": ""
+      }
+    }
+  ],
+  "nodos": {
+    "Preparar contexto IA": [
+      {
+        "conversacion_id": 41,
+        "conversacion_estado": "ACTIVA",
+        "conversacion_nueva": true,
+        "conversacion_cliente_id": null,
+        "conversacion_contacto_id": null,
+        "conversacion_prospecto_id": 16,
+        "cliente_id": null,
+        "contacto_id": null,
+        "contacto_nombre": null,
+        "es_cliente_registrado": false,
+        "prospecto_existe": true,
+        "prospecto_id": 16,
+        "prospecto_estado": "NUEVO",
+        "prospecto_clasificacion": "C",
+        "prospecto_nombre": "Ana Pérez",
+        "prospecto_producto_interes": null,
+        "prospecto_ciudad": null,
+        "prospecto_provincia": null,
+        "prospecto_diseno_estado": null,
+        "prospecto_ultima_intencion": null,
+        "prospecto_ultima_accion": null,
+        "prospecto_requiere_humano": false,
+        "tipo_actor": "PROSPECTO",
+        "telefono": "593987654321",
+        "nombre_whatsapp": "Ana Pérez",
+        "mensaje_actual": "Hola, necesito etiquetas de 10x5 cm",
+        "tipo_mensaje": "TEXTO",
+        "canal": "WHATSAPP",
+        "mensaje_externo_id": "wamid.TEST001",
+        "recibido_at": "2026-10-07T23:46:19.850Z",
+        "contexto_comercial": {
+          "prospecto": {
+            "id": 16,
+            "estado": "NUEVO",
+            "clasificacion": "C",
+            "producto_interes": null,
+            "requiere_humano": false,
+            "ultima_intencion": null,
+            "ultima_accion": null
+          },
+          "ubicacion": {
+            "ciudad": null,
+            "provincia": null
+          },
+          "diseno": {
+            "estado": null
+          },
+          "cotizacion": {
+            "existe": false,
+            "id": null,
+            "estado": null,
+            "cantidad": null,
+            "ancho_cm": null,
+            "alto_cm": null,
+            "forma": null,
+            "precio_total": null,
+            "moneda": "USD"
+          }
+        },
+        "historial": [
+          {
+            "direccion": "ENTRANTE",
+            "contenido": "Hola",
+            "tipo": "TEXTO",
+            "enviado_at": "2026-10-07T22:50:00.000Z"
+          },
+          {
+            "direccion": "SALIENTE",
+            "contenido": "¿En qué medidas necesita sus etiquetas?",
+            "tipo": "TEXTO",
+            "enviado_at": "2026-10-07T22:50:05.000Z"
+          },
+          {
+            "direccion": "ENTRANTE",
+            "contenido": "Hola, necesito etiquetas de 10x5 cm",
+            "tipo": "TEXTO",
+            "enviado_at": "2026-10-07T23:00:00.000Z"
+          }
+        ],
+        "cantidad_mensajes_historial": 3,
+        "ultimo_mensaje_saliente": "¿En qué medidas necesita sus etiquetas?",
+        "mensajes_salientes_recientes": [
+          "¿En qué medidas necesita sus etiquetas?"
+        ]
+      }
+    ]
+  },
+  "esperado": {
+    "valid": true,
+    "validation_reason": null,
+    "accion": "COTIZAR_P4",
+    "cantidad": 1000
+  }
+}

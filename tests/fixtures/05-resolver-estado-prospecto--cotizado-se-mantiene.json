@@ -1,0 +1,128 @@
+{
+  "archivo": "code/05-respuesta-comercial/resolver-estado-prospecto.js",
+  "descripcion": "Un prospecto COTIZADO no cambia de estado en la respuesta comercial.",
+  "input": [
+    {
+      "id": 41,
+      "cliente_id": null,
+      "contacto_id": null,
+      "telefono": "593987654321",
+      "canal": "WHATSAPP",
+      "estado": "ACTIVA",
+      "ultimo_mensaje_at": "2026-10-07T23:46:19.850Z",
+      "creada_at": "2026-10-07T22:50:00.000Z",
+      "prospecto_id": 16,
+      "contexto_comercial": {}
+    }
+  ],
+  "nodos": {
+    "Recuperar decisión comercial": [
+      {
+        "conversacion_id": 41,
+        "cliente_id": null,
+        "contacto_id": null,
+        "telefono": "593987654321",
+        "nombre_whatsapp": "Ana Pérez",
+        "es_cliente_registrado": false,
+        "mensaje_actual": "Hola, necesito etiquetas de 10x5 cm",
+        "tipo_mensaje": "TEXTO",
+        "prospecto_existe": true,
+        "prospecto_id": 16,
+        "prospecto_estado": "NUEVO",
+        "prospecto_clasificacion_anterior": "C",
+        "clasificacion_prospecto": "B",
+        "prospecto_nombre": "Ana Pérez",
+        "prospecto_producto_interes": null,
+        "prospecto_ciudad": null,
+        "prospecto_provincia": null,
+        "prospecto_ultima_intencion": null,
+        "prospecto_ultima_accion": null,
+        "prospecto_requiere_humano": false,
+        "tipo_actor": "PROSPECTO",
+        "intencion": "CONSULTAR_MATERIAL",
+        "accion": "INFORMAR_MATERIAL",
+        "producto": null,
+        "material": null,
+        "cantidad": 1000,
+        "ancho_cm": 10,
+        "alto_cm": 5,
+        "forma": "RECTANGULAR",
+        "ciudad_detectada": null,
+        "provincia_detectada": null,
+        "datos_suficientes_para_cotizar": true,
+        "etiqueta_grande": false,
+        "debe_pedir_ciudad_despues_cotizacion": true,
+        "cierre_cordial": false,
+        "requiere_humano": false,
+        "motivo_derivacion": "NINGUNO",
+        "requiere_notificacion": false,
+        "prioridad_derivacion": "NORMAL",
+        "respuesta_sugerida": "Trabajamos en polipropileno blanco (P4), resistente al agua y a la humedad.",
+        "contexto_comercial": {
+          "prospecto": {
+            "id": 16,
+            "estado": "NUEVO",
+            "clasificacion": "C",
+            "producto_interes": null,
+            "requiere_humano": false,
+            "ultima_intencion": null,
+            "ultima_accion": null
+          },
+          "ubicacion": {
+            "ciudad": null,
+            "provincia": null
+          },
+          "diseno": {
+            "estado": null
+          },
+          "cotizacion": {
+            "existe": true,
+            "id": 7,
+            "estado": null,
+            "cantidad": 1000,
+            "ancho_cm": 10,
+            "alto_cm": 5,
+            "forma": "RECTANGULAR",
+            "precio_total": null,
+            "moneda": "USD",
+            "producto": null,
+            "material": null,
+            "cantidad_solicitada": 1000,
+            "cantidad_cotizable": 1000,
+            "cantidad_ajustada": false,
+            "cantidad_asumida": false
+          }
+        },
+        "decision_ia_valida": true,
+        "cantidad_solicitada": 1000,
+        "cantidad_cotizable": 1000,
+        "cantidad_ajustada": false,
+        "cantidad_asumida": false,
+        "modifico_datos_cotizacion": false,
+        "prospecto_actualizado": true
+      }
+    ],
+    "Actualizar prospecto comercial": [
+      {
+        "id": 16,
+        "telefono": "593987654321",
+        "nombre_whatsapp": "Ana Pérez",
+        "canal": "WHATSAPP",
+        "origen": "WHATSAPP",
+        "fuente": null,
+        "estado": "COTIZADO",
+        "producto_interes": null,
+        "ciudad": null,
+        "provincia": null,
+        "ultima_intencion": "SOLICITAR_COTIZACION",
+        "ultima_accion": "COTIZAR_P4",
+        "requiere_humano": false,
+        "activo": true
+      }
+    ]
+  },
+  "esperado": {
+    "prospecto_estado_nuevo": "COTIZADO",
+    "actualizar_estado_prospecto": false
+  }
+}

@@ -25,7 +25,7 @@
     "code/04-cerebro-comercial/error-ninguna-ia-cerebro.js": ["Error ninguna IA funciono cerebro"],
     "code/04-cerebro-comercial/normalizar-decision-ia.js": ["Normalizar decisión IA"],
     "code/04-cerebro-comercial/resolver-contexto-comercial.js": ["Resolver contexto comercial"],
-    "code/04-cerebro-comercial/aplicar-reglas-comerciales.js": ["Aplicar reglas comerciales"],
+    "code/04-cerebro-comercial/aplicar-reglas-comerciales.js": ["Aplicar reglas comerciales determinísticas"],
     "code/04-cerebro-comercial/preparar-actualizacion-prospecto.js": ["Preparar actualización prospecto"],
     "code/04-cerebro-comercial/recuperar-decision-comercial.js": ["Recuperar decisión comercial"],
 

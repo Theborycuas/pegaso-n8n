@@ -1,0 +1,10 @@
+{
+  "archivo": "code/04-cerebro-comercial/preparar-actualizacion-prospecto.js",
+  "descripcion": "Sin prospecto_id detiene la ejecución.",
+  "input": [
+    {
+      "conversacion_id": 41
+    }
+  ],
+  "error": "prospecto_id no existe o es inválido"
+}

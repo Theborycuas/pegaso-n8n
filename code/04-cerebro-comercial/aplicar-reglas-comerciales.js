@@ -1,5 +1,5 @@
 // ======================================================
-// NODO N8N: Aplicar reglas comerciales
+// NODO N8N: Aplicar reglas comerciales determinísticas
 // ARCHIVO: code/04-cerebro-comercial/aplicar-reglas-comerciales.js
 // VERSION: 1.1
 // RESPONSABILIDAD:

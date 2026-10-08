@@ -41,7 +41,11 @@ node scripts/run-node.mjs tests/fixtures/<archivo>    # corre uno e imprime la s
 
 Nombre: `<etapa>-<nodo>--<caso>.json`, por ejemplo `03-resolver-permiso--modo-prueba-autorizado.json`.
 
-Los fixtures de las etapas 01–03 encadenan un mismo caso (Ana Pérez, `593987654321`, "Hola, necesito etiquetas de 10x5 cm") desde el webhook de YCloud hasta "Preparar contexto IA". Los que documentan un bug actual lo dicen en `descripcion` y citan el número de [pendientes técnicos](../docs/pendientes-tecnicos.md); al corregirlo, actualiza su `esperado`.
+Los fixtures de las etapas 01–06 encadenan el mismo prospecto (Ana Pérez, `593987654321`, conversación 41, prospecto 16): la entrada de cada nodo es la salida real del anterior. Hay tres casos:
+
+- "Hola, necesito etiquetas de 10x5 cm": del webhook de YCloud hasta el Switch (`COTIZAR_P4`).
+- Pregunta por el material: rama de respuesta comercial (05).
+- "Pásame una cuenta para pagar": rama de derivación humana (06) hasta el correo interno. Los que documentan un bug actual lo dicen en `descripcion` y citan el número de [pendientes técnicos](../docs/pendientes-tecnicos.md); al corregirlo, actualiza su `esperado`.
 
 **Cómo crear uno desde n8n**: abre una ejecución real, entra al nodo, copia el JSON de *Input* en `input` y el de los nodos que referencia en `nodos`.
 

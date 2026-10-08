@@ -116,6 +116,8 @@ El mensaje entrante **siempre** queda guardado, aunque el bot no responda.
 
 La IA interpreta el mensaje con el historial y el `contexto_comercial`, y devuelve una decisión estructurada (`prompts/cerebro-comercial.md` + `schemas/cerebro-comercial.schema.json`). Luego el código **valida, corrige y consolida** esa decisión: la IA propone, el código decide.
 
+Configuración detallada de cada nodo: [etapas/04-cerebro-comercial.md](etapas/04-cerebro-comercial.md).
+
 ```mermaid
 flowchart LR
     G[Cerebro comercial Groq] --> VG[Validar extracción]
@@ -135,25 +137,28 @@ flowchart LR
 | Error ninguna IA funciono cerebro | Code | `error-ninguna-ia-cerebro.js` |
 | Normalizar decisión IA | Code | `normalizar-decision-ia.js` |
 | Resolver contexto comercial | Code | `resolver-contexto-comercial.js` |
-| Aplicar reglas comerciales | Code | `aplicar-reglas-comerciales.js` |
+| Aplicar reglas comerciales determinísticas | Code | `aplicar-reglas-comerciales.js` |
 | Guardar contexto comercial | Postgres update | — |
 | Preparar actualización prospecto | Code | `preparar-actualizacion-prospecto.js` |
 | Actualizar prospecto comercial | Postgres update | — |
 | Recuperar decisión comercial | Code | `recuperar-decision-comercial.js` |
-| Enrutar acción comercial | Switch (por `accion`) | — |
+| Enrutar acción comercial | Switch (Rules, por `accion`) | — (salidas por documentar, pendiente 37) |
 
 Qué hace cada paso de código:
 
 1. **Validar extracción**: rechaza la respuesta si viola el contrato o las reglas (tipos, coherencia acción/intención/motivo, tono, anti-repetición). Un rechazo hace que se pruebe el siguiente proveedor.
 2. **Normalizar decisión IA**: une la decisión con el contexto, fija la clasificación A/B/C (nunca baja), la prioridad y la notificación, y limpia el tono.
 3. **Resolver contexto comercial**: combina los datos nuevos con la cotización guardada, aplica mínimo de 1000 y decide la acción final.
-4. **Aplicar reglas comerciales**: bloquea medidas de 1 cm o menos.
+4. **Aplicar reglas comerciales determinísticas**: bloquea medidas de 1 cm o menos.
+5. **Preparar actualización prospecto** y **Recuperar decisión comercial**: preparan el UPDATE del prospecto y recuperan la decisión para el Switch (ver pendientes técnicos 2 y 36).
 
 Ver detalle de reglas en [reglas-comerciales.md](reglas-comerciales.md).
 
 ## 05 · Respuesta comercial (`code/05-respuesta-comercial/`)
 
 Todas las acciones que solo requieren contestar (pedir medidas, informar material, mínimo, ubicación, pago, entrega, diseño, respuesta general…) pasan por aquí.
+
+Configuración detallada de cada nodo: [etapas/05-respuesta-comercial.md](etapas/05-respuesta-comercial.md).
 
 | Nodo | Tipo | Archivo |
 |---|---|---|
@@ -171,7 +176,7 @@ Todas las acciones que solo requieren contestar (pedir medidas, informar materia
 
 ## 06 · Derivación humana (`code/06-derivacion-humana/`)
 
-Cuando la acción es `DERIVAR_HUMANO`: marca al prospecto, guarda el handoff en el contexto, responde al cliente con un mensaje de transición y avisa al equipo por correo. Detalle completo en [flujo-handoff.md](flujo-handoff.md).
+Cuando la acción es `DERIVAR_HUMANO`: marca al prospecto, guarda el handoff en el contexto, responde al cliente con un mensaje de transición y avisa al equipo por correo. Reglas en [flujo-handoff.md](flujo-handoff.md); configuración de cada nodo en [etapas/06-derivacion-humana.md](etapas/06-derivacion-humana.md).
 
 | Nodo | Tipo | Archivo |
 |---|---|---|
@@ -180,8 +185,8 @@ Cuando la acción es `DERIVAR_HUMANO`: marca al prospecto, guarda el handoff en 
 | Preparar contexto handoff | Code | `preparar-contexto-handoff.js` |
 | Guardar contexto handoff | Postgres update | — |
 | Preparar mensaje transición humano | Code | `preparar-mensaje-transicion-humano.js` |
-| Guardar mensaje transición humano | Postgres insert | — (también va a 08 Salida WhatsApp) |
-| Finalizar derivación humana | Code | `finalizar-derivacion-humana.js` |
+| Guardar mensaje transición humano | Postgres insert | — (va a 08 Salida WhatsApp) |
+| Finalizar derivación humana | Code (en paralelo al insert, desde Preparar mensaje transición) | `finalizar-derivacion-humana.js` |
 | IF: ¿Requiere notificación? | IF | — |
 | Peparar notificacion humano | Code | `preparar-notificacion-humano.js` |
 | Brevo - Enviar notificación humana | HTTP POST | — (salida Error → Resend) |

@@ -1,0 +1,99 @@
+{
+  "archivo": "code/04-cerebro-comercial/preparar-actualizacion-prospecto.js",
+  "descripcion": "Lo que el nodo produce si recibe la decisión comercial (diseño del código): registra intención y acción y conserva ciudad.",
+  "input": [
+    {
+      "conversacion_id": 41,
+      "cliente_id": null,
+      "contacto_id": null,
+      "telefono": "593987654321",
+      "nombre_whatsapp": "Ana Pérez",
+      "es_cliente_registrado": false,
+      "mensaje_actual": "Hola, necesito etiquetas de 10x5 cm",
+      "tipo_mensaje": "TEXTO",
+      "prospecto_existe": true,
+      "prospecto_id": 16,
+      "prospecto_estado": "NUEVO",
+      "prospecto_clasificacion_anterior": "C",
+      "clasificacion_prospecto": "B",
+      "prospecto_nombre": "Ana Pérez",
+      "prospecto_producto_interes": null,
+      "prospecto_ciudad": "Quito",
+      "prospecto_provincia": null,
+      "prospecto_ultima_intencion": null,
+      "prospecto_ultima_accion": null,
+      "prospecto_requiere_humano": false,
+      "tipo_actor": "PROSPECTO",
+      "intencion": "SOLICITAR_COTIZACION",
+      "accion": "COTIZAR_P4",
+      "producto": null,
+      "material": null,
+      "cantidad": 1000,
+      "ancho_cm": 10,
+      "alto_cm": 5,
+      "forma": "RECTANGULAR",
+      "ciudad_detectada": null,
+      "provincia_detectada": null,
+      "datos_suficientes_para_cotizar": true,
+      "etiqueta_grande": false,
+      "debe_pedir_ciudad_despues_cotizacion": true,
+      "cierre_cordial": false,
+      "requiere_humano": false,
+      "motivo_derivacion": "NINGUNO",
+      "requiere_notificacion": false,
+      "prioridad_derivacion": "NORMAL",
+      "respuesta_sugerida": "",
+      "contexto_comercial": {
+        "prospecto": {
+          "id": 16,
+          "estado": "NUEVO",
+          "clasificacion": "C",
+          "producto_interes": null,
+          "requiere_humano": false,
+          "ultima_intencion": null,
+          "ultima_accion": null
+        },
+        "ubicacion": {
+          "ciudad": null,
+          "provincia": null
+        },
+        "diseno": {
+          "estado": null
+        },
+        "cotizacion": {
+          "existe": false,
+          "id": null,
+          "estado": null,
+          "cantidad": null,
+          "ancho_cm": 10,
+          "alto_cm": 5,
+          "forma": "RECTANGULAR",
+          "precio_total": null,
+          "moneda": "USD",
+          "producto": null,
+          "material": null,
+          "cantidad_solicitada": 1000,
+          "cantidad_cotizable": 1000,
+          "cantidad_ajustada": false,
+          "cantidad_asumida": false
+        }
+      },
+      "decision_ia_valida": true,
+      "cantidad_solicitada": 1000,
+      "cantidad_cotizable": 1000,
+      "cantidad_ajustada": false,
+      "cantidad_asumida": false,
+      "modifico_datos_cotizacion": true,
+      "solicitud_producible": true,
+      "restriccion_comercial": null
+    }
+  ],
+  "esperado": {
+    "prospecto_id_update": 16,
+    "prospecto_estado_update": "NUEVO",
+    "prospecto_ciudad_update": "Quito",
+    "prospecto_ultima_intencion_update": "SOLICITAR_COTIZACION",
+    "prospecto_ultima_accion_update": "COTIZAR_P4",
+    "prospecto_requiere_humano_update": false
+  }
+}

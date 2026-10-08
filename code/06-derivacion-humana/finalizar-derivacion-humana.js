@@ -3,8 +3,8 @@
 // ARCHIVO: code/06-derivacion-humana/finalizar-derivacion-humana.js
 // VERSION: 3
 // RESPONSABILIDAD:
-// - Recibir la fila insertada por "Guardar mensaje transición humano"
-// - Recuperar el contrato de "Preparar mensaje transición humano" para no perder contexto tras el INSERT
+// - Recibir la salida de "Preparar mensaje transición humano" (corre en paralelo a "Guardar mensaje transición humano")
+// - Recuperar el contrato de "Preparar mensaje transición humano" con $() por si la conexión cambia
 // - Construir el contrato FINAL de handoff (identidad, prospecto, motivo, clasificación, prioridad, mensajes)
 // - Normalizar requiere_notificacion a booleano para el IF "¿Requiere notificación?"
 // - Marcar automatizacion_comercial_finalizada = true y fijar derivado_at / handoff_at

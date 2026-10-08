@@ -1,0 +1,27 @@
+{
+  "archivo": "code/04-cerebro-comercial/preparar-actualizacion-prospecto.js",
+  "descripcion": "Como está conectado hoy (pendiente técnico 36): recibe la fila de conversaciones que devuelve \"Guardar contexto comercial\". Pone estado NUEVO y borra intención, acción, producto y ciudad del prospecto.",
+  "input": [
+    {
+      "id": 41,
+      "cliente_id": null,
+      "contacto_id": null,
+      "telefono": "593987654321",
+      "canal": "WHATSAPP",
+      "estado": "ACTIVA",
+      "ultimo_mensaje_at": "2026-10-07T23:46:19.850Z",
+      "creada_at": "2026-10-07T22:50:00.000Z",
+      "prospecto_id": 16,
+      "contexto_comercial": {}
+    }
+  ],
+  "esperado": {
+    "prospecto_id_update": 16,
+    "prospecto_estado_update": "NUEVO",
+    "prospecto_ciudad_update": null,
+    "prospecto_producto_interes_update": null,
+    "prospecto_ultima_intencion_update": null,
+    "prospecto_ultima_accion_update": null,
+    "prospecto_requiere_humano_update": false
+  }
+}

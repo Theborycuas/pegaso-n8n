@@ -1,0 +1,30 @@
+{
+  "archivo": "code/04-cerebro-comercial/recuperar-decision-comercial.js",
+  "descripcion": "Si la decisión no tiene acción, detiene la ejecución antes del Switch.",
+  "input": [
+    {
+      "id": 16,
+      "telefono": "593987654321",
+      "nombre_whatsapp": "Ana Pérez",
+      "canal": "WHATSAPP",
+      "origen": "WHATSAPP",
+      "fuente": null,
+      "estado": "NUEVO",
+      "producto_interes": null,
+      "ciudad": null,
+      "provincia": null,
+      "ultima_intencion": "SOLICITAR_COTIZACION",
+      "ultima_accion": "COTIZAR_P4",
+      "requiere_humano": false,
+      "activo": true
+    }
+  ],
+  "nodos": {
+    "Resolver contexto comercial": [
+      {
+        "conversacion_id": 41
+      }
+    ]
+  },
+  "error": "La decisión comercial no contiene accion."
+}

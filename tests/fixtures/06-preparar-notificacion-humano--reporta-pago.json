@@ -1,0 +1,43 @@
+{
+  "archivo": "code/06-derivacion-humana/preparar-notificacion-humano.js",
+  "descripcion": "REPORTA_PAGO: categoría PAGO_REPORTADO, prioridad ALTA y asunto de pago.",
+  "input": [
+    {
+      "success": true,
+      "flujo": "DERIVACION_HUMANA",
+      "conversacion_id": 41,
+      "prospecto_id": 16,
+      "cliente_id": null,
+      "contacto_id": null,
+      "telefono": "593987654321",
+      "nombre_whatsapp": "Ana Pérez",
+      "prospecto_nombre": "Ana Pérez",
+      "prospecto_ciudad": null,
+      "prospecto_provincia": null,
+      "prospecto_clasificacion": "A",
+      "intencion": "REPORTAR_PAGO",
+      "accion": "DERIVAR_HUMANO",
+      "handoff_motivo": "REPORTA_PAGO",
+      "motivo": "SOLICITA_DATOS_PAGO",
+      "handoff_clasificacion": "CIERRE_COMERCIAL",
+      "clasificacion_handoff": "CIERRE_COMERCIAL",
+      "handoff_prioridad": "ALTA",
+      "prioridad": "ALTA",
+      "requiere_humano": true,
+      "requiere_notificacion": true,
+      "handoff_requiere_notificacion": true,
+      "mensaje_cliente_original": "Pásame una cuenta para pagar",
+      "handoff_mensaje_cliente": "Pásame una cuenta para pagar",
+      "mensaje_transicion": "En breve le pasamos nuestros datos personales y números de cuenta.",
+      "handoff_mensaje_transicion": "En breve le pasamos nuestros datos personales y números de cuenta.",
+      "automatizacion_comercial_finalizada": true,
+      "derivado_at": "2026-10-07T23:53:47.512Z",
+      "handoff_at": "2026-10-07T23:53:47.512Z"
+    }
+  ],
+  "esperado": {
+    "categoria_notificacion": "PAGO_REPORTADO",
+    "prioridad_notificacion": "ALTA",
+    "asunto_notificacion": "💰 Pegaso - Prospecto reportó un pago"
+  }
+}

@@ -2,7 +2,7 @@
 
 Esquema `pegaso`, credencial de n8n **Postgres account 2**.
 
-Las tablas marcadas ✅ tienen sus columnas confirmadas con la configuración de los nodos Postgres (etapas 01–03). El resto se deduce de los campos que usan los nodos Code y debe confirmarse cuando se documenten las etapas 04–08 o se agregue el SQL del esquema.
+Las tablas marcadas ✅ tienen sus columnas confirmadas con la configuración de los nodos Postgres (etapas 01–06). El resto se deduce de los campos que usan los nodos Code y debe confirmarse cuando se documenten las etapas 07–08 o se agregue el SQL del esquema.
 
 ## contactos
 
@@ -36,6 +36,14 @@ Personas que escriben y aún no son clientes. Columnas completas según "Crear p
 
 No existe columna de clasificación A/B/C ni `contexto_comercial` en esta tabla.
 
+Quién la actualiza después de crearla:
+
+| Nodo | Columnas |
+|---|---|
+| Actualizar prospecto comercial (04) | `estado`, `producto_interes`, `ciudad`, `provincia`, `ultima_intencion`, `ultima_accion`, `requiere_humano`, `actualizado_at` (⚠️ pendiente técnico 36) |
+| Actualizar estado prospecto (05) | `estado`, `actualizado_at` |
+| Marcar prospecto requiere humano (06) | `ultima_accion = DERIVAR_HUMANO`, `requiere_humano = true`, `actualizado_at` |
+
 ## conversaciones
 
 Columnas confirmadas por "Crear conversación prospecto" (la captura no muestra todas):
@@ -47,10 +55,10 @@ Columnas confirmadas por "Crear conversación prospecto" (la captura no muestra 
 | `telefono` | teléfono normalizado | |
 | `canal` | `WHATSAPP` | |
 | `estado` | `ACTIVA` | |
-| `ultimo_mensaje_at` | `recibido_at` | lo actualizan "Actualizar actividad conversación…" |
+| `ultimo_mensaje_at` | `recibido_at` | lo actualizan "Guardar contexto comercial", "Actualizar actividad conversación", "Guardar contexto handoff" y la etapa 07 |
 | `creada_at` | vacío | |
 | `prospecto_id` | id del prospecto | |
-| `contexto_comercial` | (por confirmar) | JSON: memoria comercial (ver abajo). Lo escriben las etapas 04, 06 y 07 |
+| `contexto_comercial` | (por confirmar al crear) | ✅ existe: JSON (se escribe con `JSON.stringify`) con la memoria comercial (ver abajo) |
 
 ## mensajes ✅
 
@@ -66,7 +74,9 @@ Columnas completas según "Guardar mensaje entrante":
 | `contenido` | texto del mensaje | |
 | `mensaje_externo_id` | wamid de WhatsApp | |
 | `enviado_at` | `recibido_at` | el historial se ordena por esta columna ASC |
-| `procesado` | `false` | lo pone en `true` "Marcar mensaje entrante procesado" |
+| `procesado` | `false` | lo pone en `true` "Marcar mensaje entrante procesado" (solo en la etapa 05) |
+
+Mensajes salientes: "Guardar mensaje saliente" (05) y "Guardar mensaje transición humano" (06) guardan `direccion = SALIENTE`, `tipo = TEXTO`, `enviado_at = $now` y `mensaje_externo_id` vacío; `procesado` es `true` en 05 y `false` en 06 (pendiente técnico 39).
 
 ## cotizaciones
 
@@ -112,4 +122,4 @@ JSON que se arrastra entre mensajes de la misma conversación:
 }
 ```
 
-Lo escriben: "Guardar contexto comercial" (etapa 04), "Guardar contexto handoff" (06) y "Guardar contexto post cotización" (07).
+Lo escriben: "Guardar contexto comercial" (etapa 04), "Guardar contexto handoff" (06) y "Guardar contexto post cotización" (07). Cada escritura **reemplaza** el JSON completo; hoy el contexto anterior no llega al cerebro, así que cada mensaje lo reinicia (pendiente técnico 1).

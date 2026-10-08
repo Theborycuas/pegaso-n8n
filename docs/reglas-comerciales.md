@@ -179,10 +179,10 @@ La IA elige **una intención** y **una acción** (`schemas/cerebro-comercial.sch
 | INFORMAR_METODOLOGIA_PAGO | CONSULTAR_PAGO | 05 Respuesta |
 | REGISTRAR_ACEPTACION | ACEPTAR_COTIZACION, clasificación A | 05 Respuesta |
 | RESPONDER_GENERAL | OTRO, APORTAR_DATOS, POSPONER_DECISION | 05 Respuesta |
-| MEDIDA_NO_PRODUCIBLE ⚠️ | lado ≤ 1 cm | 05 Respuesta |
+| MEDIDA_NO_PRODUCIBLE ⚠️ | lado ≤ 1 cm | por confirmar (hoy termina en 07 Cotización) |
 | DERIVAR_HUMANO | REPORTAR_PAGO, CONFIRMAR_PEDIDO, SOLICITAR_LLAMADA, SOLICITAR_HUMANO, NEGOCIAR, RECLAMO (obligatorio); CONSULTAR_PAGO concreto | 06 Derivación |
 
-⚠️ `MEDIDA_NO_PRODUCIBLE` no está en el enum del schema ni en el prompt, y `RESPONDER_NO_PRODUCIBLE` (de `aplicar-reglas-comerciales.js`) no tiene salida en el Switch.
+⚠️ `MEDIDA_NO_PRODUCIBLE` no está en el enum del schema ni en el prompt, y hoy "Resolver contexto comercial" la convierte en `COTIZAR_P4`. `RESPONDER_NO_PRODUCIBLE` (de `aplicar-reglas-comerciales.js`) nunca llega al Switch (pendiente técnico 2). Las reglas exactas del Switch y su salida Fallback están por documentar (pendiente técnico 37).
 
 ### Cómo se decide la acción final
 
@@ -211,7 +211,9 @@ Transiciones automáticas actuales:
 - Al crear el prospecto → `NUEVO`.
 - Primera respuesta comercial → `EN_CONVERSACION`.
 - Cotización enviada → `COTIZADO`.
-- Derivación humana → `requiere_humano = true` (el bot deja de responder).
+- Derivación humana → `requiere_humano = true` (el bot deja de responder); el estado no cambia.
+
+⚠️ Hoy "Actualizar prospecto comercial" vuelve a poner `NUEVO` en cada mensaje (pendiente técnico 36), así que un prospecto COTIZADO regresa a NUEVO y luego a EN_CONVERSACION.
 
 ## 12. Tono de las respuestas
 
@@ -219,5 +221,5 @@ Validado en `validar-extraccion-cerebro.js` y limpiado en `normalizar-decision-i
 
 - Sin el emoji 😊.
 - No empezar con "Perfecto", "Entendemos", "Con gusto le explico" ni "Con mucho gusto".
-- No repetir exactamente el último mensaje enviado por el bot. Si pasa, se reemplaza por *"¿Qué parte desea que revisemos o aclaremos por favor?"*.
+- No repetir exactamente el último mensaje enviado por el bot. El validador lo rechaza; el reemplazo por *"¿Qué parte desea que revisemos o aclaremos por favor?"* en "Preparar respuesta comercial" hoy no se activa (pendiente técnico 19).
 - Trato de "usted".

@@ -1,6 +1,6 @@
 # Flujo de derivación humana (handoff)
 
-Qué pasa cuando el bot decide que una persona del equipo debe continuar la conversación. Código en `code/06-derivacion-humana/`.
+Qué pasa cuando el bot decide que una persona del equipo debe continuar la conversación. Código en `code/06-derivacion-humana/`; configuración de cada nodo en [etapas/06-derivacion-humana.md](etapas/06-derivacion-humana.md).
 
 ## Cuándo se deriva
 
@@ -37,11 +37,11 @@ flowchart TD
 ```
 
 1. **Preparar derivación humana** (`preparar-derivacion-humana.js`): es el **único nodo que decide** motivo, clasificación del handoff, prioridad y si se notifica. Los siguientes solo conservan esas decisiones.
-2. **Marcar prospecto requiere humano** (Postgres): `prospectos.requiere_humano = true`. Desde aquí el bot deja de responder a este prospecto (IF "¿Requiere atención humana?" de la etapa 03).
+2. **Marcar prospecto requiere humano** (Postgres): `prospectos.requiere_humano = true` y `ultima_accion = DERIVAR_HUMANO`; el `estado` no cambia. Desde aquí el bot deja de responder a este prospecto (IF "¿Requiere atención humana?" de la etapa 03).
 3. **Preparar contexto handoff** (`preparar-contexto-handoff.js`): escribe `contexto_comercial.handoff` con `activo`, `motivo`, `intencion`, `clasificacion`, `prioridad`, `requiere_notificacion`, `mensaje_cliente`, `iniciado_at`.
 4. **Preparar mensaje transición humano** (`preparar-mensaje-transicion-humano.js`): elige el texto para el cliente según el motivo.
-5. **Guardar mensaje transición humano** (Postgres) y envío por WhatsApp.
-6. **Finalizar derivación humana** (`finalizar-derivacion-humana.js`): arma el contrato final limpio.
+5. **Guardar mensaje transición humano** (Postgres, `procesado = false`) y envío por WhatsApp. El mensaje entrante que provocó el handoff queda `procesado = false`.
+6. **Finalizar derivación humana** (`finalizar-derivacion-humana.js`): sale de "Preparar mensaje transición humano" en paralelo al guardado y arma el contrato final limpio.
 7. **Peparar notificacion humano** (`preparar-notificacion-humano.js`): arma el correo interno (asunto, texto y HTML). Lo envía **Brevo**; si Brevo falla, **Resend**.
 
 ## Decisiones de Preparar derivación humana

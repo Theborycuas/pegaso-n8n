@@ -1,0 +1,15 @@
+{
+  "archivo": "code/04-cerebro-comercial/error-ninguna-ia-cerebro.js",
+  "descripcion": "Las tres IA fallaron: item fijo de error. No responde al cliente (pendiente técnico 4).",
+  "input": [
+    {
+      "valid": false
+    }
+  ],
+  "esperado": {
+    "valid": false,
+    "success": false,
+    "status": "AI_EXTRACTION_FAILED",
+    "error_code": "ALL_AI_FAILED"
+  }
+}
