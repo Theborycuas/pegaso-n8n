@@ -1,0 +1,54 @@
+{
+  "archivo": "code/03-conversacion/preparar-contexto-ia.js",
+  "descripcion": "Imagen del turno que sigue pendiente (enlace no permitido, más de 3 imágenes o análisis que no corrió): el cerebro recibe \"no pudo revisarse\" en lugar del enlace y media_turno pide IMAGEN_REQUIERE_REVISION. Una imagen vieja del historial que nunca se analizó pierde su línea pendiente.",
+  "input": [
+    { "analizar_imagen": false, "imagenes_descartadas": 1 }
+  ],
+  "nodos": {
+    "Resolver turno conversacional": [
+      {
+        "continuar_procesamiento": true,
+        "conversacion_id": 41,
+        "mensaje_id": 302,
+        "turno_mensaje_ids": [302],
+        "turno_desde_id": 302,
+        "turno_hasta_id": 302,
+        "turno_mensajes": [
+          { "id": 302, "tipo": "IMAGEN", "contenido": "[IMAGEN] precio?\n[MEDIA_PENDIENTE] {\"mime_type\":\"image/jpeg\",\"link\":\"http://169.254.169.254/latest\"}" }
+        ],
+        "turno_texto": "[IMAGEN] precio?\n[MEDIA_PENDIENTE] {\"mime_type\":\"image/jpeg\",\"link\":\"http://169.254.169.254/latest\"}"
+      }
+    ],
+    "Recuperar historial conversación": [
+      { "id": 300, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "IMAGEN", "contenido": "[IMAGEN] la de ayer\n[MEDIA_PENDIENTE] {\"mime_type\":\"image/jpeg\",\"link\":\"https://api.ycloud.com/v2/whatsapp/media/download/old\"}", "mensaje_externo_id": "wamid.C300", "enviado_at": "2026-10-06T10:00:00.000Z", "procesado": false },
+      { "id": 301, "conversacion_id": 41, "direccion": "SALIENTE", "tipo": "TEXTO", "contenido": "Buenos días, ¿en qué le ayudamos?", "mensaje_externo_id": null, "enviado_at": "2026-10-06T10:05:00.000Z", "procesado": true },
+      { "id": 302, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "IMAGEN", "contenido": "[IMAGEN] precio?\n[MEDIA_PENDIENTE] {\"mime_type\":\"image/jpeg\",\"link\":\"http://169.254.169.254/latest\"}", "mensaje_externo_id": "wamid.C302", "enviado_at": "2026-10-07T23:00:00.000Z", "procesado": false }
+    ],
+    "Preparar conversación": [
+      {
+        "telefono": "593987654321",
+        "mensaje": "[IMAGEN] precio?\n[MEDIA_PENDIENTE] {\"mime_type\":\"image/jpeg\",\"link\":\"http://169.254.169.254/latest\"}",
+        "tipo": "IMAGEN",
+        "prospecto_id": 16,
+        "conversacion_id": 41,
+        "contexto_comercial": {},
+        "tipo_actor": "PROSPECTO"
+      }
+    ]
+  },
+  "esperado": {
+    "mensaje_actual": "[IMAGEN] precio?\n[CONTEXTO DE IMAGEN · revision=SI · motivo=IMAGEN_NO_ANALIZADA] La imagen no pudo revisarse automáticamente.",
+    "mensaje_disparador": "[IMAGEN] precio?",
+    "historial": [
+      { "direccion": "ENTRANTE", "contenido": "[IMAGEN] la de ayer", "tipo": "IMAGEN", "enviado_at": "2026-10-06T10:00:00.000Z" },
+      { "direccion": "SALIENTE", "contenido": "Buenos días, ¿en qué le ayudamos?", "tipo": "TEXTO", "enviado_at": "2026-10-06T10:05:00.000Z" }
+    ],
+    "media_turno": {
+      "cantidad_media": 1,
+      "imagenes_analizadas": 0,
+      "comprobante_detectado": false,
+      "requiere_revision_humana": true,
+      "motivo_derivacion": "IMAGEN_REQUIERE_REVISION"
+    }
+  }
+}

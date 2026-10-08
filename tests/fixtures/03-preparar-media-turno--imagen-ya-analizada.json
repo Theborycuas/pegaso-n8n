@@ -1,0 +1,25 @@
+{
+  "archivo": "code/03-conversacion/preparar-media-turno.js",
+  "descripcion": "Debounce: la ejecución anterior analizó la imagen y fue superada antes de confirmar; la nueva ganadora ve el contenido ya analizado en la base y no vuelve a descargar ni a pagar otra llamada visual.",
+  "input": [
+    { "continuar_procesamiento": true, "conversacion_id": 41, "mensaje_id": 103 }
+  ],
+  "nodos": {
+    "Resolver turno conversacional": [
+      {
+        "continuar_procesamiento": true,
+        "conversacion_id": 41,
+        "mensaje_id": 103,
+        "turno_mensajes": [
+          { "id": 102, "tipo": "IMAGEN", "contenido": "[IMAGEN] esta botella\n[CONTEXTO DE IMAGEN · contenido=ENVASE_O_PRODUCTO · confianza=ALTA · revision=NO] Botella de vidrio. Sin medidas visibles." },
+          { "id": 103, "tipo": "TEXTO", "contenido": "de unas 1000" }
+        ]
+      }
+    ]
+  },
+  "esperado": {
+    "analizar_imagen": false,
+    "imagenes_por_analizar": 0,
+    "imagenes_descartadas": 0
+  }
+}

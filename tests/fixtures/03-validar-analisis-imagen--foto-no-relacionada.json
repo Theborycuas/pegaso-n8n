@@ -1,0 +1,36 @@
+{
+  "archivo": "code/03-conversacion/validar-analisis-imagen.js",
+  "descripcion": "Caso 9 · foto irrelevante sin caption (caso 8): NO_RELACIONADO no requiere revisión y el producto se anula aunque la IA lo haya sugerido; no se agrega \"Sin medidas visibles\".",
+  "input": [
+    {
+      "output": {
+        "contenido_detectado": "NO_RELACIONADO",
+        "producto_probable": "comida para perro",
+        "envase_detectado": false,
+        "forma_envase": null,
+        "etiqueta_visible": false,
+        "diseno_visible": false,
+        "texto_visible_relevante": null,
+        "colores_relevantes": [],
+        "medidas_visibles": null,
+        "requiere_revision_humana": false,
+        "motivo_revision": "NINGUNO",
+        "confianza": "ALTA",
+        "resumen_para_cerebro": "Foto de una mascota; no tiene relación con etiquetas."
+      }
+    }
+  ],
+  "nodos": {
+    "Preparar media del turno": [
+      { "analizar_imagen": true, "mensaje_id": 170, "caption": "", "contenido_base": "[IMAGEN]" }
+    ]
+  },
+  "esperado": {
+    "analisis_valido": true,
+    "requiere_revision": false,
+    "analisis": {
+      "producto_probable": null
+    },
+    "contenido_actualizado": "[IMAGEN]\n[CONTEXTO DE IMAGEN · contenido=NO_RELACIONADO · confianza=ALTA · revision=NO] Foto de una mascota; no tiene relación con etiquetas."
+  }
+}

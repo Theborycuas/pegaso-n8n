@@ -1,0 +1,24 @@
+{
+  "archivo": "code/01-entrada/preparar-entrada-whatsapp.js",
+  "descripcion": "Sticker: queda fuera del flujo conversacional en V1 (el IF lo descarta, como antes); no se deriva a un asesor por un sticker.",
+  "input": [
+    {
+      "evento_whatsapp": {
+        "procesable": true,
+        "telefono_cliente": "593987654321",
+        "nombre_cliente": "Ana Pérez",
+        "mensaje_id": "wamid.STK001",
+        "timestamp": "1791414000",
+        "tipo_mensaje": "sticker",
+        "media_id": "media_stk_001",
+        "media_mime_type": "image/webp"
+      }
+    }
+  ],
+  "esperado": {
+    "tipo": "STICKER",
+    "mensaje": null,
+    "apto_para_flujo_texto": false,
+    "apto_para_flujo_conversacional": false
+  }
+}

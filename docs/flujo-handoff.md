@@ -18,6 +18,16 @@ La IA elige `accion = DERIVAR_HUMANO` y el validador lo **exige** en estas inten
 
 Una pregunta general sobre cómo pagar ("¿cómo es el pago?") **no** deriva: responde con `INFORMAR_METODOLOGIA_PAGO`.
 
+Además, "Normalizar decisión IA" (etapa 04) **fuerza** la derivación por evidencia multimedia del turno, aunque el cerebro no la haya pedido:
+
+| Evidencia (de [imágenes del turno](etapas/03-conversacion.md#imágenes-del-turno)) | Decisión | Motivo |
+|---|---|---|
+| Imagen analizada como comprobante de pago | `REPORTAR_PAGO` + `DERIVAR_HUMANO` (clasificación A, ALTA). El bot **no** confirma el pago | ENVIA_COMPROBANTE |
+| Imagen ilegible, ambigua, de confianza baja, no analizada o con fallo de descarga/IA | `DERIVAR_HUMANO` | IMAGEN_REQUIERE_REVISION |
+| Audio, video, documento, imagen GIF/HEIC | `DERIVAR_HUMANO` | ARCHIVO_NO_PROCESABLE |
+
+Si el cerebro ya derivó por otro motivo, se respeta el suyo. Una imagen clara (botella, etiqueta, logo, foto no relacionada) **no** deriva: el cerebro sigue la conversación normal con el contexto visual.
+
 ## Recorrido
 
 ```mermaid
@@ -62,21 +72,24 @@ flowchart TD
 
 **Prioridad**:
 
-- `ALTA`: SOLICITA_DATOS_PAGO, REPORTA_PAGO, DESEA_CONTINUAR_PEDIDO, RECLAMO.
+- `ALTA`: SOLICITA_DATOS_PAGO, REPORTA_PAGO, ENVIA_COMPROBANTE, DESEA_CONTINUAR_PEDIDO, RECLAMO.
 - `MEDIA`: NEGOCIACION_COMERCIAL, SOLICITA_LLAMADA (si no era ya ALTA).
 - `NORMAL`: resto.
 
-**Notificación por correo**: sí cuando la IA lo pide, la prioridad es ALTA o el motivo es uno de SOLICITA_DATOS_PAGO, REPORTA_PAGO, DESEA_CONTINUAR_PEDIDO, NEGOCIACION_COMERCIAL, RECLAMO, SOLICITA_LLAMADA, ARCHIVO_REQUIERE_REVISION, DISENO_REQUIERE_REVISION, COTIZACION_ESPECIAL. En la práctica, solo `ATENCION_COMERCIAL` con prioridad normal se queda sin correo.
+ENVIA_COMPROBANTE se clasifica como `CIERRE_COMERCIAL`, igual que REPORTA_PAGO.
+
+**Notificación por correo**: sí cuando la IA lo pide, la prioridad es ALTA o el motivo es uno de SOLICITA_DATOS_PAGO, REPORTA_PAGO, ENVIA_COMPROBANTE, DESEA_CONTINUAR_PEDIDO, NEGOCIACION_COMERCIAL, RECLAMO, SOLICITA_LLAMADA, ARCHIVO_REQUIERE_REVISION, DISENO_REQUIERE_REVISION, IMAGEN_REQUIERE_REVISION, ARCHIVO_NO_PROCESABLE, ARCHIVO_DISENO, COTIZACION_ESPECIAL. En la práctica, solo `ATENCION_COMERCIAL` con prioridad normal se queda sin correo.
 
 ## Mensaje al cliente
 
 | Motivo | Texto |
 |---|---|
 | Datos de pago | En breve le pasamos nuestros datos personales y números de cuenta. |
-| Reporte de pago | Gracias. Permítame un momento por favor, ya verificamos su pago para continuar con el pedido. |
+| Reporte de pago (REPORTA_PAGO, ENVIA_COMPROBANTE) | Gracias. Permítame un momento por favor, ya verificamos su pago para continuar con el pedido. |
 | Continuar pedido | …ya verificamos los datos para continuar con su pedido. |
 | Llamada | …ya verificamos su solicitud. |
-| Archivo / diseño | …ya revisamos el archivo que nos envió. |
+| Imagen (IMAGEN_REQUIERE_REVISION, IMAGEN_NO_ANALIZABLE) | Permítame un momento por favor, ya revisamos la imagen que nos envió. |
+| Archivo / diseño (incl. ARCHIVO_NO_PROCESABLE, ARCHIVO_DISENO) | …ya revisamos el archivo que nos envió. |
 | Negociación | …ya verificamos su requerimiento. |
 | Reclamo | Gracias por indicarnos lo ocurrido. … ya revisamos su caso. |
 | Por defecto | Permítame un momento por favor, ya verificamos su requerimiento. |
@@ -94,6 +107,8 @@ Generado en `preparar-notificacion-humano.js`. Destinatarios, remitente y API ke
 | SOLICITA_CONTACTO | MEDIA | Pegaso - Prospecto requiere revisión |
 | NEGOCIACION | — | Pegaso - Prospecto requiere revisión |
 | REVISION_GENERAL | — | Pegaso - Prospecto requiere revisión |
+
+ENVIA_COMPROBANTE cae en PAGO_REPORTADO; IMAGEN_REQUIERE_REVISION, ARCHIVO_NO_PROCESABLE y ARCHIVO_DISENO en ARCHIVO_REQUIERE_REVISION.
 
 ⚠️ Las categorías del correo usan nombres de motivo distintos a los que genera "Preparar derivación humana" (por ejemplo `SOLICITA_DATOS_PAGO` no se reconoce y cae en REVISION_GENERAL). Ver [pendientes-tecnicos.md](pendientes-tecnicos.md).
 

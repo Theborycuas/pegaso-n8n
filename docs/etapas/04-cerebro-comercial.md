@@ -74,7 +74,12 @@ Devuelve un item fijo (`status: AI_EXTRACTION_FAILED`). El cliente no recibe res
 
 Archivo: [`code/04-cerebro-comercial/normalizar-decision-ia.js`](../../code/04-cerebro-comercial/normalizar-decision-ia.js)
 
-Une la decisión validada (`$json`) con la identidad de `$('Preparar contexto IA')` y arma un contrato único:
+Une la decisión validada (`$json`) con la identidad de `$('Preparar contexto IA')` y arma un contrato único (v2.1):
+
+- **Evidencia multimedia** (`media_turno` de "Preparar contexto IA"). Se aplica antes de la clasificación:
+  - `comprobante_detectado` → `intencion = REPORTAR_PAGO`, `accion = DERIVAR_HUMANO`, `motivo_derivacion = ENVIA_COMPROBANTE` y respuesta "Muchas gracias. En breve verificamos la información para continuar con su pedido.". Si el cerebro ya derivó por `REPORTA_PAGO`, `ENVIA_COMPROBANTE`, reclamo o un problema de pedido, pago o entrega, se respeta su decisión.
+  - `requiere_revision_humana` (imagen ilegible o no analizada, audio, video, documento) y el cerebro **no** derivó → `DERIVAR_HUMANO` con `IMAGEN_REQUIERE_REVISION` o `ARCHIVO_NO_PROCESABLE` y un mensaje sutil. Si el cerebro ya derivó por otro motivo, gana el suyo.
+  - Salida: `derivacion_por_media` (`COMPROBANTE_PAGO` / `REVISION_MEDIA` / `null`) y `media_turno`.
 
 - **Clasificación A/B/C**: la mayor entre la anterior, la de la IA y el mínimo por intención ([reglas-comerciales §9](../reglas-comerciales.md#9-clasificación-de-prospectos-abc)).
 - `etiqueta_grande` (lado corto > 10 o lado largo > 15 cm), `debe_pedir_ciudad_despues_cotizacion`, `cierre_cordial`.

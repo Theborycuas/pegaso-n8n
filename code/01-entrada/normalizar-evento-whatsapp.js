@@ -1,11 +1,11 @@
 // ======================================================
 // NODO N8N: Normalizar evento WhatsApp
 // ARCHIVO: code/01-entrada/normalizar-evento-whatsapp.js
-// VERSION: 1.0
+// VERSION: 1.1
 // RESPONSABILIDAD:
 // - Detectar el origen del webhook: YCloud Coexistence (whatsapp.inbound_message.received) o Meta Cloud API directo (body.entry)
 // - Extraer cuenta Pegaso, cliente (teléfono, wa_id, nombre) y mensaje (id, timestamp, tipo, texto) a un objeto evento_whatsapp uniforme
-// - Extraer metadatos multimedia (media_id, mime_type, sha256, caption) de imagen, audio, documento y video
+// - Extraer metadatos multimedia (media_id, mime_type, sha256, caption y, en YCloud, media_link de descarga) de imagen, audio, documento y video
 // - Convertir sendTime ISO de YCloud a timestamp Unix en segundos y limpiar teléfonos a solo dígitos
 // - Marcar procesable cuando hay mensaje_id, teléfono del cliente y tipo (en Meta además field = 'messages')
 // - Conservar el body recibido completo en payload_original
@@ -75,6 +75,7 @@ let caption = null;
 let mediaId = null;
 let mediaMimeType = null;
 let mediaSha256 = null;
+let mediaLink = null;
 
 let origen = null;
 
@@ -249,6 +250,17 @@ if (esYCloud) {
 
     caption =
       media.caption ??
+      null;
+  }
+
+  // ----------------------------------------------------
+  // ENLACE DE DESCARGA
+  // Sin credencial sirve unos minutos; con X-API-Key, 30 días.
+  // ----------------------------------------------------
+
+  if (['image', 'audio', 'document', 'video'].includes(tipo)) {
+    mediaLink =
+      message[tipo]?.link ??
       null;
   }
 
@@ -457,6 +469,7 @@ return [
         media_id: mediaId,
         media_mime_type: mediaMimeType,
         media_sha256: mediaSha256,
+        media_link: mediaLink,
 
         // ----------------------------------------------
         // CONTROL INTERNO

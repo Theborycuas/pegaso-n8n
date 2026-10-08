@@ -1,10 +1,13 @@
 // ======================================================
 // NODO N8N: Normalizar decisión IA
 // ARCHIVO: code/04-cerebro-comercial/normalizar-decision-ia.js
-// VERSION: 2
+// VERSION: 2.1
 // RESPONSABILIDAD:
 // - Convertir la decisión YA VALIDADA (de cualquier proveedor) en un contrato único Pegaso con tipos normalizados.
 // - Unir la decisión con el contexto de "Preparar contexto IA" (IDs, prospecto, tipo_actor, contexto_comercial) y resolver ciudad/provincia.
+// - Aplicar la evidencia multimedia del turno (media_turno): comprobante detectado -> REPORTAR_PAGO + DERIVAR_HUMANO + ENVIA_COMPROBANTE;
+//   imagen/archivo que requiere revisión -> DERIVAR_HUMANO + IMAGEN_REQUIERE_REVISION / ARCHIVO_NO_PROCESABLE.
+//   Si la IA ya derivó por otro motivo, se respeta (salvo comprobante frente a motivos no prioritarios).
 // - Impedir degradar la clasificación A/B/C: máximo entre anterior, IA y mínimo por intención/motivo.
 // - Calcular etiqueta_grande (lado corto > 10 o lado largo > 15 cm) y banderas de continuidad.
 // - Forzar requiere_notificacion=requiere_humano y calcular prioridad_derivacion (ALTA/MEDIA/NORMAL).
@@ -148,13 +151,13 @@ function maxClasificacion(...valores) {
 // 2. DECISIÓN COMERCIAL
 // ======================================================
 
-const intencion =
+let intencion =
   texto(
     decision.intencion,
     'OTRO'
   ).toUpperCase();
 
-const accion =
+let accion =
   texto(
     decision.accion,
     'RESPONDER_GENERAL'
@@ -213,17 +216,74 @@ const datosSuficientes =
     false
   );
 
-const requiereHumano =
+let requiereHumano =
   booleano(
     decision.requiere_humano,
     false
   );
 
-const motivoDerivacion =
+let motivoDerivacion =
   texto(
     decision.motivo_derivacion,
     'NINGUNO'
   ).toUpperCase();
+
+
+// ======================================================
+// 4.0. EVIDENCIA MULTIMEDIA DEL TURNO
+// ======================================================
+//
+// La IA visual solo aporta evidencia; aquí se fijan los dos
+// casos que no pueden quedar a criterio del cerebro:
+// - comprobante de pago: nunca se confirma, siempre va a humano;
+// - imagen/archivo que el bot no pudo interpretar.
+// ======================================================
+
+let mediaTurno = {};
+
+try {
+  mediaTurno =
+    $('Preparar contexto IA').first().json?.media_turno ?? {};
+} catch (e) {
+  mediaTurno = {};
+}
+
+const MOTIVOS_QUE_PREVALECEN_SOBRE_COMPROBANTE = [
+  'REPORTA_PAGO',
+  'ENVIA_COMPROBANTE',
+  'RECLAMO',
+  'PROBLEMA_PAGO',
+  'PROBLEMA_PEDIDO',
+  'PROBLEMA_ENTREGA'
+];
+
+let derivacionPorMedia = null;
+
+if (
+  mediaTurno.comprobante_detectado === true &&
+  !MOTIVOS_QUE_PREVALECEN_SOBRE_COMPROBANTE.includes(motivoDerivacion)
+) {
+  derivacionPorMedia = 'COMPROBANTE_PAGO';
+  intencion = 'REPORTAR_PAGO';
+  accion = 'DERIVAR_HUMANO';
+  requiereHumano = true;
+  motivoDerivacion = 'ENVIA_COMPROBANTE';
+  respuestaSugerida =
+    'Muchas gracias. En breve verificamos la información para continuar con su pedido.';
+} else if (
+  mediaTurno.requiere_revision_humana === true &&
+  requiereHumano !== true &&
+  ['IMAGEN_REQUIERE_REVISION', 'ARCHIVO_NO_PROCESABLE'].includes(mediaTurno.motivo_derivacion)
+) {
+  derivacionPorMedia = 'REVISION_MEDIA';
+  accion = 'DERIVAR_HUMANO';
+  requiereHumano = true;
+  motivoDerivacion = mediaTurno.motivo_derivacion;
+  respuestaSugerida =
+    motivoDerivacion === 'IMAGEN_REQUIERE_REVISION'
+      ? 'Permítame un momento por favor, ya revisamos la imagen que nos envió.'
+      : 'Permítame un momento por favor, ya revisamos el archivo que nos envió.';
+}
 
 
 // ======================================================
@@ -725,6 +785,12 @@ return {
 
     prioridad_derivacion:
       prioridadDerivacion,
+
+    derivacion_por_media:
+      derivacionPorMedia,
+
+    media_turno:
+      mediaTurno,
 
 
     // ----------------------------------------------

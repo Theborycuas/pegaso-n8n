@@ -1,0 +1,35 @@
+{
+  "archivo": "code/03-conversacion/validar-analisis-imagen.js",
+  "descripcion": "Caso 5 · imagen ilegible: la IA pide revisión (IMAGEN_ILEGIBLE, confianza BAJA) → requiere_revision = true y la línea queda con revision=SI; \"Normalizar decisión IA\" derivará con IMAGEN_REQUIERE_REVISION.",
+  "input": [
+    {
+      "output": {
+        "contenido_detectado": "NO_DETERMINABLE",
+        "producto_probable": null,
+        "envase_detectado": false,
+        "forma_envase": null,
+        "etiqueta_visible": false,
+        "diseno_visible": false,
+        "texto_visible_relevante": null,
+        "colores_relevantes": [],
+        "medidas_visibles": null,
+        "requiere_revision_humana": true,
+        "motivo_revision": "IMAGEN_ILEGIBLE",
+        "confianza": "BAJA",
+        "resumen_para_cerebro": "Imagen muy borrosa; no se distingue el contenido."
+      }
+    }
+  ],
+  "nodos": {
+    "Preparar media del turno": [
+      { "analizar_imagen": true, "mensaje_id": 140, "mime_type": "image/jpeg", "caption": "", "contenido_base": "[IMAGEN]" }
+    ]
+  },
+  "esperado": {
+    "analisis_valido": true,
+    "requiere_revision": true,
+    "motivo_revision": "IMAGEN_ILEGIBLE",
+    "comprobante_detectado": false,
+    "contenido_actualizado": "[IMAGEN]\n[CONTEXTO DE IMAGEN · contenido=NO_DETERMINABLE · confianza=BAJA · revision=SI · motivo=IMAGEN_ILEGIBLE] Imagen muy borrosa; no se distingue el contenido."
+  }
+}

@@ -1,6 +1,6 @@
 {
   "archivo": "code/01-entrada/preparar-entrada-whatsapp.js",
-  "descripcion": "Imagen con caption: NO apta para el flujo de texto (el IF la descarta), aunque usa el caption como mensaje.",
+  "descripcion": "Imagen JPEG de YCloud con caption y enlace permitido: entra al flujo conversacional (no al de texto) y el mensaje es el descriptor con [MEDIA_PENDIENTE].",
   "input": [
     {
       "evento_whatsapp": {
@@ -22,6 +22,7 @@
         "media_id": "media_001",
         "media_mime_type": "image/jpeg",
         "media_sha256": "abc",
+        "media_link": "https://api.ycloud.com/v2/whatsapp/media/download/media_001?sig=t%3D1791414000%2Cs%3Dabc123&payload=eyJ3YWJhSWQiOiIxMjMifQ",
         "canal": "WHATSAPP",
         "origen": "YCLOUD",
         "proveedor_evento_id": "evt_test_001"
@@ -52,7 +53,8 @@
               "id": "media_001",
               "mimeType": "image/jpeg",
               "sha256": "abc",
-              "caption": "este diseño"
+              "caption": "este diseño",
+              "link": "https://api.ycloud.com/v2/whatsapp/media/download/media_001?sig=t%3D1791414000%2Cs%3Dabc123&payload=eyJ3YWJhSWQiOiIxMjMifQ"
             }
           }
         }
@@ -61,8 +63,10 @@
   ],
   "esperado": {
     "tipo": "IMAGEN",
-    "mensaje": "este diseño",
+    "mensaje": "[IMAGEN] este diseño\n[MEDIA_PENDIENTE] {\"mime_type\":\"image/jpeg\",\"media_id\":\"media_001\",\"link\":\"https://api.ycloud.com/v2/whatsapp/media/download/media_001?sig=t%3D1791414000%2Cs%3Dabc123&payload=eyJ3YWJhSWQiOiIxMjMifQ\"}",
     "apto_para_flujo_texto": false,
+    "apto_para_flujo_conversacional": true,
+    "media_soportada": true,
     "requiere_procesamiento_media": true
   }
 }

@@ -1,0 +1,53 @@
+{
+  "archivo": "code/04-cerebro-comercial/normalizar-decision-ia.js",
+  "descripcion": "Caso 5 · imagen ilegible (o descarga/IA fallida): aunque el cerebro quiso pedir medidas, se deriva con IMAGEN_REQUIERE_REVISION, notificación y un mensaje sutil sin detalle técnico.",
+  "input": [
+    {
+      "intencion": "SOLICITAR_COTIZACION",
+      "accion": "PEDIR_MEDIDAS",
+      "producto": null,
+      "material": null,
+      "cantidad": null,
+      "ancho_cm": null,
+      "alto_cm": null,
+      "forma": "NO_ESPECIFICADA",
+      "ciudad_detectada": null,
+      "provincia_detectada": null,
+      "datos_suficientes_para_cotizar": false,
+      "requiere_humano": false,
+      "motivo_derivacion": "NINGUNO",
+      "requiere_notificacion": false,
+      "clasificacion_prospecto": "C",
+      "respuesta_sugerida": "¿En qué medidas necesita sus etiquetas?",
+      "valid": true
+    }
+  ],
+  "nodos": {
+    "Preparar contexto IA": [
+      {
+        "conversacion_id": 41,
+        "prospecto_id": 16,
+        "prospecto_estado": "NUEVO",
+        "tipo_actor": "PROSPECTO",
+        "mensaje_actual": "[IMAGEN]\n[CONTEXTO DE IMAGEN · contenido=NO_DETERMINABLE · confianza=BAJA · revision=SI · motivo=IMAGEN_ILEGIBLE] Imagen muy borrosa; no se distingue el contenido.",
+        "contexto_comercial": {},
+        "media_turno": {
+          "cantidad_media": 1,
+          "imagenes_analizadas": 1,
+          "comprobante_detectado": false,
+          "requiere_revision_humana": true,
+          "motivo_derivacion": "IMAGEN_REQUIERE_REVISION"
+        }
+      }
+    ]
+  },
+  "esperado": {
+    "accion": "DERIVAR_HUMANO",
+    "requiere_humano": true,
+    "motivo_derivacion": "IMAGEN_REQUIERE_REVISION",
+    "requiere_notificacion": true,
+    "prioridad_derivacion": "MEDIA",
+    "derivacion_por_media": "REVISION_MEDIA",
+    "respuesta_sugerida": "Permítame un momento por favor, ya revisamos la imagen que nos envió."
+  }
+}

@@ -10,7 +10,9 @@ Reglas de negocio que aplica hoy el bot, con el archivo donde vive cada una. Cua
 |---|---|---|
 | Cliente registrado (contacto con `cliente_id`) | No responde; el flujo termina | IF "¿Cliente existente?" |
 | Prospecto con `requiere_humano = true` | No responde; ya lo atiende una persona | IF "¿Requiere atención humana?" |
-| Mensaje que no es texto (imagen, audio, documento…) | No responde | `01-entrada/preparar-entrada-whatsapp.js` |
+| Imagen JPEG/PNG/WebP (con o sin caption) | Responde: la analiza la IA visual y entra al turno como contexto (ver [Imágenes](#imágenes-y-archivos)) | `01-entrada/preparar-entrada-whatsapp.js` → etapa 03 |
+| Audio, video, documento, imagen en otro formato | Guarda el mensaje y deriva a una persona (`ARCHIVO_NO_PROCESABLE`) | mismos archivos + `04-cerebro-comercial/normalizar-decision-ia.js` |
+| Sticker, ubicación, contacto, reacción, interactivo | No responde | `01-entrada/preparar-entrada-whatsapp.js` |
 | `MODO_PRUEBA` activo | Solo responde a `telefonos_permitidos` | `03-conversacion/resolver-permiso-automatizacion.js` |
 | Varios mensajes seguidos | Responde **una sola vez**, después del último, a todos juntos | `03-conversacion/resolver-turno-conversacional.js` + "Confirmar turno conversacional" |
 
@@ -41,6 +43,25 @@ El cliente suele escribir en partes ("de 10x5 cm" + "porfa"). El bot no responde
 | Tope de duración del turno | ninguno: si el cliente sigue escribiendo, el bot sigue esperando | — |
 
 La IA **no** decide el turno: solo recibe el texto agrupado. Un mensaje 20 s después de la respuesta es un turno nuevo, que conserva la memoria (`contexto_comercial`) del anterior: "y serían 2000" recotiza con las medidas ya dadas.
+
+### Imágenes y archivos
+
+Una imagen es un mensaje más del turno: texto + imagen + texto se responde **una vez**. La IA visual la convierte en una línea de contexto y el cerebro comercial sigue su flujo normal. Configuración en [etapas/03](etapas/03-conversacion.md#imágenes-del-turno).
+
+| Regla | Valor | Dónde |
+|---|---|---|
+| Formatos analizables | `image/jpeg`, `image/png`, `image/webp` | `preparar-entrada-whatsapp.js`, `preparar-media-turno.js` |
+| Imágenes por turno | hasta 3; el resto va a revisión humana | `preparar-media-turno.js` |
+| Origen permitido | solo `https://api.ycloud.com/v2/whatsapp/media/download/…` | mismos archivos |
+| Medidas | **nunca** se deducen de una foto; solo se toman si están escritas en la imagen. Sin medidas → `PEDIR_MEDIDAS` | `prompts/analisis-imagen.md`, `prompts/cerebro-comercial.md` §28 |
+| Caption | siempre forma parte del turno y de la consulta a la IA visual | `preparar-entrada-whatsapp.js`, `preparar-media-turno.js` |
+| Diseño o etiqueta enviada | el cliente ya tiene diseño (no pregunta "¿tiene diseño?") | `prompts/cerebro-comercial.md` §28 |
+| Foto no relacionada | no se inventa producto; el cerebro responde normal | `validar-analisis-imagen.js`, prompt §28 |
+| Comprobante de pago | se **detecta**, no se confirma: `REPORTAR_PAGO` + `DERIVAR_HUMANO` + `ENVIA_COMPROBANTE` (clasificación A, ALTA, correo) | `validar-analisis-imagen.js`, `normalizar-decision-ia.js` |
+| Imagen ilegible, ambigua, confianza baja, no descargable o análisis fallido | `DERIVAR_HUMANO` + `IMAGEN_REQUIERE_REVISION`; al cliente: "Permítame un momento por favor, ya revisamos la imagen que nos envió." | `validar-analisis-imagen.js`, `normalizar-decision-ia.js` |
+| Audio, video, documento, otro formato | `DERIVAR_HUMANO` + `ARCHIVO_NO_PROCESABLE`; al cliente: "…ya revisamos el archivo que nos envió." | `preparar-entrada-whatsapp.js`, `normalizar-decision-ia.js` |
+
+Una imagen clara (botella, etiqueta, logo, referencia) **no** deriva. Fórmula de precio, mínimo de 1000, reglas P4 y clasificación A/B/C no cambian; el comprobante llega a A por las reglas existentes de `REPORTAR_PAGO`.
 
 ## 2. Cantidad mínima
 

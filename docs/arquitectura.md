@@ -11,6 +11,7 @@ Todo corre en **un solo workflow de n8n**. Este documento describe el recorrido 
 | YCloud | Webhook de mensajes entrantes y API de envío de WhatsApp |
 | PostgreSQL | Contactos, prospectos, conversaciones, mensajes, cotizaciones, diseños, configuración |
 | Groq → DeepSeek → OpenAI | Modelos de IA en cascada (si uno falla o devuelve algo inválido, se usa el siguiente) |
+| OpenAI (visión) | Análisis de imágenes JPEG/PNG/WebP del cliente ("Analizar imagen"); un solo proveedor, sin cascada |
 | Brevo → Resend | Correo interno al equipo cuando un prospecto requiere humano (Resend es respaldo) |
 
 Credenciales, API keys y destinatarios de correo viven en los nodos HTTP/credenciales de n8n, **no** en este repo.
@@ -25,6 +26,8 @@ flowchart TD
     C -->|bot no autorizado| X2((fin modo prueba))
     C -->|prospecto ya con humano| X3((fin atención humana))
     C -->|llegó otro mensaje durante la espera| X4((fin sin respuesta<br/>debounce))
+    C -->|turno con imágenes| V[Descargar + analizar imagen<br/>OpenAI visión]
+    V --> D
     C -->|turno agrupado| D[04 Cerebro comercial IA<br/>Groq → DeepSeek → OpenAI]
     D -->|turno no confirmado| X4
     D --> S{Enrutar acción comercial}
@@ -44,6 +47,7 @@ Cada nodo Code recibe un objeto JSON y devuelve otro enriquecido. Los campos que
 - **Identidad**: `telefono` (formato `593…`), `nombre_whatsapp`, `cliente_id`, `contacto_id`, `prospecto_id`, `conversacion_id`, `tipo_actor`.
 - **Mensaje**: `mensaje` (el de esta ejecución) / `mensaje_actual` (desde "Preparar contexto IA": el **turno** completo, uno o varios mensajes por línea), `tipo` / `tipo_mensaje`, `canal`, `mensaje_externo_id`.
 - **Turno**: `turno_mensaje_ids`, `turno_desde_id`, `turno_hasta_id`, `cantidad_mensajes_turno` (los arma "Resolver turno conversacional"; ver [turno conversacional](etapas/03-conversacion.md#turno-conversacional-debounce)).
+- **Media**: imágenes, audios, videos y documentos viajan como texto controlado dentro de `mensaje` / `contenido` (`[IMAGEN] caption` + una línea de sistema; formato en [modelo-datos.md](modelo-datos.md#contenido-de-mensajes-con-media)). `media_turno` (desde "Preparar contexto IA") resume la evidencia visual del turno para "Normalizar decisión IA".
 - **Prospecto**: `prospecto_estado`, `prospecto_clasificacion`, `prospecto_requiere_humano`, `prospecto_ciudad`, etc.
 - **Decisión IA**: `intencion`, `accion`, `producto`, `cantidad`, `ancho_cm`, `alto_cm`, `forma`, `requiere_humano`, `motivo_derivacion`, `clasificacion_prospecto`, `respuesta_sugerida`.
 - **`contexto_comercial`**: JSON persistido en la conversación con la cotización vigente, el handoff y restricciones. Es la "memoria" comercial entre mensajes.
@@ -54,7 +58,7 @@ Los nodos Postgres suelen devolver **solo la fila afectada**, no el objeto anter
 
 ## 01 · Entrada (`code/01-entrada/`)
 
-Recibe el webhook y lo convierte en un mensaje de texto normalizado. Soporta YCloud y Meta Cloud API directo. Solo los mensajes de **texto** siguen el flujo; imágenes, audios, etc. se detectan pero no se procesan todavía.
+Recibe el webhook y lo convierte en un mensaje normalizado. Soporta YCloud y Meta Cloud API directo. Siguen el flujo el **texto** y la **media** (imagen, audio, video, documento): la media entra como un texto controlado; las imágenes JPEG/PNG/WebP con enlace de YCloud quedan marcadas `[MEDIA_PENDIENTE]` para analizarse en la etapa 03, y lo demás como no procesable. Stickers, ubicaciones y contactos siguen sin procesarse.
 
 Configuración detallada de cada nodo: [etapas/01-entrada.md](etapas/01-entrada.md).
 
@@ -64,7 +68,7 @@ Configuración detallada de cada nodo: [etapas/01-entrada.md](etapas/01-entrada.
 | Normalizar evento WhatsApp | Code | `normalizar-evento-whatsapp.js` |
 | IF: ¿Evento WhatsApp procesable? | IF | — (`evento_whatsapp.procesable`) |
 | Preparar entrada WhatsApp | Code | `preparar-entrada-whatsapp.js` |
-| IF: ¿Apto para flujo de texto? | IF | — (`apto_para_flujo_texto`) |
+| IF: ¿Apto para flujo de texto? | IF | — (`apto_para_flujo_conversacional`; antes `apto_para_flujo_texto`) |
 | When clicking 'Execute workflow' + Mensaje entrante TEST | Trigger manual + Set | — (pruebas manuales) |
 | Normalizar mensaje | Code | `normalizar-mensaje.js` |
 
@@ -114,9 +118,17 @@ Configuración detallada de cada nodo: [etapas/03-conversacion.md](etapas/03-con
 | Recuperar historial conversación | Postgres select | — (ahora después de la espera) |
 | Resolver turno conversacional | Code | `resolver-turno-conversacional.js` **nuevo** |
 | IF: ¿Procesar turno? | IF | — (`continuar_procesamiento`; false = fin sin respuesta) **nuevo** |
+| Preparar media del turno | Code | `preparar-media-turno.js` **nuevo (imágenes)** |
+| IF: ¿Hay imágenes por analizar? | IF | — (`analizar_imagen`; false = directo a Preparar contexto IA) **nuevo** |
+| Descargar imagen YCloud | HTTP GET (Header Auth YCloud, respuesta File) | — **nuevo** |
+| Analizar imagen | Basic LLM Chain + OpenAI Chat Model + Structured Output Parser | prompt `analisis-imagen.md`, schema `analisis-imagen.schema.json` **nuevo** |
+| Validar análisis imagen | Code | `validar-analisis-imagen.js` **nuevo** |
+| Guardar análisis imagen | Postgres update (`mensajes.contenido`) | — **nuevo** |
 | Preparar contexto IA | Code | `preparar-contexto-ia.js` |
 
 El mensaje entrante **siempre** queda guardado, aunque el bot no responda. Los caminos de modo prueba y atención humana no pasan por la espera.
+
+Las imágenes se analizan **solo en la ejecución que gana el turno**, después de la espera: una ráfaga "texto / imagen / texto" es un turno con una sola llamada visual. El análisis queda guardado en `mensajes.contenido`, así que una ejecución posterior no lo repite. Fallos de descarga o de IA no detienen el flujo: la imagen pasa como "no analizada" y el turno se deriva con `IMAGEN_REQUIERE_REVISION`.
 
 ## 04 · Cerebro comercial (`code/04-cerebro-comercial/`)
 
@@ -268,7 +280,8 @@ Solo se envía si la ejecución vino de un webhook real de YCloud y el mensaje e
 
 | Situación | Dónde termina | ¿Responde al cliente? |
 |---|---|---|
-| Evento no procesable / no es texto | IF de 01 | No |
+| Evento no procesable / sticker, ubicación, contacto | IF de 01 | No |
+| Imagen ilegible, no descargable o análisis fallido; audio/video/documento | Derivación humana (`IMAGEN_REQUIERE_REVISION` / `ARCHIVO_NO_PROCESABLE`) | Sí (mensaje sutil) + correo interno |
 | Cliente registrado | ¿Cliente existente? | No |
 | `MODO_PRUEBA` activo y teléfono no autorizado | Finalizar mensaje modo prueba | No (mensaje guardado) |
 | Prospecto ya marcado `requiere_humano` | Finalizar mensaje atención humana | No (mensaje guardado) |

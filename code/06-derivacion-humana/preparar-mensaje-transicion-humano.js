@@ -1,10 +1,10 @@
 // ======================================================
 // NODO N8N: Preparar mensaje transición humano
 // ARCHIVO: code/06-derivacion-humana/preparar-mensaje-transicion-humano.js
-// VERSION: 3
+// VERSION: 3.1
 // RESPONSABILIDAD:
 // - Recibir la salida del UPDATE "Guardar contexto handoff" y recuperar el contrato de "Preparar contexto handoff"
-// - Elegir el texto fijo de transición al prospecto según el motivo (pago, reporte de pago, pedido, llamada, archivo, negociación, reclamo)
+// - Elegir el texto fijo de transición al prospecto según el motivo (pago, reporte de pago o comprobante, pedido, llamada, imagen, archivo, negociación, reclamo)
 // - Aplicar un fallback por intención cuando el motivo no tiene texto propio
 // - Mantener separados handoff_mensaje_cliente (mensaje ORIGINAL del prospecto) y mensaje_transicion (respuesta de Pegaso)
 // - Exponer mensaje_salida y tipo_mensaje_salida = HANDOFF_HUMANO para el guardado del mensaje saliente
@@ -145,6 +145,7 @@ if (
 else if (
   [
     'REPORTA_PAGO',
+    'ENVIA_COMPROBANTE',
     'COMPROBANTE_PAGO',
     'PAGO_REALIZADO'
   ].includes(motivo)
@@ -190,13 +191,31 @@ else if (
 
 
 // ------------------------------------------------------
+// IMAGEN
+// ------------------------------------------------------
+
+else if (
+  [
+    'IMAGEN_REQUIERE_REVISION',
+    'IMAGEN_NO_ANALIZABLE'
+  ].includes(motivo)
+) {
+
+  mensaje =
+    'Permítame un momento por favor, ya revisamos la imagen que nos envió.';
+
+}
+
+
+// ------------------------------------------------------
 // ARCHIVOS
 // ------------------------------------------------------
 
 else if (
   [
+    'ARCHIVO_NO_PROCESABLE',
+    'ARCHIVO_DISENO',
     'ARCHIVO_NO_ANALIZABLE',
-    'IMAGEN_NO_ANALIZABLE',
     'ARCHIVO_REQUIERE_REVISION',
     'DISENO_REQUIERE_REVISION'
   ].includes(motivo)

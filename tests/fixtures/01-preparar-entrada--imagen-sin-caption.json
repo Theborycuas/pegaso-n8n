@@ -1,0 +1,27 @@
+{
+  "archivo": "code/01-entrada/preparar-entrada-whatsapp.js",
+  "descripcion": "Imagen PNG sin caption: el descriptor queda solo con [IMAGEN] y la línea pendiente; la IA visual producirá el contexto sola.",
+  "input": [
+    {
+      "evento_whatsapp": {
+        "procesable": true,
+        "telefono_cliente": "593987654321",
+        "nombre_cliente": "Ana Pérez",
+        "mensaje_id": "wamid.IMG002",
+        "timestamp": "1791414000",
+        "tipo_mensaje": "image",
+        "texto": null,
+        "caption": null,
+        "media_id": "media_002",
+        "media_mime_type": "image/png",
+        "media_link": "https://api.ycloud.com/v2/whatsapp/media/download/media_002?sig=t%3D1%2Cs%3Dx&payload=eyJ9"
+      }
+    }
+  ],
+  "esperado": {
+    "tipo": "IMAGEN",
+    "mensaje": "[IMAGEN]\n[MEDIA_PENDIENTE] {\"mime_type\":\"image/png\",\"media_id\":\"media_002\",\"link\":\"https://api.ycloud.com/v2/whatsapp/media/download/media_002?sig=t%3D1%2Cs%3Dx&payload=eyJ9\"}",
+    "apto_para_flujo_conversacional": true,
+    "media_soportada": true
+  }
+}

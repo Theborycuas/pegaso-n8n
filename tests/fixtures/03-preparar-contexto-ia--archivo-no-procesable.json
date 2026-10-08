@@ -1,0 +1,38 @@
+{
+  "archivo": "code/03-conversacion/preparar-contexto-ia.js",
+  "descripcion": "Caso 6 · nota de voz + texto en el mismo turno: media_turno pide ARCHIVO_NO_PROCESABLE (el bot no sabe qué dijo el audio).",
+  "input": [
+    { "analizar_imagen": false }
+  ],
+  "nodos": {
+    "Resolver turno conversacional": [
+      {
+        "continuar_procesamiento": true,
+        "conversacion_id": 41,
+        "mensaje_id": 402,
+        "turno_mensaje_ids": [401, 402],
+        "turno_desde_id": 401,
+        "turno_hasta_id": 402,
+        "turno_mensajes": [
+          { "id": 401, "tipo": "AUDIO", "contenido": "[AUDIO]\n[ARCHIVO NO PROCESABLE · tipo=AUDIO · mime=audio/ogg] El bot no puede revisar este archivo automáticamente." },
+          { "id": 402, "tipo": "TEXTO", "contenido": "le mandé un audio" }
+        ],
+        "turno_texto": "[AUDIO]\n[ARCHIVO NO PROCESABLE · tipo=AUDIO · mime=audio/ogg] El bot no puede revisar este archivo automáticamente.\nle mandé un audio"
+      }
+    ],
+    "Recuperar historial conversación": [],
+    "Preparar conversación": [
+      { "mensaje": "le mandé un audio", "tipo": "TEXTO", "prospecto_id": 16, "conversacion_id": 41, "contexto_comercial": {}, "tipo_actor": "PROSPECTO" }
+    ]
+  },
+  "esperado": {
+    "mensaje_actual": "[AUDIO]\n[ARCHIVO NO PROCESABLE · tipo=AUDIO · mime=audio/ogg] El bot no puede revisar este archivo automáticamente.\nle mandé un audio",
+    "media_turno": {
+      "cantidad_media": 1,
+      "imagenes_analizadas": 0,
+      "comprobante_detectado": false,
+      "requiere_revision_humana": true,
+      "motivo_derivacion": "ARCHIVO_NO_PROCESABLE"
+    }
+  }
+}

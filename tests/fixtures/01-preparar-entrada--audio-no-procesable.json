@@ -1,0 +1,33 @@
+{
+  "archivo": "code/01-entrada/preparar-entrada-whatsapp.js",
+  "descripcion": "Nota de voz: entra al flujo (queda guardada en mensajes) con la línea [ARCHIVO NO PROCESABLE]; no guarda el enlace. Más adelante deriva con ARCHIVO_NO_PROCESABLE.",
+  "input": [
+    {
+      "evento_whatsapp": {
+        "procesable": true,
+        "telefono_cliente": "593987654321",
+        "nombre_cliente": "Ana Pérez",
+        "mensaje_id": "wamid.AUD001",
+        "timestamp": "1791414000",
+        "tipo_mensaje": "audio",
+        "texto": null,
+        "caption": null,
+        "media_id": "media_aud_001",
+        "media_mime_type": "audio/ogg; codecs=opus",
+        "media_link": "https://api.ycloud.com/v2/whatsapp/media/download/media_aud_001?sig=t%3D1%2Cs%3Dx"
+      }
+    }
+  ],
+  "esperado": {
+    "tipo": "AUDIO",
+    "mensaje": "[AUDIO]\n[ARCHIVO NO PROCESABLE · tipo=AUDIO · mime=audio/ogg] El bot no puede revisar este archivo automáticamente.",
+    "apto_para_flujo_texto": false,
+    "apto_para_flujo_conversacional": true,
+    "media_soportada": false,
+    "meta_whatsapp": {
+      "media": {
+        "motivo_no_procesable": "TIPO_ARCHIVO_NO_SOPORTADO"
+      }
+    }
+  }
+}

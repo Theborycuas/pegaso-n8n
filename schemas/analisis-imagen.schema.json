@@ -1,0 +1,99 @@
+{
+  "type": "object",
+  "properties": {
+    "contenido_detectado": {
+      "type": "string",
+      "enum": [
+        "ENVASE_O_PRODUCTO",
+        "ETIQUETA_O_DISENO",
+        "LOGO",
+        "REFERENCIA_VISUAL",
+        "MEDIDAS_ESCRITAS",
+        "COMPROBANTE_PAGO",
+        "EVIDENCIA_RECLAMO",
+        "CAPTURA_DE_PANTALLA",
+        "NO_RELACIONADO",
+        "NO_DETERMINABLE"
+      ]
+    },
+    "producto_probable": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "envase_detectado": {
+      "type": "boolean"
+    },
+    "forma_envase": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "etiqueta_visible": {
+      "type": "boolean"
+    },
+    "diseno_visible": {
+      "type": "boolean"
+    },
+    "texto_visible_relevante": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "colores_relevantes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "medidas_visibles": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "requiere_revision_humana": {
+      "type": "boolean"
+    },
+    "motivo_revision": {
+      "type": "string",
+      "enum": [
+        "NINGUNO",
+        "IMAGEN_ILEGIBLE",
+        "IMAGEN_AMBIGUA",
+        "DISENO_COMPLEJO",
+        "OTRO"
+      ]
+    },
+    "confianza": {
+      "type": "string",
+      "enum": [
+        "ALTA",
+        "MEDIA",
+        "BAJA"
+      ]
+    },
+    "resumen_para_cerebro": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "contenido_detectado",
+    "producto_probable",
+    "envase_detectado",
+    "forma_envase",
+    "etiqueta_visible",
+    "diseno_visible",
+    "texto_visible_relevante",
+    "colores_relevantes",
+    "medidas_visibles",
+    "requiere_revision_humana",
+    "motivo_revision",
+    "confianza",
+    "resumen_para_cerebro"
+  ],
+  "additionalProperties": false
+}

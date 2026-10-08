@@ -50,6 +50,17 @@ Los fixtures de las etapas 01–08 encadenan el mismo prospecto (Ana Pérez, `59
 
 Los fixtures del turno conversacional (`03-resolver-turno--*`) usan ids de mensaje propios por caso. Simulan lo que ve **cada ejecución** después de la espera: el mismo historial con distinto `Guardar mensaje entrante` decide quién responde (`--dos-mensajes-gana-ultimo` frente a `--dos-mensajes-anterior-no-reacciona`). "Preparar contexto IA" lee el historial con `$('Recuperar historial conversación')`, así que en sus fixtures las filas van en `nodos` y `input` es la salida del IF "¿Procesar turno?". La confirmación atómica ("Confirmar turno conversacional") es SQL y se prueba en n8n.
 
+Los fixtures de imágenes siguen el recorrido de un turno con media:
+
+- `01-preparar-entrada--imagen*`, `--audio-*` y `--sticker-*`: el descriptor que se guarda en `mensajes.contenido`.
+- `03-preparar-media-turno--*`: qué imágenes se analizan.
+- `03-validar-analisis-imagen--*`: la salida de "Analizar imagen" va en `input` (`output`, `text` o `error`) y la de "Preparar media del turno" en `nodos`.
+- `03-preparar-contexto-ia--*` con media.
+- `04-normalizar-decision-ia--imagen-*`: las derivaciones forzadas.
+- `06-*--imagen-*` / `--envia-comprobante`.
+
+La descarga (HTTP), la IA visual y el UPDATE se prueban en n8n (pendiente técnico 62). Ningún fixture usa enlaces ni claves reales.
+
 Los que documentan un bug actual lo dicen en `descripcion` y citan el número de [pendientes técnicos](../docs/pendientes-tecnicos.md); al corregirlo, actualiza su `esperado`.
 
 **Cómo crear uno desde n8n**: abre una ejecución real, entra al nodo, copia el JSON de *Input* en `input` y el de los nodos que referencia en `nodos`.

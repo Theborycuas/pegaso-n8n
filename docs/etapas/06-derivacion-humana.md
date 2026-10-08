@@ -30,6 +30,8 @@ Archivo: [`code/06-derivacion-humana/preparar-derivacion-humana.js`](../../code/
 
 Único nodo que **decide** el handoff: motivo (de la IA o deducido de la intención), clasificación del handoff, prioridad y si se notifica. Guarda aparte el mensaje original del cliente (`mensaje_cliente_original`). Lanza error sin `conversacion_id` o `prospecto_id`. Respaldo: `$('Recuperar decisión comercial')`.
 
+v3.1 reconoce los motivos de media del schema del cerebro: `ENVIA_COMPROBANTE` es cierre comercial con prioridad ALTA y notifica; `IMAGEN_REQUIERE_REVISION`, `ARCHIVO_NO_PROCESABLE` y `ARCHIVO_DISENO` siempre notifican.
+
 ### Marcar prospecto requiere humano · Postgres Update
 
 Tabla `pegaso.prospectos`, columna de búsqueda `id`:
@@ -67,7 +69,7 @@ Salida: la fila de `conversaciones`.
 
 Archivo: [`code/06-derivacion-humana/preparar-mensaje-transicion-humano.js`](../../code/06-derivacion-humana/preparar-mensaje-transicion-humano.js)
 
-Recupera `$('Preparar contexto handoff')` y elige el texto fijo para el cliente según el motivo (tabla en [flujo-handoff.md](../flujo-handoff.md#mensaje-al-cliente)). Salida: `mensaje_transicion` (= `mensaje_salida`), `tipo_mensaje_salida: HANDOFF_HUMANO` y el mensaje original del cliente por separado.
+Recupera `$('Preparar contexto handoff')` y elige el texto fijo para el cliente según el motivo (tabla en [flujo-handoff.md](../flujo-handoff.md#mensaje-al-cliente)). v3.1: `ENVIA_COMPROBANTE` usa el texto de pago reportado, `IMAGEN_REQUIERE_REVISION` "…ya revisamos la imagen que nos envió." y `ARCHIVO_NO_PROCESABLE` / `ARCHIVO_DISENO` el de archivo. Salida: `mensaje_transicion` (= `mensaje_salida`), `tipo_mensaje_salida: HANDOFF_HUMANO` y el mensaje original del cliente por separado.
 
 ### Guardar mensaje transición humano · Postgres Insert
 
@@ -103,7 +105,7 @@ Condición: `{{ $json.requiere_notificacion }}` **is true**. `false` → fin sin
 
 Archivo: [`code/06-derivacion-humana/preparar-notificacion-humano.js`](../../code/06-derivacion-humana/preparar-notificacion-humano.js)
 
-Arma la categoría, la prioridad final, el asunto, el texto y el HTML del correo interno. Hoy `SOLICITA_DATOS_PAGO` cae en la categoría genérica y `SOLICITA_LLAMADA` baja la prioridad a MEDIA (pendiente técnico 11).
+Arma la categoría, la prioridad final, el asunto, el texto y el HTML del correo interno. Hoy `SOLICITA_DATOS_PAGO` cae en la categoría genérica y `SOLICITA_LLAMADA` baja la prioridad a MEDIA (pendiente técnico 11). v2.1: `ENVIA_COMPROBANTE` → `PAGO_REPORTADO`; `IMAGEN_REQUIERE_REVISION`, `ARCHIVO_NO_PROCESABLE` y `ARCHIVO_DISENO` → `ARCHIVO_REQUIERE_REVISION` ("📎 Pegaso - Archivo requiere revisión"). El "Último mensaje" del correo incluye la línea `[CONTEXTO DE IMAGEN …]` (nunca el enlace).
 
 ### Brevo / Resend - Enviar notificación humana · HTTP Request
 
@@ -119,4 +121,4 @@ POST a la API de Brevo; si falla (salida de error), Resend. Por documentar: URL,
 
 ## Pruebas
 
-`tests/fixtures/06-*.json`: derivación por datos de pago y por negociación sin motivo, falta de prospecto, contexto handoff, textos de transición (pago y reclamo), contrato final y las tres variantes del correo.
+`tests/fixtures/06-*.json`: derivación por datos de pago y por negociación sin motivo, falta de prospecto, contexto handoff, textos de transición (pago, reclamo, comprobante e imagen), contrato final y las variantes del correo (incluida imagen que requiere revisión).

@@ -1,0 +1,56 @@
+{
+  "archivo": "code/04-cerebro-comercial/normalizar-decision-ia.js",
+  "descripcion": "Caso 4 · \"ya pagué\" + comprobante: aunque el cerebro no derivó, la evidencia visual fuerza REPORTAR_PAGO + DERIVAR_HUMANO + ENVIA_COMPROBANTE, clasificación A, prioridad ALTA y notificación. Nunca confirma el pago.",
+  "input": [
+    {
+      "intencion": "OTRO",
+      "accion": "RESPONDER_GENERAL",
+      "producto": null,
+      "material": null,
+      "cantidad": null,
+      "ancho_cm": null,
+      "alto_cm": null,
+      "forma": "NO_ESPECIFICADA",
+      "ciudad_detectada": null,
+      "provincia_detectada": null,
+      "datos_suficientes_para_cotizar": false,
+      "requiere_humano": false,
+      "motivo_derivacion": "NINGUNO",
+      "requiere_notificacion": false,
+      "clasificacion_prospecto": "B",
+      "respuesta_sugerida": "Gracias por la información.",
+      "valid": true
+    }
+  ],
+  "nodos": {
+    "Preparar contexto IA": [
+      {
+        "conversacion_id": 41,
+        "prospecto_id": 16,
+        "prospecto_estado": "COTIZADO",
+        "prospecto_clasificacion": "B",
+        "tipo_actor": "PROSPECTO",
+        "mensaje_actual": "ya pagué\n[IMAGEN]\n[CONTEXTO DE IMAGEN · contenido=COMPROBANTE_PAGO · confianza=ALTA · revision=NO] Parece un comprobante de transferencia bancaria.",
+        "contexto_comercial": {},
+        "media_turno": {
+          "cantidad_media": 1,
+          "imagenes_analizadas": 1,
+          "comprobante_detectado": true,
+          "requiere_revision_humana": false,
+          "motivo_derivacion": null
+        }
+      }
+    ]
+  },
+  "esperado": {
+    "intencion": "REPORTAR_PAGO",
+    "accion": "DERIVAR_HUMANO",
+    "requiere_humano": true,
+    "motivo_derivacion": "ENVIA_COMPROBANTE",
+    "requiere_notificacion": true,
+    "prioridad_derivacion": "ALTA",
+    "clasificacion_prospecto": "A",
+    "derivacion_por_media": "COMPROBANTE_PAGO",
+    "respuesta_sugerida": "Muchas gracias. En breve verificamos la información para continuar con su pedido."
+  }
+}

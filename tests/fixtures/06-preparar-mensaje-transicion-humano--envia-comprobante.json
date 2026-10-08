@@ -1,0 +1,24 @@
+{
+  "archivo": "code/06-derivacion-humana/preparar-mensaje-transicion-humano.js",
+  "descripcion": "Caso 4 · motivo ENVIA_COMPROBANTE: mismo texto que un pago reportado (verificamos, nunca \"confirmado\").",
+  "input": [
+    { "id": 41, "telefono": "593987654321", "prospecto_id": 16, "contexto_comercial": {} }
+  ],
+  "nodos": {
+    "Preparar contexto handoff": [
+      {
+        "conversacion_id": 41,
+        "prospecto_id": 16,
+        "telefono": "593987654321",
+        "intencion": "REPORTAR_PAGO",
+        "accion": "DERIVAR_HUMANO",
+        "handoff_motivo": "ENVIA_COMPROBANTE",
+        "motivo_derivacion": "ENVIA_COMPROBANTE",
+        "mensaje_actual": "ya pagué\n[IMAGEN]\n[CONTEXTO DE IMAGEN · contenido=COMPROBANTE_PAGO · confianza=ALTA · revision=NO] Parece un comprobante de transferencia bancaria."
+      }
+    ]
+  },
+  "esperado": {
+    "mensaje_transicion": "Gracias. Permítame un momento por favor, ya verificamos su pago para continuar con el pedido."
+  }
+}

@@ -23,10 +23,20 @@ flowchart LR
     RH --> RT[Resolver turno conversacional]
     RT --> IT{¿Procesar turno?}
     IT -->|false| FIN([fin sin respuesta:<br/>llegó un mensaje posterior])
-    IT -->|true| CIA[Preparar contexto IA] --> E04[Etapa 04 · Cerebro comercial]
+    IT -->|true| PM[Preparar media del turno]
+    PM --> IM{¿Hay imágenes<br/>por analizar?}
+    IM -->|false| CIA[Preparar contexto IA]
+    IM -->|true| DI[Descargar imagen YCloud<br/>HTTP, continúa ante error]
+    DI --> AI[Analizar imagen<br/>LLM Chain + OpenAI visión]
+    AI --> VA[Validar análisis imagen]
+    VA --> GA[(Guardar análisis imagen)]
+    GA --> CIA
+    CIA --> E04[Etapa 04 · Cerebro comercial]
 ```
 
 Nodos nuevos (debounce): **Esperar ventana de turno** (Wait), **Resolver turno conversacional** (Code) e **IF: ¿Procesar turno?** (IF). La confirmación atómica del turno está en la etapa 04 ("Confirmar turno conversacional" e "¿Turno confirmado?"). Ver [Turno conversacional](#turno-conversacional-debounce).
+
+Nodos nuevos (imágenes): **Preparar media del turno** (Code), **IF: ¿Hay imágenes por analizar?** (IF), **Descargar imagen YCloud** (HTTP), **Analizar imagen** (Basic LLM Chain con los subnodos **Modelo visión OpenAI** y **Schema análisis imagen**), **Validar análisis imagen** (Code) y **Guardar análisis imagen** (Postgres). Ver [Imágenes del turno](#imágenes-del-turno).
 
 Credencial **Postgres account 2**, esquema **`pegaso`**.
 
@@ -101,6 +111,8 @@ Tabla `pegaso.mensajes`:
 | `mensaje_externo_id` | `{{ $json.mensaje_externo_id }}` |
 | `enviado_at` | `{{ $json.recibido_at }}` |
 | `procesado` | `false` |
+
+Sin cambios de configuración para imágenes: `tipo` llega como `IMAGEN` / `AUDIO` / `VIDEO` / `DOCUMENTO` y `contenido` como el descriptor de la etapa 01 (`[IMAGEN] caption` + línea de sistema). *Verificar* que la columna `tipo` no tenga un `CHECK` que solo admita `TEXTO`.
 
 A partir de aquí el mensaje **siempre queda guardado**, aunque el bot no responda. En los caminos de modo prueba y atención humana queda con `procesado = false`. Su `id` (salida del INSERT) es la referencia del debounce: "Resolver turno conversacional" lo lee con `$('Guardar mensaje entrante').first().json.id`.
 
@@ -226,16 +238,129 @@ Si procesa, el turno son los ENTRANTE válidos con `procesado = false`, posterio
 | CONFIGURACIÓN | una condición *Boolean* → **is true** |
 | EXPRESIONES | `{{ $json.continuar_procesamiento }}` |
 | CONEXIÓN DESDE | Resolver turno conversacional |
-| CONEXIÓN HACIA | `true` → Preparar contexto IA · `false` → **sin conexión** (la ejecución termina bien; la salida de "Resolver turno conversacional" muestra el motivo) |
+| CONEXIÓN HACIA | `true` → **Preparar media del turno** (antes: Preparar contexto IA) · `false` → **sin conexión** (la ejecución termina bien; la salida de "Resolver turno conversacional" muestra el motivo) |
+
+### Preparar media del turno · Code — NUEVO
+
+Archivo: [`code/03-conversacion/preparar-media-turno.js`](../../code/03-conversacion/preparar-media-turno.js)
+
+| Campo | Valor |
+|---|---|
+| NOMBRE | `Preparar media del turno` |
+| TIPO | **Code** (JavaScript, *Run Once for All Items*) |
+| VA DESPUÉS DE | IF: ¿Procesar turno? |
+| VA ANTES DE | IF: ¿Hay imágenes por analizar? |
+| RAMA | salida **true** de "IF: ¿Procesar turno?" (reemplaza su conexión a "Preparar contexto IA") |
+| CONFIGURACIÓN | pegar el archivo (o `npm run build` cuando el nodo exista) |
+| EXPRESIONES | dentro del código: `$('Resolver turno conversacional').first().json` (turno) y `$('Preparar conversación').first().json` (producto de interés y medidas previas para el contexto visual) |
+| CREDENCIAL | ninguna |
+| SALIDA ESPERADA | sin imágenes pendientes: **1 item** `{ analizar_imagen: false, imagenes_por_analizar: 0, imagenes_descartadas }`. Con imágenes: **1 item por imagen** `{ analizar_imagen: true, mensaje_id, mime_type, media_link, caption, contenido_base, texto_turno_cliente, contexto_comercial_breve }` |
+
+Busca en `turno_mensajes` las filas `tipo = IMAGEN` con una línea `[MEDIA_PENDIENTE] {json}`. Revalida el MIME (JPEG/PNG/WebP) y el enlace (mismo patrón de `api.ycloud.com` que la etapa 01) y analiza como máximo 3 por turno. Las que no pasan quedan pendientes: "Preparar contexto IA" las marca "no analizadas" y el turno se deriva. Las filas `TEXTO` nunca se interpretan como media, aunque el cliente copie el formato.
+
+### IF: ¿Hay imágenes por analizar? · IF — NUEVO
+
+| Campo | Valor |
+|---|---|
+| NOMBRE | `IF: ¿Hay imágenes por analizar?` |
+| TIPO | **If** |
+| VA DESPUÉS DE | Preparar media del turno |
+| VA ANTES DE | `true` → Descargar imagen YCloud · `false` → Preparar contexto IA |
+| CONFIGURACIÓN | una condición *Boolean* → **is true** |
+| EXPRESIONES | `{{ $json.analizar_imagen }}` |
+| CREDENCIAL | ninguna |
+| SALIDA ESPERADA | `true`: los N items de imagen · `false`: el item único sin imágenes (turno solo de texto: mismo camino que antes) |
+
+### Descargar imagen YCloud · HTTP Request — NUEVO
+
+| Campo | Valor |
+|---|---|
+| NOMBRE | `Descargar imagen YCloud` |
+| TIPO | **HTTP Request** |
+| VA DESPUÉS DE | IF: ¿Hay imágenes por analizar? |
+| VA ANTES DE | Analizar imagen |
+| RAMA | salida **true** del IF |
+| CONFIGURACIÓN | *Method* `GET` · *URL* expresión de abajo · *Authentication*: **Generic Credential Type → Header Auth** · *Send Query/Headers/Body*: no · *Options → Response → Response Format*: **File**, *Put Output in Field*: `imagen` · *Options → Timeout*: `20000` · *Options → Redirects*: dejar el valor por defecto (seguir) |
+| SETTINGS | *Retry On Fail*: sí, *Max Tries* `2`, *Wait Between Tries* `1000` · ***On Error*: Continue (using regular output)** |
+| EXPRESIONES | *URL*: `{{ $json.media_link }}` |
+| CREDENCIAL | **la misma Header Auth de "YCloud Enviar Wts"** ("Header Auth account 2": cabecera `X-API-Key`). No escribir la API key en el nodo ni en el repo |
+| SALIDA ESPERADA | por imagen: item con `binary.imagen` (la imagen) · si falla (403, 404, timeout): item con `json.error` y sin binario; sigue el flujo |
+
+El enlace ya fue validado dos veces, así que solo apunta a `https://api.ycloud.com/v2/whatsapp/media/download/…` y la API key no sale de YCloud. WhatsApp limita las imágenes a 5 MB. El nodo HTTP no tiene un límite de tamaño propio: el timeout y el host fijo son la contención (ver pendientes).
+
+### Analizar imagen · Basic LLM Chain — NUEVO
+
+| Campo | Valor |
+|---|---|
+| NOMBRE | `Analizar imagen` |
+| TIPO | **Basic LLM Chain** (`@n8n/n8n-nodes-langchain.chainLlm`) |
+| VA DESPUÉS DE | Descargar imagen YCloud |
+| VA ANTES DE | Validar análisis imagen |
+| CONFIGURACIÓN | *Source for Prompt*: **Define below** · *Prompt (User Message)*: `Analiza la imagen adjunta y responde con el JSON indicado.` · *Require Specific Output Format*: **sí** · *Chat Messages*: (1) **System**: contenido de [`prompts/analisis-imagen.md`](../../prompts/analisis-imagen.md) (lo carga `npm run build`); (2) **User** → *Message Type* **Image (Binary)** → *Image Data Field Name* `imagen` → *Image Details* **Auto** |
+| SETTINGS | ***On Error*: Continue (using regular output)** · sin *Retry* (un reintento duplica costo; el fallo va a revisión humana) |
+| EXPRESIONES | dentro del prompt de sistema: `$('Preparar media del turno').item.json.caption`, `.texto_turno_cliente`, `.contexto_comercial_breve` (emparejados por item) |
+| CREDENCIAL | la del subnodo de modelo |
+| SALIDA ESPERADA | por imagen: `{ output: { contenido_detectado, …, resumen_para_cerebro } }` · si falló la descarga, el modelo o el parser: `{ error: "…" }` |
+
+Subnodos:
+
+| NOMBRE | TIPO | CONEXIÓN | CONFIGURACIÓN | CREDENCIAL |
+|---|---|---|---|---|
+| `Modelo visión OpenAI` | **OpenAI Chat Model** | *Chat Model* de "Analizar imagen" | *Model* `gpt-4.1-mini` (o el modelo con visión equivalente que liste la credencial; **no** usar modelos solo texto) · *Sampling Temperature* `0` · *Max Tokens* `600` · *Timeout* `30000` · *Max Retries* `1` | la credencial OpenAI que ya usa "Cerebro comercial OpenAI" |
+| `Schema análisis imagen` | **Structured Output Parser** | *Output Parser* de "Analizar imagen" | *Schema Type*: **Define using JSON Schema** (manual) · *Input Schema*: [`schemas/analisis-imagen.schema.json`](../../schemas/analisis-imagen.schema.json) (lo carga `npm run build`) · *Auto-Fix Format*: no | ninguna |
+
+Por qué este nodo y este proveedor: los tres nodos del cerebro son *Information Extractor* y no aceptan imágenes. La Basic LLM Chain sí admite un mensaje *Image (Binary)*. OpenAI ya tiene credencial en la instancia y sus modelos `gpt-4.1-mini` / `gpt-4o-mini` aceptan imagen y salida estructurada. V1 usa un solo proveedor, sin cascada: si falla, la imagen va a revisión humana.
+
+### Validar análisis imagen · Code — NUEVO
+
+Archivo: [`code/03-conversacion/validar-analisis-imagen.js`](../../code/03-conversacion/validar-analisis-imagen.js)
+
+| Campo | Valor |
+|---|---|
+| NOMBRE | `Validar análisis imagen` |
+| TIPO | **Code** (JavaScript, *Run Once for All Items*) |
+| VA DESPUÉS DE | Analizar imagen |
+| VA ANTES DE | Guardar análisis imagen |
+| CONFIGURACIÓN | pegar el archivo (o `npm run build`) |
+| EXPRESIONES | dentro del código: `$input.all()` y `$('Preparar media del turno').all()`, emparejados **por posición** (todos los nodos intermedios devuelven un item por imagen, también ante error) |
+| CREDENCIAL | ninguna |
+| SALIDA ESPERADA | por imagen: `{ mensaje_id, analisis_valido, requiere_revision, motivo_revision, comprobante_detectado, contenido_detectado, confianza, error_analisis, analisis, contenido_actualizado }` |
+
+Reglas:
+
+- Acepta `output` objeto (parser), `text` con JSON (con o sin cercas \`\`\`json) o `error`.
+- Valida enums y booleanos del schema. Cualquier fallo (error de descarga o de IA, JSON inválido, schema inválido) produce `analisis_valido: false`, `requiere_revision: true` y la línea `[CONTEXTO DE IMAGEN · revision=SI · motivo=ANALISIS_NO_DISPONIBLE] La imagen no pudo revisarse automáticamente.`. Nunca guarda el detalle técnico ni el enlace.
+- Pide revisión humana si la IA la pide, si `confianza = BAJA` o si el contenido es `NO_DETERMINABLE`.
+- `comprobante_detectado = true` si el contenido es `COMPROBANTE_PAGO`. Es solo evidencia y **no confirma el pago**. El texto visible de un comprobante se descarta para no guardar datos bancarios.
+- `NO_RELACIONADO`: anula `producto_probable`.
+- `contenido_actualizado` = línea 1 original (`[IMAGEN] caption`) + `[CONTEXTO DE IMAGEN · contenido=… · confianza=… · revision=NO|SI(· motivo=…)] resumen. Producto probable… Texto visible… Colores… Sin medidas visibles.`
+
+### Guardar análisis imagen · Postgres Update — NUEVO
+
+| Campo | Valor |
+|---|---|
+| NOMBRE | `Guardar análisis imagen` |
+| TIPO | **Postgres** · Operation **Update** · credencial *Postgres account 2* |
+| VA DESPUÉS DE | Validar análisis imagen |
+| VA ANTES DE | Preparar contexto IA (segunda entrada del mismo nodo; la primera es la rama `false` del IF de imágenes) |
+| CONFIGURACIÓN | Tabla `pegaso.mensajes` · *Mapping Column Mode*: **Map Each Column Manually** · *Column to match on*: `id` |
+| EXPRESIONES | `id` = `{{ $json.mensaje_id }}` · `contenido` = `{{ $json.contenido_actualizado }}` · el resto de columnas **sin valor** (no se tocan) |
+| SETTINGS | ***Always Output Data*: sí** · ***On Error*: Continue (using regular output)** |
+| CREDENCIAL | Postgres account 2 |
+| SALIDA ESPERADA | las filas actualizadas (no se usan: "Preparar contexto IA" lee "Validar análisis imagen") |
+
+Guardar el análisis en la base hace dos cosas. Una ejecución que gane el turno más tarde (llegó otro mensaje mientras se analizaba) ve la imagen ya analizada y no la vuelve a descargar ni a pagar. Y el historial de turnos futuros, junto con el asesor que lea `mensajes`, ve qué mostraba la imagen. Si el UPDATE falla, el turno sigue con el análisis en memoria.
 
 ### Preparar contexto IA · Code
 
-Archivo: [`code/03-conversacion/preparar-contexto-ia.js`](../../code/03-conversacion/preparar-contexto-ia.js) (v3.0)
+Archivo: [`code/03-conversacion/preparar-contexto-ia.js`](../../code/03-conversacion/preparar-contexto-ia.js) (v3.1)
 
-Entrada directa: salida `true` de "¿Procesar turno?" (antes: "Recuperar historial conversación"). Lee el historial con `$('Recuperar historial conversación').all()` y el turno con `$('Resolver turno conversacional')`. Junta la identidad de `$('Preparar conversación')` con ambos y arma lo que lee el prompt del cerebro comercial:
+Entrada directa: salida `false` de "IF: ¿Hay imágenes por analizar?" **o** "Guardar análisis imagen" (antes: salida `true` de "¿Procesar turno?"). Lee el historial con `$('Recuperar historial conversación').all()`, el turno con `$('Resolver turno conversacional')` y, si corrió, el análisis con `$('Validar análisis imagen').all()`. Junta la identidad de `$('Preparar conversación')` con todo eso y arma lo que lee el prompt del cerebro comercial:
 
 - Identidad y prospecto: `conversacion_id`, `prospecto_id`, `tipo_actor`, `prospecto_estado`, `prospecto_clasificacion` (calculada desde el estado si no viene: NUEVO → C), etc.
-- `mensaje_actual` = **el turno completo** (`turno_texto`); `mensaje_disparador` = el mensaje de esta ejecución; `turno_mensaje_ids`, `turno_desde_id`, `turno_hasta_id`, `cantidad_mensajes_turno`; `tipo_mensaje`. Si "Resolver turno conversacional" no se ejecutó, el turno es solo el mensaje de "Preparar conversación".
+- `mensaje_actual` = **el turno completo**: los mensajes del turno, uno por línea. En las imágenes analizadas en esta ejecución usa el `contenido_actualizado`; en las que siguen con `[MEDIA_PENDIENTE]` reemplaza esa línea por `[CONTEXTO DE IMAGEN · revision=SI · motivo=IMAGEN_NO_ANALIZADA] …`. El resto del objeto: `mensaje_disparador` (el mensaje de esta ejecución, sin enlace), `turno_mensaje_ids`, `turno_desde_id`, `turno_hasta_id`, `cantidad_mensajes_turno` y `tipo_mensaje`. Si "Resolver turno conversacional" no se ejecutó, el turno es solo el mensaje de "Preparar conversación".
+- **`media_turno`**: `cantidad_media`, `imagenes_analizadas`, `comprobante_detectado`, `requiere_revision_humana` y `motivo_derivacion` (`ARCHIVO_NO_PROCESABLE` si hay audio, video, documento o formato no soportado; si no, `IMAGEN_REQUIERE_REVISION` si alguna imagen tiene `revision=SI`; si no, `null`). Solo se leen las líneas de sistema de filas que no son `TEXTO`. Lo usa "Normalizar decisión IA".
+- **Nunca** entrega enlaces de media al cerebro: borra las líneas `[MEDIA_PENDIENTE]` también del historial.
 - `contexto_comercial`: la memoria guardada **completa** (`...previo`, incluidos `handoff`, `ultima_restriccion_comercial`, `cotizacion.producto`, `cantidad_solicitada`…), con `prospecto`, `ubicacion`, `diseno` y `cotizacion` actualizados. `cotizacion.cantidad` cae a `cantidad_cotizable` / `cantidad_solicitada`.
 - `historial` (mensajes con contenido, **sin** los mensajes del turno ni reenvíos del webhook), `cantidad_mensajes_historial`, `ultimo_mensaje_saliente` y `mensajes_salientes_recientes`.
 
@@ -301,6 +426,58 @@ sequenceDiagram
 | Mensajes viejos sin procesar | quedan fuera del turno | `03-resolver-turno--descarta-antiguos` |
 | Mensaje durante una cotización ya confirmada | no repite lo confirmado | `03-resolver-turno--en-vuelo-excluye-confirmados` |
 
+## Imágenes del turno
+
+Una imagen no es un flujo aparte: es un mensaje más del turno y la analiza la **ejecución que gana el turno**, después de la espera.
+
+```mermaid
+sequenceDiagram
+    participant C as Cliente
+    participant A as Ejecución A (texto)
+    participant B as Ejecución B (imagen)
+    participant D as Ejecución D (texto)
+    participant DB as PostgreSQL
+    C->>A: "Quiero etiquetas para esta botella" (t=0)
+    A->>DB: INSERT id=101
+    C->>B: imagen (t=1 s)
+    B->>DB: INSERT id=102 "[IMAGEN]\n[MEDIA_PENDIENTE] {…}"
+    C->>D: "de unas 1000" (t=2 s)
+    D->>DB: INSERT id=103
+    A->>A: espera → último = 103 ≠ 101 → fin
+    B->>B: espera → último = 103 ≠ 102 → fin (sin descargar ni pagar IA)
+    D->>D: espera → turno [101, 102, 103]
+    D->>DB: descarga 102 (YCloud) → IA visual → UPDATE contenido 102
+    D->>D: cerebro con "Quiero etiquetas…\n[IMAGEN]\n[CONTEXTO DE IMAGEN …]\nde unas 1000"
+    D->>C: una sola respuesta
+```
+
+Decisiones:
+
+| Tema | Decisión | Por qué |
+|---|---|---|
+| Dónde se analiza | En el ganador del turno, después de "IF: ¿Procesar turno?" | Analizar en la etapa 01 (antes de guardar) retrasaría el INSERT de la imagen: un texto posterior se guardaría y respondería antes, sin la imagen (dos respuestas). Así la imagen se guarda en orden de llegada y el debounce no cambia |
+| Descarga | **Opción C**: HTTP Request con el `link` de YCloud + credencial Header Auth, respuesta binaria pasada al modelo | A (pasar el link al modelo) expondría un enlace firmado a un tercero y caduca en minutos sin la API key; B (endpoint por id) no está documentado para entrantes. Con `X-API-Key` el link sirve 30 días, de sobra para un turno de segundos |
+| Dónde queda la interpretación | `mensajes.contenido` de la imagen (texto controlado), sin migración | Viaja sola por el turno (`turno_texto` concatena `contenido`), queda en el historial y la reutiliza un ganador posterior |
+| Varias imágenes | Hasta 3 por turno, un item cada una | Álbumes de 2–3 fotos son comunes; más de 3 pasan a revisión humana |
+| Llega otro mensaje mientras se analiza | El ganador viejo no confirma el turno (etapa 04); el nuevo encuentra la imagen ya analizada en la base y no la repite | Sin locks ni columnas nuevas |
+| Fallo de descarga / IA / schema | No detiene la ejecución: la imagen queda `revision=SI` y "Normalizar decisión IA" deriva con `IMAGEN_REQUIERE_REVISION` | El cliente recibe "Permítame un momento por favor, ya revisamos la imagen que nos envió." y el asesor el correo de siempre |
+
+Casos verificados (imágenes):
+
+| Caso | Resultado | Fixture |
+|---|---|---|
+| 1. Botella + "si, es esta botella" | analizada, sin derivar, resumen para el cerebro | `03-validar-analisis-imagen--botella-confirmada` |
+| 2. Botella + "cuánto me cuestan 1000 etiquetas…" | `PEDIR_MEDIDAS`, sin medidas inventadas | `03-validar-analisis-imagen--botella-confirmada` ("Sin medidas visibles"), `04-normalizar-decision-ia--imagen-botella-pide-medidas` |
+| 3. Etiqueta + "este es el diseño" | `ETIQUETA_O_DISENO` con texto y colores | `03-validar-analisis-imagen--diseno-etiqueta` |
+| 4. Transferencia + "ya pagué" | `REPORTAR_PAGO` / `DERIVAR_HUMANO` / `ENVIA_COMPROBANTE` / A / ALTA / notificación | `03-validar-analisis-imagen--comprobante`, `03-preparar-contexto-ia--comprobante-en-turno`, `04-normalizar-decision-ia--imagen-comprobante`, `06-preparar-mensaje-transicion-humano--envia-comprobante` |
+| 5. Imagen ilegible / descarga o IA fallida | `DERIVAR_HUMANO` + `IMAGEN_REQUIERE_REVISION`, sin error técnico visible | `03-validar-analisis-imagen--ilegible`, `--descarga-fallida`, `--schema-invalido`, `04-normalizar-decision-ia--imagen-requiere-revision`, `06-preparar-mensaje-transicion-humano--imagen-requiere-revision`, `06-preparar-notificacion-humano--imagen-requiere-revision` |
+| 6. MIME no soportado / audio | salida controlada → `ARCHIVO_NO_PROCESABLE` | `01-preparar-entrada--imagen-formato-no-soportado`, `01-preparar-entrada--audio-no-procesable`, `03-preparar-contexto-ia--archivo-no-procesable` |
+| 7. Texto normal | sin cambios (mismo camino) | `03-preparar-media-turno--sin-imagenes` y todos los fixtures anteriores |
+| 8. Imagen sin caption | la IA visual produce el contexto sola | `01-preparar-entrada--imagen-sin-caption`, `03-validar-analisis-imagen--ilegible` |
+| 9. Foto irrelevante | `NO_RELACIONADO`, sin producto inventado, sin derivar | `03-validar-analisis-imagen--foto-no-relacionada` |
+| 10. Texto / imagen / texto | un turno, una llamada visual, contexto en orden | `03-preparar-media-turno--texto-imagen-texto`, `03-preparar-contexto-ia--texto-imagen-texto`, `03-preparar-media-turno--imagen-ya-analizada` |
+| Seguridad | enlace fuera de `api.ycloud.com` o caption que imita líneas de sistema: no se descarga | `01-preparar-entrada--imagen-link-no-permitido`, `03-preparar-media-turno--enlace-no-permitido`, `03-preparar-contexto-ia--imagen-no-analizada` |
+
 ## Contrato de salida de la etapa
 
 Entrada del cerebro comercial (resumido):
@@ -330,4 +507,4 @@ La memoria guardada viaja completa dentro de `contexto_comercial` (en el ejemplo
 
 ## Pruebas
 
-`tests/fixtures/03-*.json`: conversación existente (con memoria) y nueva, INSERT sin id, las cinco variantes de `MODO_PRUEBA`, la configuración del debounce, los dos cierres, el historial, el turno agrupado, la memoria conservada y los casos de `resolver-turno` (tabla de [casos verificados](#casos-verificados)).
+`tests/fixtures/03-*.json`: conversación existente (con memoria) y nueva, INSERT sin id, las cinco variantes de `MODO_PRUEBA`, la configuración del debounce, los dos cierres, el historial, el turno agrupado, la memoria conservada, los casos de `resolver-turno` (tabla de [casos verificados](#casos-verificados)) y los de imágenes (`03-preparar-media-turno--*`, `03-validar-analisis-imagen--*`, `03-preparar-contexto-ia--*` con media; tabla de [imágenes del turno](#imágenes-del-turno)). La descarga, la IA visual y el UPDATE se prueban en n8n.

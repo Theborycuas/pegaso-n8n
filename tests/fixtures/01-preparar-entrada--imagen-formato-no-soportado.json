@@ -1,0 +1,31 @@
+{
+  "archivo": "code/01-entrada/preparar-entrada-whatsapp.js",
+  "descripcion": "Imagen con MIME fuera de JPEG/PNG/WebP (GIF): salida controlada, sin línea pendiente ni enlace; deriva con ARCHIVO_NO_PROCESABLE.",
+  "input": [
+    {
+      "evento_whatsapp": {
+        "procesable": true,
+        "telefono_cliente": "593987654321",
+        "nombre_cliente": "Ana Pérez",
+        "mensaje_id": "wamid.IMG003",
+        "timestamp": "1791414000",
+        "tipo_mensaje": "image",
+        "caption": "mire",
+        "media_id": "media_003",
+        "media_mime_type": "image/gif",
+        "media_link": "https://api.ycloud.com/v2/whatsapp/media/download/media_003?sig=t%3D1%2Cs%3Dx"
+      }
+    }
+  ],
+  "esperado": {
+    "tipo": "IMAGEN",
+    "mensaje": "[IMAGEN] mire\n[ARCHIVO NO PROCESABLE · tipo=IMAGEN · mime=image/gif] El bot no puede revisar este archivo automáticamente.",
+    "apto_para_flujo_conversacional": true,
+    "media_soportada": false,
+    "meta_whatsapp": {
+      "media": {
+        "motivo_no_procesable": "FORMATO_IMAGEN_NO_SOPORTADO"
+      }
+    }
+  }
+}

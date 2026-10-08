@@ -1,0 +1,37 @@
+{
+  "archivo": "code/03-conversacion/validar-analisis-imagen.js",
+  "descripcion": "Caso 4 · transferencia + \"ya pagué\": comprobante_detectado = true (evidencia, no confirma pago). Aunque la IA transcriba datos bancarios, el texto visible se descarta y no llega a la base ni al cerebro.",
+  "input": [
+    {
+      "output": {
+        "contenido_detectado": "COMPROBANTE_PAGO",
+        "producto_probable": null,
+        "envase_detectado": false,
+        "forma_envase": null,
+        "etiqueta_visible": false,
+        "diseno_visible": false,
+        "texto_visible_relevante": "Banco Pichincha - Cuenta 2200123456 - $18,00",
+        "colores_relevantes": [],
+        "medidas_visibles": null,
+        "requiere_revision_humana": false,
+        "motivo_revision": "NINGUNO",
+        "confianza": "ALTA",
+        "resumen_para_cerebro": "Parece un comprobante de transferencia bancaria."
+      }
+    }
+  ],
+  "nodos": {
+    "Preparar media del turno": [
+      { "analizar_imagen": true, "mensaje_id": 130, "mime_type": "image/jpeg", "caption": "ya pagué", "contenido_base": "[IMAGEN] ya pagué" }
+    ]
+  },
+  "esperado": {
+    "analisis_valido": true,
+    "comprobante_detectado": true,
+    "requiere_revision": false,
+    "analisis": {
+      "texto_visible_relevante": null
+    },
+    "contenido_actualizado": "[IMAGEN] ya pagué\n[CONTEXTO DE IMAGEN · contenido=COMPROBANTE_PAGO · confianza=ALTA · revision=NO] Parece un comprobante de transferencia bancaria."
+  }
+}

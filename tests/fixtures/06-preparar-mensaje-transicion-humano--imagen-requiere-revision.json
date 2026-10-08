@@ -1,0 +1,24 @@
+{
+  "archivo": "code/06-derivacion-humana/preparar-mensaje-transicion-humano.js",
+  "descripcion": "Caso 5 · motivo IMAGEN_REQUIERE_REVISION (motivo del schema del cerebro que antes caía al fallback): texto sutil sobre la imagen.",
+  "input": [
+    { "id": 41, "telefono": "593987654321", "prospecto_id": 16, "contexto_comercial": {} }
+  ],
+  "nodos": {
+    "Preparar contexto handoff": [
+      {
+        "conversacion_id": 41,
+        "prospecto_id": 16,
+        "telefono": "593987654321",
+        "intencion": "SOLICITAR_COTIZACION",
+        "accion": "DERIVAR_HUMANO",
+        "handoff_motivo": "IMAGEN_REQUIERE_REVISION",
+        "motivo_derivacion": "IMAGEN_REQUIERE_REVISION",
+        "mensaje_actual": "[IMAGEN]\n[CONTEXTO DE IMAGEN · revision=SI · motivo=ANALISIS_NO_DISPONIBLE] La imagen no pudo revisarse automáticamente."
+      }
+    ]
+  },
+  "esperado": {
+    "mensaje_transicion": "Permítame un momento por favor, ya revisamos la imagen que nos envió."
+  }
+}

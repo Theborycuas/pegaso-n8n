@@ -1,0 +1,55 @@
+{
+  "archivo": "code/04-cerebro-comercial/normalizar-decision-ia.js",
+  "descripcion": "Caso 2 · botella + \"cuánto me cuestan 1000 etiquetas para esta botella\": la imagen no trae medidas, el cerebro pide medidas y la media del turno no obliga a derivar (no se inventan medidas ni se manda a humano).",
+  "input": [
+    {
+      "intencion": "SOLICITAR_COTIZACION",
+      "accion": "PEDIR_MEDIDAS",
+      "producto": "etiquetas para botella de salsa",
+      "material": null,
+      "cantidad": 1000,
+      "ancho_cm": null,
+      "alto_cm": null,
+      "forma": "NO_ESPECIFICADA",
+      "ciudad_detectada": null,
+      "provincia_detectada": null,
+      "datos_suficientes_para_cotizar": false,
+      "requiere_humano": false,
+      "motivo_derivacion": "NINGUNO",
+      "requiere_notificacion": false,
+      "clasificacion_prospecto": "B",
+      "respuesta_sugerida": "¿En qué medidas necesita sus etiquetas para esa botella?",
+      "valid": true
+    }
+  ],
+  "nodos": {
+    "Preparar contexto IA": [
+      {
+        "conversacion_id": 41,
+        "prospecto_id": 16,
+        "prospecto_estado": "NUEVO",
+        "tipo_actor": "PROSPECTO",
+        "mensaje_actual": "[IMAGEN] cuanto me cuestan 1000 etiquetas para esta botella\n[CONTEXTO DE IMAGEN · contenido=ENVASE_O_PRODUCTO · confianza=ALTA · revision=NO] Botella plástica de salsa sin etiqueta. Sin medidas visibles.",
+        "tipo_mensaje": "IMAGEN",
+        "contexto_comercial": {},
+        "media_turno": {
+          "cantidad_media": 1,
+          "imagenes_analizadas": 1,
+          "comprobante_detectado": false,
+          "requiere_revision_humana": false,
+          "motivo_derivacion": null
+        }
+      }
+    ]
+  },
+  "esperado": {
+    "accion": "PEDIR_MEDIDAS",
+    "requiere_humano": false,
+    "motivo_derivacion": "NINGUNO",
+    "ancho_cm": null,
+    "alto_cm": null,
+    "cantidad": 1000,
+    "derivacion_por_media": null,
+    "tipo_mensaje": "IMAGEN"
+  }
+}

@@ -1,7 +1,7 @@
 // ======================================================
 // NODO N8N: Peparar notificacion humano
 // ARCHIVO: code/06-derivacion-humana/preparar-notificacion-humano.js
-// VERSION: 2
+// VERSION: 2.1
 // RESPONSABILIDAD:
 // - Construir una notificación INTERNA para Pegaso cuando una conversación requiere intervención humana
 // - Clasificar la alerta en una categoría (INTERESADO_PAGO, PAGO_REPORTADO, SOLICITA_CONTACTO, ARCHIVO_REQUIERE_REVISION, NEGOCIACION, RECLAMO, REVISION_GENERAL)
@@ -180,6 +180,7 @@ if (
 else if (
   [
     'REPORTA_PAGO',
+    'ENVIA_COMPROBANTE',
     'COMPROBANTE_PAGO',
     'PAGO_REALIZADO'
   ].includes(motivo)
@@ -208,6 +209,9 @@ else if (
 
 else if (
   [
+    'IMAGEN_REQUIERE_REVISION',
+    'ARCHIVO_NO_PROCESABLE',
+    'ARCHIVO_DISENO',
     'ARCHIVO_NO_ANALIZABLE',
     'IMAGEN_NO_ANALIZABLE',
     'ARCHIVO_REQUIERE_REVISION',

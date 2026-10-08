@@ -1,21 +1,33 @@
 // ======================================================
 // NODO N8N: Normalizar mensaje
 // ARCHIVO: code/01-entrada/normalizar-mensaje.js
-// VERSION: 1.0
+// VERSION: 2.0
+// ======================================================
+//
 // RESPONSABILIDAD:
-// - Unificar la entrada real ("Preparar entrada WhatsApp") y la de prueba ("Mensaje entrante TEST") en un mismo contrato
-// - Normalizar el teléfono: quitar espacios, guiones, paréntesis y '+', y convertir prefijo local 0 a 593 (Ecuador)
-// - Aceptar alias de campos: telefono/whatsapp, mensaje/contenido, nombre_whatsapp/nombre
-// - Forzar tipo y canal a mayúsculas con valores por defecto TEXTO y WHATSAPP
-// - Registrar recibido_at con la hora actual de ejecución
-// - NO consultar PostgreSQL (lo hace el nodo siguiente "Buscar Contacto")
-// - NO validar que el teléfono o el mensaje existan
+//
+// - Unificar entrada real de WhatsApp y entrada TEST.
+// - Normalizar teléfono, nombre, mensaje, tipo y canal.
+// - CONSERVAR metadatos multimedia provenientes de
+//   "Preparar entrada WhatsApp".
+// - No decidir si una imagen se analiza.
+// - No descargar multimedia.
+// - No consultar PostgreSQL.
+//
 // ======================================================
 
 const items = $input.all();
 
+
+// ======================================================
+// 1. HELPERS
+// ======================================================
+
 function normalizarTelefono(valor) {
-  if (!valor) return null;
+
+  if (!valor) {
+    return null;
+  }
 
   let telefono = String(valor)
     .trim()
@@ -24,36 +36,117 @@ function normalizarTelefono(valor) {
     .replace(/\(/g, '')
     .replace(/\)/g, '');
 
-  // Quito/Ecuador:
+  // --------------------------------------------------
+  // Ecuador:
   // 0999999999 -> 593999999999
+  // --------------------------------------------------
+
   if (telefono.startsWith('0')) {
-    telefono = '593' + telefono.substring(1);
+    telefono =
+      '593' + telefono.substring(1);
   }
 
   if (telefono.startsWith('+')) {
-    telefono = telefono.substring(1);
+    telefono =
+      telefono.substring(1);
   }
 
   return telefono;
 }
 
+
+function textoONull(valor) {
+
+  if (
+    valor === undefined ||
+    valor === null
+  ) {
+    return null;
+  }
+
+  const limpio =
+    String(valor).trim();
+
+  return limpio !== ''
+    ? limpio
+    : null;
+}
+
+
+// ======================================================
+// 2. NORMALIZAR ITEMS
+// ======================================================
+
 return items.map((item) => {
-  const data = item.json;
 
-  const telefono = normalizarTelefono(
-    data.telefono ??
-    data.whatsapp ??
-    null
-  );
+  const data =
+    item.json ?? {};
 
-  const mensaje = String(
-    data.mensaje ??
-    data.contenido ??
-    ''
-  ).trim();
+
+  // ==================================================
+  // TELÉFONO
+  // ==================================================
+
+  const telefono =
+    normalizarTelefono(
+      data.telefono ??
+      data.whatsapp ??
+      null
+    );
+
+
+  // ==================================================
+  // MENSAJE
+  // ==================================================
+
+  const mensaje =
+    textoONull(
+      data.mensaje ??
+      data.contenido
+    ) ?? '';
+
+
+  // ==================================================
+  // TIPO / CANAL
+  // ==================================================
+
+  const tipo =
+    String(
+      data.tipo ??
+      'TEXTO'
+    )
+      .trim()
+      .toUpperCase();
+
+
+  const canal =
+    String(
+      data.canal ??
+      'WHATSAPP'
+    )
+      .trim()
+      .toUpperCase();
+
+
+  // ==================================================
+  // SALIDA
+  // ==================================================
 
   return {
     json: {
+
+      // -----------------------------------------------
+      // Conservamos primero el contrato previo.
+      // Esto es fundamental para multimedia.
+      // -----------------------------------------------
+
+      ...data,
+
+
+      // -----------------------------------------------
+      // CAMPOS NORMALIZADOS
+      // -----------------------------------------------
+
       telefono,
 
       nombre_whatsapp:
@@ -63,23 +156,45 @@ return items.map((item) => {
 
       mensaje,
 
-      tipo:
-        String(
-          data.tipo ??
-          'TEXTO'
-        ).toUpperCase(),
+      tipo,
 
-      canal:
-        String(
-          data.canal ??
-          'WHATSAPP'
-        ).toUpperCase(),
+      canal,
 
       mensaje_externo_id:
         data.mensaje_externo_id ??
         null,
 
+
+      // -----------------------------------------------
+      // MULTIMEDIA
+      // -----------------------------------------------
+
+      meta_whatsapp:
+        data.meta_whatsapp ??
+        null,
+
+      media_soportada:
+        data.media_soportada === true,
+
+      requiere_procesamiento_media:
+        data.requiere_procesamiento_media === true,
+
+      apto_para_flujo_texto:
+        data.apto_para_flujo_texto === true,
+
+      apto_para_flujo_conversacional:
+        data.apto_para_flujo_conversacional === true,
+
+
+      // -----------------------------------------------
+      // CONTROL
+      // -----------------------------------------------
+
+      mensaje_normalizado:
+        true,
+
       recibido_at:
+        data.recibido_at ??
         new Date().toISOString()
     }
   };

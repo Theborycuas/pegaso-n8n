@@ -1,0 +1,32 @@
+{
+  "archivo": "code/06-derivacion-humana/preparar-notificacion-humano.js",
+  "descripcion": "Caso 5 · IMAGEN_REQUIERE_REVISION: categoría ARCHIVO_REQUIERE_REVISION y asunto de archivo (antes caía en REVISION_GENERAL).",
+  "input": [
+    {
+      "success": true,
+      "flujo": "DERIVACION_HUMANA",
+      "conversacion_id": 41,
+      "prospecto_id": 16,
+      "telefono": "593987654321",
+      "nombre_whatsapp": "Ana Pérez",
+      "prospecto_nombre": "Ana Pérez",
+      "prospecto_clasificacion": "C",
+      "intencion": "SOLICITAR_COTIZACION",
+      "accion": "DERIVAR_HUMANO",
+      "handoff_motivo": "IMAGEN_REQUIERE_REVISION",
+      "handoff_prioridad": "MEDIA",
+      "prioridad": "MEDIA",
+      "requiere_humano": true,
+      "requiere_notificacion": true,
+      "handoff_requiere_notificacion": true,
+      "mensaje_cliente_original": "[IMAGEN]\n[CONTEXTO DE IMAGEN · revision=SI · motivo=ANALISIS_NO_DISPONIBLE] La imagen no pudo revisarse automáticamente.",
+      "mensaje_transicion": "Permítame un momento por favor, ya revisamos la imagen que nos envió.",
+      "derivado_at": "2026-10-07T23:53:47.512Z"
+    }
+  ],
+  "esperado": {
+    "categoria_notificacion": "ARCHIVO_REQUIERE_REVISION",
+    "prioridad_notificacion": "MEDIA",
+    "asunto_notificacion": "📎 Pegaso - Archivo requiere revisión"
+  }
+}

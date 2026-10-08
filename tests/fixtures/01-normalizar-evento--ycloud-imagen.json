@@ -1,6 +1,6 @@
 {
   "archivo": "code/01-entrada/normalizar-evento-whatsapp.js",
-  "descripcion": "Webhook YCloud con imagen: procesable, sin texto, con media_id y caption.",
+  "descripcion": "Webhook YCloud con imagen: procesable, sin texto, con media_id, caption y el enlace de descarga (media_link).",
   "input": [
     {
       "headers": {
@@ -28,7 +28,8 @@
             "id": "media_001",
             "mimeType": "image/jpeg",
             "sha256": "abc",
-            "caption": "este diseño"
+            "caption": "este diseño",
+            "link": "https://api.ycloud.com/v2/whatsapp/media/download/media_001?sig=t%3D1791414000%2Cs%3Dabc123&payload=eyJ3YWJhSWQiOiIxMjMifQ"
           }
         }
       }
@@ -41,7 +42,8 @@
       "texto": null,
       "caption": "este diseño",
       "media_id": "media_001",
-      "media_mime_type": "image/jpeg"
+      "media_mime_type": "image/jpeg",
+      "media_link": "https://api.ycloud.com/v2/whatsapp/media/download/media_001?sig=t%3D1791414000%2Cs%3Dabc123&payload=eyJ3YWJhSWQiOiIxMjMifQ"
     }
   }
 }

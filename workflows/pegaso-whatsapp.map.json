@@ -16,6 +16,8 @@
     "code/03-conversacion/finalizar-mensaje-atencion-humana.js": ["Finalizar mensaje atención humana"],
     "code/03-conversacion/finalizar-mensaje-modo-prueba.js": ["Finalizar mensaje modo prueba"],
     "code/03-conversacion/resolver-turno-conversacional.js": ["Resolver turno conversacional"],
+    "code/03-conversacion/preparar-media-turno.js": ["Preparar media del turno"],
+    "code/03-conversacion/validar-analisis-imagen.js": ["Validar análisis imagen"],
     "code/03-conversacion/preparar-contexto-ia.js": ["Preparar contexto IA"],
 
     "code/04-cerebro-comercial/validar-extraccion-cerebro.js": [
@@ -76,7 +78,8 @@
       "Extractor → Groq Chat Model",
       "Extractor → DeepSeek Chat Model",
       "Extractor → OpenAI Chat Model1"
-    ]
+    ],
+    "prompts/analisis-imagen.md": ["Analizar imagen"]
   },
   "schemas": {
     "schemas/cerebro-comercial.schema.json": [
@@ -88,6 +91,7 @@
       "Extractor → Groq Chat Model",
       "Extractor → DeepSeek Chat Model",
       "Extractor → OpenAI Chat Model1"
-    ]
+    ],
+    "schemas/analisis-imagen.schema.json": ["Schema análisis imagen"]
   }
 }

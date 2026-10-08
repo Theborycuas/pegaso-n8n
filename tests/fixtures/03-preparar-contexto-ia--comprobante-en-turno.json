@@ -1,0 +1,46 @@
+{
+  "archivo": "code/03-conversacion/preparar-contexto-ia.js",
+  "descripcion": "Caso 4 · \"ya pagué\" + captura de transferencia: la cabecera contenido=COMPROBANTE_PAGO de la imagen analizada marca comprobante_detectado; \"Normalizar decisión IA\" derivará con ENVIA_COMPROBANTE.",
+  "input": [
+    { "id": 502, "conversacion_id": 41 }
+  ],
+  "nodos": {
+    "Resolver turno conversacional": [
+      {
+        "continuar_procesamiento": true,
+        "conversacion_id": 41,
+        "mensaje_id": 502,
+        "turno_mensaje_ids": [501, 502],
+        "turno_desde_id": 501,
+        "turno_hasta_id": 502,
+        "turno_mensajes": [
+          { "id": 501, "tipo": "TEXTO", "contenido": "ya pagué" },
+          { "id": 502, "tipo": "IMAGEN", "contenido": "[IMAGEN]\n[MEDIA_PENDIENTE] {\"mime_type\":\"image/jpeg\",\"link\":\"https://api.ycloud.com/v2/whatsapp/media/download/m502\"}" }
+        ],
+        "turno_texto": "ya pagué\n[IMAGEN]"
+      }
+    ],
+    "Validar análisis imagen": [
+      {
+        "mensaje_id": 502,
+        "analisis_valido": true,
+        "comprobante_detectado": true,
+        "contenido_actualizado": "[IMAGEN]\n[CONTEXTO DE IMAGEN · contenido=COMPROBANTE_PAGO · confianza=ALTA · revision=NO] Parece un comprobante de transferencia bancaria."
+      }
+    ],
+    "Recuperar historial conversación": [],
+    "Preparar conversación": [
+      { "mensaje": "[IMAGEN]", "tipo": "IMAGEN", "prospecto_id": 16, "conversacion_id": 41, "contexto_comercial": {}, "tipo_actor": "PROSPECTO" }
+    ]
+  },
+  "esperado": {
+    "mensaje_actual": "ya pagué\n[IMAGEN]\n[CONTEXTO DE IMAGEN · contenido=COMPROBANTE_PAGO · confianza=ALTA · revision=NO] Parece un comprobante de transferencia bancaria.",
+    "media_turno": {
+      "cantidad_media": 1,
+      "imagenes_analizadas": 1,
+      "comprobante_detectado": true,
+      "requiere_revision_humana": false,
+      "motivo_derivacion": null
+    }
+  }
+}

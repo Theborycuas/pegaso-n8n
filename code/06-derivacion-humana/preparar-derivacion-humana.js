@@ -1,7 +1,7 @@
 // ======================================================
 // NODO N8N: Preparar derivación humana
 // ARCHIVO: code/06-derivacion-humana/preparar-derivacion-humana.js
-// VERSION: 3
+// VERSION: 3.1
 // RESPONSABILIDAD:
 // - Recibir la salida DERIVAR_HUMANO de "Enrutar acción comercial" y validar conversacion_id y prospecto_id
 // - Convertir la decisión comercial en un contrato estable de HANDOFF (respaldo en "Recuperar decisión comercial")
@@ -415,6 +415,7 @@ if (!clasificacionHandoff) {
 
     case 'SOLICITA_DATOS_PAGO':
     case 'REPORTA_PAGO':
+    case 'ENVIA_COMPROBANTE':
     case 'DESEA_CONTINUAR_PEDIDO':
 
       clasificacionHandoff =
@@ -494,6 +495,7 @@ let prioridad =
 if (
   motivo === 'SOLICITA_DATOS_PAGO' ||
   motivo === 'REPORTA_PAGO' ||
+  motivo === 'ENVIA_COMPROBANTE' ||
   motivo === 'DESEA_CONTINUAR_PEDIDO' ||
   motivo === 'RECLAMO'
 ) {
@@ -549,6 +551,10 @@ const motivosNotificables =
     'NEGOCIACION_COMERCIAL',
     'RECLAMO',
     'SOLICITA_LLAMADA',
+    'ENVIA_COMPROBANTE',
+    'IMAGEN_REQUIERE_REVISION',
+    'ARCHIVO_NO_PROCESABLE',
+    'ARCHIVO_DISENO',
     'ARCHIVO_REQUIERE_REVISION',
     'DISENO_REQUIERE_REVISION',
     'COTIZACION_ESPECIAL'

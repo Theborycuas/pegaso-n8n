@@ -1,10 +1,13 @@
 // ======================================================
 // NODO N8N: Preparar contexto IA
 // ARCHIVO: code/03-conversacion/preparar-contexto-ia.js
-// VERSION: 3.0
+// VERSION: 3.1
 // RESPONSABILIDAD:
 // - Construir el contexto que recibirá el cerebro comercial, tomando "Preparar conversación" como fuente de verdad
-// - Usar como mensaje_actual el turno completo de "Resolver turno conversacional" (turno_texto: uno o varios mensajes, uno por línea); si ese nodo no se ejecutó, el mensaje de "Preparar conversación"
+// - Usar como mensaje_actual el turno completo de "Resolver turno conversacional" (uno o varios mensajes, uno por línea); si ese nodo no se ejecutó, el mensaje de "Preparar conversación"
+// - Reemplazar el contenido de las imágenes del turno por el de "Validar análisis imagen" (si corrió); una imagen que sigue con "[MEDIA_PENDIENTE]" pasa como "no analizada"
+// - Nunca entregar enlaces de media al cerebro: quita las líneas "[MEDIA_PENDIENTE]" del turno y del historial
+// - Resumir la media del turno en media_turno (imágenes analizadas, comprobante detectado, revisión humana y motivo IMAGEN_REQUIERE_REVISION / ARCHIVO_NO_PROCESABLE) para "Normalizar decisión IA"
 // - Convertir las filas de "Recuperar historial conversación" en historial (direccion, contenido, tipo, enviado_at), descartando filas sin contenido, reenvíos del mismo mensaje_externo_id y los mensajes del turno actual
 // - Extraer los mensajes SALIENTE recientes y el último saliente para control anti-repetición
 // - Resolver tipo_actor (respeta el previo; si falta: CLIENTE > PROSPECTO > CONTACTO > DESCONOCIDO)
@@ -170,14 +173,163 @@ function numeroONull(valor) {
   const hayTurno =
     turnoMensajeIds.length > 0 &&
     textoONull(turno.turno_texto) !== null;
+
+
+  // ======================================================
+  // 3.1. MEDIA DEL TURNO
+  // ======================================================
+  //
+  // Formato de mensajes.contenido para media (lo arma la etapa 01):
+  //   línea 1: "[IMAGEN] caption" (o [AUDIO], [VIDEO], [DOCUMENTO])
+  //   línea 2: "[MEDIA_PENDIENTE] {json con enlace}"  -> sin analizar
+  //            "[CONTEXTO DE IMAGEN · k=v · …] texto" -> analizada o fallida
+  //            "[ARCHIVO NO PROCESABLE · …] texto"    -> no soportada
+  // Solo se interpretan estas líneas en filas que no son TEXTO.
+  // ======================================================
+
+  const PREFIJO_PENDIENTE = '[MEDIA_PENDIENTE]';
+
+  const LINEA_IMAGEN_NO_ANALIZADA =
+    '[CONTEXTO DE IMAGEN · revision=SI · motivo=IMAGEN_NO_ANALIZADA] ' +
+    'La imagen no pudo revisarse automáticamente.';
+
+  function quitarPendientes(contenido, reemplazo) {
+    return String(contenido ?? '')
+      .split('\n')
+      .flatMap(linea =>
+        linea.trim().startsWith(PREFIJO_PENDIENTE)
+          ? (reemplazo ? [reemplazo] : [])
+          : [linea]
+      )
+      .join('\n')
+      .trim();
+  }
+
+  function atributosCabecera(linea) {
+    const cabecera = linea.match(/^\[([^\]]*)\]/);
+
+    if (!cabecera) {
+      return {};
+    }
+
+    return Object.fromEntries(
+      cabecera[1]
+        .split('·')
+        .map(parte => parte.trim().split('='))
+        .filter(par => par.length === 2)
+        .map(([clave, valor]) => [clave.trim(), valor.trim()])
+    );
+  }
+
+  let analisisImagenes = [];
+
+  try {
+    analisisImagenes =
+      $('Validar análisis imagen').all().map(item => item.json ?? {});
+  } catch (error) {
+    analisisImagenes = [];
+  }
+
+  const contenidoAnalizado = new Map(
+    analisisImagenes
+      .filter(a =>
+        numeroONull(a.mensaje_id) !== null &&
+        textoONull(a.contenido_actualizado) !== null
+      )
+      .map(a => [numeroONull(a.mensaje_id), String(a.contenido_actualizado).trim()])
+  );
+
+  const mensajesTurnoOrigen =
+    hayTurno && Array.isArray(turno.turno_mensajes)
+      ? turno.turno_mensajes
+      : [{
+          id: null,
+          tipo: actual.tipo,
+          contenido: hayTurno ? turno.turno_texto : actual.mensaje
+        }];
+
+  const mensajesTurno = mensajesTurnoOrigen.map(m => {
+    const id = numeroONull(m.id);
+    const tipo = (textoONull(m.tipo) ?? 'TEXTO').toUpperCase();
+    const contenido = contenidoAnalizado.get(id) ?? m.contenido ?? '';
+
+    return {
+      id,
+      tipo,
+      contenido:
+        tipo === 'TEXTO'
+          ? String(contenido).trim()
+          : quitarPendientes(contenido, LINEA_IMAGEN_NO_ANALIZADA)
+    };
+  });
+
+  const textoTurno = mensajesTurno
+    .map(m => m.contenido)
+    .filter(Boolean)
+    .join('\n');
+
+  let imagenesAnalizadas = 0;
+  let comprobanteDetectado = false;
+  let revisionImagen = false;
+  let archivoNoProcesable = false;
+
+  for (const m of mensajesTurno) {
+    if (m.tipo === 'TEXTO') {
+      continue;
+    }
+
+    for (const linea of m.contenido.split('\n').map(l => l.trim())) {
+      if (linea.startsWith('[ARCHIVO NO PROCESABLE')) {
+        archivoNoProcesable = true;
+      }
+
+      if (m.tipo === 'IMAGEN' && linea.startsWith('[CONTEXTO DE IMAGEN')) {
+        const atributos = atributosCabecera(linea);
+
+        if (atributos.contenido) {
+          imagenesAnalizadas++;
+        }
+
+        if (atributos.revision === 'SI') {
+          revisionImagen = true;
+        }
+
+        if (atributos.contenido === 'COMPROBANTE_PAGO') {
+          comprobanteDetectado = true;
+        }
+      }
+    }
+  }
+
+  const mediaTurno = {
+    cantidad_media:
+      mensajesTurno.filter(m => m.tipo !== 'TEXTO').length,
+
+    imagenes_analizadas:
+      imagenesAnalizadas,
+
+    comprobante_detectado:
+      comprobanteDetectado,
+
+    requiere_revision_humana:
+      revisionImagen || archivoNoProcesable,
+
+    motivo_derivacion:
+      archivoNoProcesable
+        ? 'ARCHIVO_NO_PROCESABLE'
+        : revisionImagen
+          ? 'IMAGEN_REQUIERE_REVISION'
+          : null
+  };
   
   
   // ======================================================
   // 4. RECUPERAR HISTORIAL
   // ======================================================
   //
-  // La entrada directa es la salida del IF "¿Procesar turno?";
-  // las filas se leen de "Recuperar historial conversación".
+  // La entrada directa es "IF: ¿Hay imágenes por analizar?" (false)
+  // o "Guardar análisis imagen"; las filas se leen de
+  // "Recuperar historial conversación".
   // ======================================================
   
   let itemsHistorial;
@@ -235,7 +387,9 @@ function numeroONull(valor) {
         textoONull(row.direccion),
   
       contenido:
-        row.contenido ?? '',
+        (textoONull(row.tipo) ?? 'TEXTO').toUpperCase() === 'TEXTO'
+          ? row.contenido ?? ''
+          : quitarPendientes(row.contenido, null),
   
       tipo:
         textoONull(row.tipo) ?? 'TEXTO',
@@ -692,12 +846,12 @@ function numeroONull(valor) {
           textoONull(actual.nombre_whatsapp),
   
         mensaje_actual:
-          hayTurno
-            ? turno.turno_texto
-            : actual.mensaje ?? '',
+          textoTurno,
   
         mensaje_disparador:
-          actual.mensaje ?? '',
+          (textoONull(actual.tipo) ?? 'TEXTO').toUpperCase() === 'TEXTO'
+            ? actual.mensaje ?? ''
+            : quitarPendientes(actual.mensaje, null),
   
         turno_mensaje_ids:
           turnoMensajeIds,
@@ -722,6 +876,14 @@ function numeroONull(valor) {
   
         recibido_at:
           actual.recibido_at ?? null,
+  
+  
+        // ----------------------------------------------
+        // MEDIA DEL TURNO (evidencia para "Normalizar decisión IA")
+        // ----------------------------------------------
+  
+        media_turno:
+          mediaTurno,
   
   
         // ----------------------------------------------
