@@ -23,7 +23,12 @@ Archivo: [`code/08-salida-whatsapp/preparar-envio-whatsapp.js`](../../code/08-sa
 Entrada: la fila de `mensajes` (`id`, `conversacion_id`, `contenido`, `tipo`…).
 
 1. **Texto**: `contenido`. Si viene vacío **lanza error** (pendiente técnico 22).
-2. **Destino**: `telefono` del input (la fila de `mensajes` no lo tiene) o el de `$('Recuperar decisión comercial')`. Solo dígitos; sin teléfono lanza error.
+2. **Destino** (v1.1): `telefono` del input (la fila de `mensajes` no lo tiene) y, si falta, el primero que aparezca en este orden:
+   1. "Recuperar decisión comercial" (05 y 07);
+   2. "Preparar mensaje transición humano" y "Preparar derivación humana" (06, incluidas las derivaciones directas que no pasan por el cerebro);
+   3. "Preparar entrada WhatsApp", "Preparar conversación", "Unificar prospecto" y "Normalizar mensaje".
+
+   Solo dígitos. Si no aparece en ninguno, **lanza error** ("PREPARAR ENVÍO WHATSAPP: no se pudo resolver el teléfono destino.").
 3. **¿Webhook real?** Sí si `$('Preparar entrada WhatsApp')` corrió con `entrada_whatsapp_preparada` y canal `WHATSAPP`, o si `$('Normalizar evento WhatsApp').evento_whatsapp` es procesable, de canal `WHATSAPP` y origen `YCLOUD`. En ejecuciones con "Mensaje entrante TEST" esos nodos no corrieron y el resultado es `false`.
 4. **Proveedor**: `evento_whatsapp.origen`. Solo `YCLOUD` se envía. Un webhook directo de Meta Cloud API queda como `ORIGEN_NO_ES_YCLOUD`.
 5. **Emisor**: `evento_whatsapp.display_phone_number`. Si falta, usa el número fijo de Pegaso que está en el código (`593962645735`).
@@ -61,4 +66,4 @@ No escribe en la base. Envía un mensaje de WhatsApp desde el número de Pegaso 
 
 ## Pruebas
 
-`tests/fixtures/08-*.json`: envío desde un webhook de YCloud, ejecución manual de prueba (no envía y usa el emisor de respaldo), webhook directo de Meta (no envía) y mensaje sin texto (error, pendiente 22).
+`tests/fixtures/08-*.json`: envío desde un webhook de YCloud, ejecución manual de prueba (no envía y usa el emisor de respaldo), webhook directo de Meta (no envía), mensaje sin texto (error, pendiente 22), teléfono tomado de la derivación humana cuando no hay "Recuperar decisión comercial" y teléfono imposible de resolver (error).

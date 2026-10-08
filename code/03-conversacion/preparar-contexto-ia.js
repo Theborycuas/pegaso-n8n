@@ -1,13 +1,18 @@
 // ======================================================
 // NODO N8N: Preparar contexto IA
 // ARCHIVO: code/03-conversacion/preparar-contexto-ia.js
-// VERSION: 3.1
+// VERSION: 4.0
 // RESPONSABILIDAD:
 // - Construir el contexto que recibirá el cerebro comercial, tomando "Preparar conversación" como fuente de verdad
 // - Usar como mensaje_actual el turno completo de "Resolver turno conversacional" (uno o varios mensajes, uno por línea); si ese nodo no se ejecutó, el mensaje de "Preparar conversación"
-// - Reemplazar el contenido de las imágenes del turno por el de "Validar análisis imagen" (si corrió); una imagen que sigue con "[MEDIA_PENDIENTE]" pasa como "no analizada"
-// - Nunca entregar enlaces de media al cerebro: quita las líneas "[MEDIA_PENDIENTE]" del turno y del historial
-// - Resumir la media del turno en media_turno (imágenes analizadas, comprobante detectado, revisión humana y motivo IMAGEN_REQUIERE_REVISION / ARCHIVO_NO_PROCESABLE) para "Normalizar decisión IA"
+// - Reemplazar el contenido de cada imagen del turno por el contenido_actualizado del análisis VÁLIDO de "Validar análisis imagen Groq / DeepSeek / OpenAI"
+//   (cascada: gana el primer proveedor válido); una imagen que sigue con "[MEDIA_PENDIENTE]" sin análisis pasa como "no analizada"
+// - Esperar a la cascada visual: si el turno tiene imágenes por analizar y todavía falta alguna, o alguna falló en los 3 proveedores, devolver [] (sin item):
+//   recibe una entrada por cada rama válida de la cascada y solo la última sigue; el fallo total lo atiende "Preparar derivación imagen fallida"
+// - Nunca entregar enlaces de media ni errores técnicos al cerebro: quita las líneas "[MEDIA_PENDIENTE]" del turno y del historial
+// - Resumir la media del turno en media_turno (imágenes analizadas, proveedores, comprobante detectado, revisión humana y motivo
+//   IMAGEN_REQUIERE_REVISION / ARCHIVO_NO_PROCESABLE / ENTRADA_NO_SOPORTADA) para "Normalizar decisión IA"
+// - Exponer media_actualizaciones (mensaje_id + contenido analizado) por si se agrega un nodo que persista el análisis en mensajes.contenido
 // - Convertir las filas de "Recuperar historial conversación" en historial (direccion, contenido, tipo, enviado_at), descartando filas sin contenido, reenvíos del mismo mensaje_externo_id y los mensajes del turno actual
 // - Extraer los mensajes SALIENTE recientes y el último saliente para control anti-repetición
 // - Resolver tipo_actor (respeta el previo; si falta: CLIENTE > PROSPECTO > CONTACTO > DESCONOCIDO)
@@ -180,10 +185,11 @@ function numeroONull(valor) {
   // ======================================================
   //
   // Formato de mensajes.contenido para media (lo arma la etapa 01):
-  //   línea 1: "[IMAGEN] caption" (o [AUDIO], [VIDEO], [DOCUMENTO])
+  //   línea 1: "[IMAGEN] caption" (o [AUDIO], [VIDEO], [DOCUMENTO], [UBICACION]…)
   //   línea 2: "[MEDIA_PENDIENTE] {json con enlace}"  -> sin analizar
   //            "[CONTEXTO DE IMAGEN · k=v · …] texto" -> analizada o fallida
-  //            "[ARCHIVO NO PROCESABLE · …] texto"    -> no soportada
+  //            "[ARCHIVO NO PROCESABLE · …] texto"    -> archivo no soportado
+  //            "[ENTRADA NO SOPORTADA · …] texto"     -> tipo de mensaje no soportado
   // Solo se interpretan estas líneas en filas que no son TEXTO.
   // ======================================================
 
@@ -221,23 +227,80 @@ function numeroONull(valor) {
     );
   }
 
-  let analisisImagenes = [];
+  // ------------------------------------------------------
+  // Cascada visual: Groq -> DeepSeek -> OpenAI
+  // ------------------------------------------------------
+  //
+  // Este nodo recibe una entrada por cada rama que llega
+  // (IF ¿Hay imágenes? false, y el true de cada IF de análisis
+  // válido). n8n lo ejecuta una vez por rama con items, así que
+  // solo sigue la ejecución que ya ve TODAS las imágenes resueltas.
+  // ------------------------------------------------------
 
-  try {
-    analisisImagenes =
-      $('Validar análisis imagen').all().map(item => item.json ?? {});
-  } catch (error) {
-    analisisImagenes = [];
+  const VALIDADORES_IMAGEN = [
+    'Validar análisis imagen Groq',
+    'Validar análisis imagen DeepSeek',
+    'Validar análisis imagen OpenAI'
+  ];
+
+  function salidasDe(nodo) {
+    try {
+      return $(nodo).all().map(item => item.json ?? {});
+    } catch (error) {
+      return [];
+    }
   }
 
-  const contenidoAnalizado = new Map(
-    analisisImagenes
-      .filter(a =>
-        numeroONull(a.mensaje_id) !== null &&
-        textoONull(a.contenido_actualizado) !== null
-      )
-      .map(a => [numeroONull(a.mensaje_id), String(a.contenido_actualizado).trim()])
-  );
+  let imagenesEsperadas = 0;
+
+  try {
+    imagenesEsperadas = $('Preparar media del turno')
+      .all()
+      .filter(item => item.json?.analizar_imagen === true)
+      .length;
+  } catch (error) {
+    imagenesEsperadas = 0;
+  }
+
+  const resultadosPorValidador = VALIDADORES_IMAGEN.map(salidasDe);
+
+  const analisisValidos = resultadosPorValidador
+    .flat()
+    .filter(a => a.analisis_valido === true);
+
+  const fallidosEnTodosLosProveedores = resultadosPorValidador[VALIDADORES_IMAGEN.length - 1]
+    .filter(a => a.analisis_valido !== true);
+
+  if (imagenesEsperadas > 0) {
+    if (fallidosEnTodosLosProveedores.length > 0) {
+      return [];
+    }
+
+    if (analisisValidos.length < imagenesEsperadas) {
+      return [];
+    }
+  }
+
+  const contenidoAnalizado = new Map();
+  const proveedoresAnalisis = [];
+
+  for (const a of analisisValidos) {
+    const id = numeroONull(a.mensaje_id);
+    const contenido = textoONull(a.contenido_actualizado);
+
+    if (id === null || contenido === null || contenidoAnalizado.has(id)) {
+      continue;
+    }
+
+    contenidoAnalizado.set(id, contenido);
+
+    if (a.proveedor_analisis && !proveedoresAnalisis.includes(a.proveedor_analisis)) {
+      proveedoresAnalisis.push(a.proveedor_analisis);
+    }
+  }
+
+  const mediaActualizaciones = [...contenidoAnalizado.entries()]
+    .map(([mensajeId, contenido]) => ({ mensaje_id: mensajeId, contenido }));
 
   const mensajesTurnoOrigen =
     hayTurno && Array.isArray(turno.turno_mensajes)
@@ -272,6 +335,7 @@ function numeroONull(valor) {
   let comprobanteDetectado = false;
   let revisionImagen = false;
   let archivoNoProcesable = false;
+  let entradaNoSoportada = false;
 
   for (const m of mensajesTurno) {
     if (m.tipo === 'TEXTO') {
@@ -281,6 +345,10 @@ function numeroONull(valor) {
     for (const linea of m.contenido.split('\n').map(l => l.trim())) {
       if (linea.startsWith('[ARCHIVO NO PROCESABLE')) {
         archivoNoProcesable = true;
+      }
+
+      if (linea.startsWith('[ENTRADA NO SOPORTADA')) {
+        entradaNoSoportada = true;
       }
 
       if (m.tipo === 'IMAGEN' && linea.startsWith('[CONTEXTO DE IMAGEN')) {
@@ -308,18 +376,23 @@ function numeroONull(valor) {
     imagenes_analizadas:
       imagenesAnalizadas,
 
+    proveedores_analisis:
+      proveedoresAnalisis,
+
     comprobante_detectado:
       comprobanteDetectado,
 
     requiere_revision_humana:
-      revisionImagen || archivoNoProcesable,
+      revisionImagen || archivoNoProcesable || entradaNoSoportada,
 
     motivo_derivacion:
       archivoNoProcesable
         ? 'ARCHIVO_NO_PROCESABLE'
-        : revisionImagen
-          ? 'IMAGEN_REQUIERE_REVISION'
-          : null
+        : entradaNoSoportada
+          ? 'ENTRADA_NO_SOPORTADA'
+          : revisionImagen
+            ? 'IMAGEN_REQUIERE_REVISION'
+            : null
   };
   
   
@@ -328,8 +401,8 @@ function numeroONull(valor) {
   // ======================================================
   //
   // La entrada directa es "IF: ¿Hay imágenes por analizar?" (false)
-  // o "Guardar análisis imagen"; las filas se leen de
-  // "Recuperar historial conversación".
+  // o la rama true de un IF de análisis válido; las filas se leen
+  // de "Recuperar historial conversación".
   // ======================================================
   
   let itemsHistorial;
@@ -884,6 +957,9 @@ function numeroONull(valor) {
   
         media_turno:
           mediaTurno,
+
+        media_actualizaciones:
+          mediaActualizaciones,
   
   
         // ----------------------------------------------

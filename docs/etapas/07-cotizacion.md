@@ -207,7 +207,7 @@ Si algún detalle no tiene medidas (`MEDIDAS_INCOMPLETAS`) o tiene un lado < 2 c
 
 Si todo es producible, conserva cada item con `cotizacion_producible = true`.
 
-⚠️ Corre después de "Insert cotización" y "Crear diseño" (pendiente técnico 6), y el umbral no coincide con el del cerebro (pendiente 8).
+⚠️ Corre después de "Insert cotización" y "Crear diseño" (pendiente técnico 6), y el umbral no coincide con el del cerebro (pendiente 8). Los lados de 1 cm o menos ya no llegan aquí: el cerebro los resuelve como `MEDIDA_NO_PRODUCIBLE` (etapa 04). Los de más de 1 y menos de 2 cm sí llegan y se bloquean en este nodo.
 
 ### IF: ¿Cotización producible? · IF
 
@@ -390,10 +390,17 @@ Tabla `pegaso.prospectos`, búsqueda por `id`:
 
 Archivo: [`code/07-cotizacion/finalizar-cotizacion-comercial.js`](../../code/07-cotizacion/finalizar-cotizacion-comercial.js)
 
-Lee `$('Resolver estado post cotización')` y devuelve el cierre:
+Lee `$('Resolver estado post cotización')` (respaldo de identidad: `$('Recuperar decisión comercial')`) y devuelve el cierre (v2.1). Primero decide si la solicitud **no** fue producible; basta una señal:
 
-- **Producible**: `flujo: COTIZACION`, `resultado_cotizacion: COTIZADA`.
-- **No producible**: `flujo: COTIZACION_NO_PRODUCIBLE`, `estado_comercial: NO_COTIZABLE`, `siguiente_accion_esperada: SOLICITAR_NUEVA_MEDIDA`.
+- `cotizacion_generada = false` o `cotizacion_producible = false`;
+- `bloquear_cotizacion`, `motivo_bloqueo` o `motivo_no_producible`;
+- "Validar producibilidad P4" devolvió la cotización bloqueada;
+- la acción de "Recuperar decisión comercial" es `MEDIDA_NO_PRODUCIBLE`.
+
+Resultados:
+
+- **No producible** (resultado válido, **no lanza error**): `flujo: COTIZACION_NO_PRODUCIBLE`, `resultado_cotizacion: NO_PRODUCIBLE`, `cotizacion_id: null` y `total: null` aunque el INSERT haya creado una fila, `estado_comercial: NO_COTIZABLE`, `motivo_no_producible`, `siguiente_accion_esperada: SOLICITAR_NUEVA_MEDIDA`. Si falta `mensaje_comercial` usa el estándar: "No podemos producir las etiquetas con las medidas indicadas. Si gusta, indíquenos otra medida y con gusto le cotizamos.".
+- **Producible**: exige `cotizacion_id` y `total` válidos (si faltan, lanza error) y devuelve `flujo: COTIZACION`, `resultado_cotizacion: COTIZADA`, `estado_comercial: COTIZADO`.
 
 No escribe en la base.
 
@@ -412,4 +419,4 @@ No escribe en la base.
 
 Los fixtures `tests/fixtures/07-*.json` encadenan el caso "etiquetas de 10x5 cm" sin cantidad: extracción → mínimo → expansión → catálogo → diseño existente → producibilidad → precio $36 → resumen → mensaje → contexto → estado → cierre. Usan los datos de Ana Pérez (conversación 41, prospecto 16, cotización 77).
 
-La rama no producible usa 1x5. Además documentan los pendientes 5, 7, 8, 16, 41, 42, 44, 45 y 46.
+La rama no producible usa 1x5; `07-finalizar-cotizacion-comercial--no-producible-con-id` comprueba que el cierre no producible no lanza error aunque exista un `cotizacion_id`. Además documentan los pendientes 5, 7, 8, 16, 41, 42, 44, 45 y 46.

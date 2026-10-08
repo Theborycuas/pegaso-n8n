@@ -1,0 +1,13 @@
+{
+  "archivo": "code/08-salida-whatsapp/preparar-envio-whatsapp.js",
+  "descripcion": "Ningún nodo anterior tiene teléfono: la validación final sigue lanzando error en vez de enviar a un destino vacío.",
+  "input": [
+    { "id": 778, "conversacion_id": 41, "direccion": "SALIENTE", "tipo": "TEXTO", "contenido": "Hola" }
+  ],
+  "nodos": {
+    "Recuperar decisión comercial": [
+      { "conversacion_id": 41, "telefono": null }
+    ]
+  },
+  "error": "no se pudo resolver el teléfono destino"
+}

@@ -1,11 +1,14 @@
 // ======================================================
 // NODO N8N: Aplicar reglas comerciales determinísticas
 // ARCHIVO: code/04-cerebro-comercial/aplicar-reglas-comerciales.js
-// VERSION: 1.1
+// VERSION: 2.0
 // RESPONSABILIDAD:
 // - Aplicar reglas de negocio determinísticas de Pegaso con prioridad sobre la decisión de la IA.
 // - Detectar medida no producible (ancho_cm o alto_cm <= 1 cm) y generar restriccion_comercial MEDIDA_MINIMA_NO_PRODUCIBLE.
-// - Si es no producible: sobrescribir accion=RESPONDER_NO_PRODUCIBLE, quitar derivación/notificación, datos_suficientes_para_cotizar=false y respuesta fija.
+// - Aplicarla solo a acciones de cotización (COTIZAR_P4, MEDIDA_NO_PRODUCIBLE, RESPONDER_NO_PRODUCIBLE): una derivación humana o una
+//   respuesta informativa con medidas viejas en memoria no se tocan.
+// - Si aplica: accion = MEDIDA_NO_PRODUCIBLE (la salida del Switch "Enrutar acción comercial"), sin derivación ni notificación,
+//   datos_suficientes_para_cotizar=false y respuesta fija.
 // - Registrar la restricción en contexto_comercial (cotizacion.producible y ultima_restriccion_comercial).
 // - Conservar siempre el contrato completo recibido (...data) y marcar solicitud_producible.
 // - NO reconstruir el contrato comercial ni alterar la decisión cuando no hay restricción.
@@ -104,7 +107,17 @@ let restriccionComercial =
 // REGLA: MEDIDA MÍNIMA
 // ------------------------------------------------------
 
+const ACCIONES_DE_COTIZACION = [
+  'COTIZAR_P4',
+  'MEDIDA_NO_PRODUCIBLE',
+  'RESPONDER_NO_PRODUCIBLE'
+];
+
+const accionRecibida =
+  (textoONull(data.accion) ?? '').toUpperCase();
+
 if (
+  ACCIONES_DE_COTIZACION.includes(accionRecibida) &&
   anchoCm !== null &&
   altoCm !== null &&
   (
@@ -289,7 +302,7 @@ return [
       // ------------------------------------------------
 
       accion:
-        'RESPONDER_NO_PRODUCIBLE',
+        'MEDIDA_NO_PRODUCIBLE',
 
       requiere_humano:
         false,

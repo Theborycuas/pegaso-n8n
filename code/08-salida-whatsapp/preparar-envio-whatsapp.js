@@ -1,10 +1,12 @@
 // ======================================================
 // NODO N8N: Preparar envío WhatsApp
 // ARCHIVO: code/08-salida-whatsapp/preparar-envio-whatsapp.js
-// VERSION: 1.0
+// VERSION: 1.1
 // RESPONSABILIDAD:
 // - Recibir el mensaje saliente ya persistido en PostgreSQL (Guardar mensaje saliente / transición humano / comercial)
-// - Resolver el texto de salida y el teléfono destino del cliente
+// - Resolver el texto de salida y el teléfono destino del cliente con respaldos en orden: input, "Recuperar decisión comercial",
+//   "Preparar mensaje transición humano", "Preparar derivación humana", "Preparar entrada WhatsApp", "Preparar conversación",
+//   "Unificar prospecto" y "Normalizar mensaje" (la fila de mensajes no trae teléfono); lanzar error solo si ninguno lo tiene
 // - Confirmar que la ejecución nació de un webhook WhatsApp real de YCloud
 // - Resolver el número oficial emisor de Pegaso (con fallback fijo)
 // - Construir el body compatible con YCloud y el flag enviar_whatsapp con su motivo_no_envio
@@ -67,29 +69,44 @@ if (!textoSalida) {
 }
 
 // ======================================================
-// 2. RECUPERAR DECISIÓN COMERCIAL
+// 2. RESOLVER TELÉFONO DESTINO
+// ======================================================
+//
+// La fila de mensajes que entra no tiene teléfono. Cada rama
+// (respuesta, cotización, handoff del cerebro, handoff por imagen
+// fallida o por entrada no soportada) ejecuta nodos distintos:
+// se toma el primero que exista, sin depender de una sola rama.
 // ======================================================
 
-let decision = {};
+const FUENTES_TELEFONO = [
+  'Recuperar decisión comercial',
+  'Preparar mensaje transición humano',
+  'Preparar derivación humana',
+  'Preparar entrada WhatsApp',
+  'Preparar conversación',
+  'Unificar prospecto',
+  'Normalizar mensaje'
+];
 
-try {
-  decision =
-    $('Recuperar decisión comercial').first().json ?? {};
-} catch (error) {
-  decision = {};
+function telefonoDe(nodo) {
+  try {
+    return limpiarTelefono($(nodo).first().json?.telefono);
+  } catch (error) {
+    return null;
+  }
 }
 
-// ======================================================
-// 3. RESOLVER TELÉFONO DESTINO
-// ======================================================
-
 let telefonoDestino =
-  input.telefono ??
-  decision.telefono ??
-  null;
+  limpiarTelefono(input.telefono);
 
-telefonoDestino =
-  limpiarTelefono(telefonoDestino);
+for (const nodo of FUENTES_TELEFONO) {
+  if (telefonoDestino) {
+    break;
+  }
+
+  telefonoDestino =
+    telefonoDe(nodo);
+}
 
 if (!telefonoDestino) {
   throw new Error(
@@ -98,7 +115,7 @@ if (!telefonoDestino) {
 }
 
 // ======================================================
-// 4. RECUPERAR ENTRADA WHATSAPP
+// 3. RECUPERAR ENTRADA WHATSAPP
 // ======================================================
 
 let entradaWhatsApp = null;
@@ -111,7 +128,7 @@ try {
 }
 
 // ======================================================
-// 5. RECUPERAR EVENTO NORMALIZADO
+// 4. RECUPERAR EVENTO NORMALIZADO
 // ======================================================
 
 let eventoWhatsApp = null;
@@ -127,7 +144,7 @@ try {
 }
 
 // ======================================================
-// 6. DETERMINAR SI VIENE DE WHATSAPP REAL
+// 5. DETERMINAR SI VIENE DE WHATSAPP REAL
 // ======================================================
 //
 // Camino real:
@@ -156,7 +173,7 @@ const vieneDeWhatsAppReal =
   );
 
 // ======================================================
-// 7. RESOLVER PROVEEDOR
+// 6. RESOLVER PROVEEDOR
 // ======================================================
 
 const proveedor =
@@ -168,7 +185,7 @@ const vieneDeYCloud =
   proveedor === 'YCLOUD';
 
 // ======================================================
-// 8. RESOLVER NÚMERO EMISOR PEGASO
+// 7. RESOLVER NÚMERO EMISOR PEGASO
 // ======================================================
 //
 // YCloud inbound:
@@ -199,7 +216,7 @@ if (!telefonoEmisor) {
 }
 
 // ======================================================
-// 9. TIPO DE MENSAJE
+// 8. TIPO DE MENSAJE
 // ======================================================
 
 const tipo =
@@ -211,7 +228,7 @@ const esTexto =
   tipo === 'TEXTO';
 
 // ======================================================
-// 10. DECIDIR SI SE ENVÍA
+// 9. DECIDIR SI SE ENVÍA
 // ======================================================
 
 const enviarWhatsApp =
@@ -223,7 +240,7 @@ const enviarWhatsApp =
   !!textoSalida;
 
 // ======================================================
-// 11. MOTIVO DE NO ENVÍO
+// 10. MOTIVO DE NO ENVÍO
 // ======================================================
 
 let motivoNoEnvio = null;
@@ -262,7 +279,7 @@ if (!enviarWhatsApp) {
 }
 
 // ======================================================
-// 12. BODY YCLOUD
+// 11. BODY YCLOUD
 // ======================================================
 
 const bodyYCloud = {
@@ -277,7 +294,7 @@ const bodyYCloud = {
 };
 
 // ======================================================
-// 13. SALIDA
+// 12. SALIDA
 // ======================================================
 
 return [

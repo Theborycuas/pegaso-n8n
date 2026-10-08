@@ -1,0 +1,38 @@
+{
+  "archivo": "code/07-cotizacion/finalizar-cotizacion-comercial.js",
+  "descripcion": "Medida no producible que llegó al cotizador con un cotizacion_id (el INSERT corre antes de \"Validar producibilidad P4\") y sin mensaje comercial: no lanza error, no informa la cotización vacía y usa un mensaje estándar.",
+  "input": [
+    { "id": 16, "estado": "NUEVO" }
+  ],
+  "nodos": {
+    "Resolver estado post cotización": [
+      {
+        "conversacion_id": 41,
+        "prospecto_id": 16,
+        "cliente_id": null,
+        "cotizacion_id": 3001,
+        "total": 0,
+        "mensaje_comercial": ""
+      }
+    ],
+    "Validar producibilidad P4": [
+      { "cotizacion_producible": false, "bloquear_cotizacion": true, "motivo_bloqueo": "MEDIDA_MINIMA" }
+    ],
+    "Recuperar decisión comercial": [
+      { "conversacion_id": 41, "prospecto_id": 16, "accion": "COTIZAR_P4" }
+    ]
+  },
+  "esperado": {
+    "success": true,
+    "flujo": "COTIZACION_NO_PRODUCIBLE",
+    "resultado_cotizacion": "NO_PRODUCIBLE",
+    "cotizacion_id": null,
+    "total": null,
+    "estado_comercial": "NO_COTIZABLE",
+    "cotizacion_generada": false,
+    "motivo_no_producible": "MEDIDA_MINIMA",
+    "mensaje_comercial": "No podemos producir las etiquetas con las medidas indicadas. Si gusta, indíquenos otra medida y con gusto le cotizamos.",
+    "mensaje_comercial_estandar": true,
+    "siguiente_accion_esperada": "SOLICITAR_NUEVA_MEDIDA"
+  }
+}

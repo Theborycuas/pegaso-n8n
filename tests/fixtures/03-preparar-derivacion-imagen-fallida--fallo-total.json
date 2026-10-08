@@ -1,0 +1,67 @@
+{
+  "archivo": "code/03-conversacion/preparar-derivacion-imagen-fallida.js",
+  "descripcion": "La imagen falló en Groq, DeepSeek y OpenAI: un solo item con el contrato de \"Preparar derivación humana\" (OTRO / DERIVAR_HUMANO / IMAGEN_REQUIERE_REVISION / REVISION_IMAGEN / MEDIA / notifica), identidad recuperada de los nodos anteriores y el mensaje real del cliente sin enlaces ni líneas de sistema.",
+  "input": [
+    { "mensaje_id": 102, "conversacion_id": 41, "proveedor_analisis": "OPENAI", "analisis_valido": false, "error_analisis": "DESCARGA_O_IA_FALLIDA", "detalle_error": "timeout" }
+  ],
+  "nodos": {
+    "Preparar conversación": [
+      {
+        "telefono": "593987654321",
+        "nombre_whatsapp": "Ana Pérez",
+        "mensaje": "de unas 1000",
+        "tipo": "TEXTO",
+        "prospecto_id": 16,
+        "prospecto_estado": "COTIZADO",
+        "prospecto_nombre": "Ana Pérez",
+        "prospecto_ciudad": "Quito",
+        "conversacion_id": 41,
+        "contexto_comercial": { "cotizacion": { "ancho_cm": 10, "alto_cm": 5 } },
+        "tipo_actor": "PROSPECTO"
+      }
+    ],
+    "Resolver turno conversacional": [
+      {
+        "continuar_procesamiento": true,
+        "conversacion_id": 41,
+        "turno_mensaje_ids": [101, 102, 103],
+        "turno_mensajes": [
+          { "id": 101, "tipo": "TEXTO", "contenido": "Quiero etiquetas para esta botella" },
+          { "id": 102, "tipo": "IMAGEN", "contenido": "[IMAGEN]\n[MEDIA_PENDIENTE] {\"link\":\"https://api.ycloud.com/v2/whatsapp/media/download/media_102\"}" },
+          { "id": 103, "tipo": "TEXTO", "contenido": "de unas 1000" }
+        ]
+      }
+    ]
+  },
+  "esperadoCantidad": 1,
+  "esperado": {
+    "conversacion_id": 41,
+    "prospecto_id": 16,
+    "telefono": "593987654321",
+    "nombre_whatsapp": "Ana Pérez",
+    "prospecto_ciudad": "Quito",
+    "prospecto_clasificacion": "B",
+    "mensaje_actual": "Quiero etiquetas para esta botella\n[IMAGEN]\nde unas 1000",
+    "handoff_mensaje_cliente": "Quiero etiquetas para esta botella\n[IMAGEN]\nde unas 1000",
+    "turno_mensaje_ids": [101, 102, 103],
+    "intencion": "OTRO",
+    "accion": "DERIVAR_HUMANO",
+    "requiere_humano": true,
+    "handoff_motivo": "IMAGEN_REQUIERE_REVISION",
+    "motivo_derivacion": "IMAGEN_REQUIERE_REVISION",
+    "handoff_clasificacion": "REVISION_IMAGEN",
+    "clasificacion_handoff": "REVISION_IMAGEN",
+    "handoff_prioridad": "MEDIA",
+    "prioridad_derivacion": "MEDIA",
+    "requiere_notificacion": true,
+    "handoff_requiere_notificacion": true,
+    "origen_derivacion": "ANALISIS_IMAGEN",
+    "analisis_imagen_fallido": true,
+    "derivacion_directa": true,
+    "derivacion_directa_motivo": "FALLO_TOTAL_ANALISIS_IMAGEN",
+    "imagenes_fallidas": [
+      { "mensaje_id": 102, "ultimo_proveedor": "OPENAI", "error_analisis": "DESCARGA_O_IA_FALLIDA", "detalle_error": "timeout" }
+    ],
+    "contexto_comercial": { "cotizacion": { "ancho_cm": 10, "alto_cm": 5 } }
+  }
+}

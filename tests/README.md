@@ -37,6 +37,9 @@ node scripts/run-node.mjs tests/fixtures/<archivo>    # corre uno e imprime la s
 | `input` | Items que recibe el nodo (`$input`). Un Postgres sin resultados con *Always Output Data* entrega `[{}]` |
 | `nodos` | Salida de otros nodos que el código lee con `$('...')` |
 | `esperado` | Campos que debe tener el primer item de salida (solo se comparan los que pongas). Los arrays se comparan completos; para revisar solo parte de un elemento usa el índice como clave: `"detalles": { "0": { "cantidad": 1000 } }` |
+| `esperadoItem` | Opcional: campos del primer item **completo** (`json`, `binary`, `pairedItem`), p. ej. para comprobar que el binario se reenvía |
+| `esperadoCantidad` | Opcional: cantidad exacta de items de salida (`0` = el nodo no devuelve nada y la rama se detiene) |
+| `binarios` | Opcional: binarios por nodo (`{ "Descargar imagen YCloud": [ { "imagen": { "mimeType": "image/jpeg" } } ] }`) |
 | `error` | En lugar de `esperado`: texto que debe contener el error que lanza el nodo |
 
 Nombre: `<etapa>-<nodo>--<caso>.json`, por ejemplo `03-resolver-permiso--modo-prueba-autorizado.json`.
@@ -44,22 +47,23 @@ Nombre: `<etapa>-<nodo>--<caso>.json`, por ejemplo `03-resolver-permiso--modo-pr
 Los fixtures de las etapas 01–08 encadenan el mismo prospecto (Ana Pérez, `593987654321`, conversación 41, prospecto 16): la entrada de cada nodo es la salida real del anterior. Hay cuatro casos:
 
 - "Hola, necesito etiquetas de 10x5 cm", del webhook de YCloud al Switch (`COTIZAR_P4`). Sigue por la cotización (07): sin cantidad, diseño existente, cotización 77 por $36, cierre y envío por YCloud (08).
-- La variante 1x5, que llega al cotizador (pendiente 2) y sale por la rama no producible.
+- La variante 1x5 en la etapa 07 (rama no producible del cotizador). En la etapa 04 la misma medida ya termina en `MEDIDA_NO_PRODUCIBLE` y no llega al cotizador; los fixtures 07 se conservan para la rama de 1 a 2 cm (pendiente 8).
 - Pregunta por el material: rama de respuesta comercial (05).
-- "Pásame una cuenta para pagar": rama de derivación humana (06) hasta el correo interno.
+- "Pásame una cuenta para pagar" / "Hola. Envíeme un número de cuenta por favor.": rama de derivación humana (06) hasta el correo interno (`INTERESADO_PAGO`, ALTA).
 
 Los fixtures del turno conversacional (`03-resolver-turno--*`) usan ids de mensaje propios por caso. Simulan lo que ve **cada ejecución** después de la espera: el mismo historial con distinto `Guardar mensaje entrante` decide quién responde (`--dos-mensajes-gana-ultimo` frente a `--dos-mensajes-anterior-no-reacciona`). "Preparar contexto IA" lee el historial con `$('Recuperar historial conversación')`, así que en sus fixtures las filas van en `nodos` y `input` es la salida del IF "¿Procesar turno?". La confirmación atómica ("Confirmar turno conversacional") es SQL y se prueba en n8n.
 
 Los fixtures de imágenes siguen el recorrido de un turno con media:
 
 - `01-preparar-entrada--imagen*`, `--audio-*` y `--sticker-*`: el descriptor que se guarda en `mensajes.contenido`.
+- `01-preparar-entrada-no-soportada--*`: ubicación y audio sin `media_id` (derivación directa) y sticker (ignorado, sin item).
 - `03-preparar-media-turno--*`: qué imágenes se analizan.
-- `03-validar-analisis-imagen--*`: la salida de "Analizar imagen" va en `input` (`output`, `text` o `error`) y la de "Preparar media del turno" en `nodos`.
-- `03-preparar-contexto-ia--*` con media.
+- `03-validar-analisis-imagen-groq--*`, `-deepseek--*`, `-openai--*`: la salida del "Analizar imagen …" de ese proveedor va en `input` (`output`, `text` o `error`); "Preparar media del turno" y "Descargar imagen YCloud" van en `nodos`, y el binario en `binarios` (para comprobar que el validador lo reenvía al siguiente proveedor).
+- `03-preparar-contexto-ia--*` con media, incluidos `--espera-fallback-imagen` y `--fallo-total-imagen-no-continua` (sin item: `esperadoCantidad: 0`).
 - `04-normalizar-decision-ia--imagen-*`: las derivaciones forzadas.
-- `06-*--imagen-*` / `--envia-comprobante`.
+- `06-*--imagen-*` / `--envia-comprobante` / `--entrada-no-soportada-directa`.
 
-La descarga (HTTP), la IA visual y el UPDATE se prueban en n8n (pendiente técnico 62). Ningún fixture usa enlaces ni claves reales.
+La descarga (HTTP) y la IA visual se prueban en n8n (pendiente técnico 62). Ningún fixture usa enlaces ni claves reales.
 
 Los que documentan un bug actual lo dicen en `descripcion` y citan el número de [pendientes técnicos](../docs/pendientes-tecnicos.md); al corregirlo, actualiza su `esperado`.
 

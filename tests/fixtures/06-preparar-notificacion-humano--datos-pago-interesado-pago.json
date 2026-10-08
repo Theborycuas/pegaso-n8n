@@ -1,0 +1,48 @@
+{
+  "archivo": "code/06-derivacion-humana/preparar-notificacion-humano.js",
+  "descripcion": "\"Hola. Envíeme un número de cuenta por favor.\": SOLICITA_DATOS_PAGO es INTERESADO_PAGO con prioridad ALTA, y el correo conserva intención, motivo, nombre, ciudad, clasificación y el mensaje real del cliente (antes salía con categoría y asunto genéricos, pendiente técnico 11).",
+  "input": [
+    {
+      "success": true,
+      "flujo": "DERIVACION_HUMANA",
+      "conversacion_id": 41,
+      "prospecto_id": 16,
+      "cliente_id": null,
+      "contacto_id": null,
+      "telefono": "593987654321",
+      "nombre_whatsapp": "Borys",
+      "prospecto_nombre": "Borys Espinoza",
+      "prospecto_ciudad": "Cuenca",
+      "prospecto_provincia": "Azuay",
+      "prospecto_clasificacion": "A",
+      "intencion": "CONSULTAR_PAGO",
+      "accion": "DERIVAR_HUMANO",
+      "handoff_motivo": "SOLICITA_DATOS_PAGO",
+      "motivo": "SOLICITA_DATOS_PAGO",
+      "handoff_clasificacion": "CIERRE_COMERCIAL",
+      "clasificacion_handoff": "CIERRE_COMERCIAL",
+      "handoff_prioridad": "ALTA",
+      "prioridad": "ALTA",
+      "requiere_humano": true,
+      "requiere_notificacion": true,
+      "handoff_requiere_notificacion": true,
+      "origen_derivacion": "CEREBRO_COMERCIAL",
+      "mensaje_cliente_original": "Hola. Envíeme un número de cuenta por favor.",
+      "handoff_mensaje_cliente": "Hola. Envíeme un número de cuenta por favor.",
+      "mensaje_transicion": "En breve le pasamos nuestros datos personales y números de cuenta.",
+      "handoff_mensaje_transicion": "En breve le pasamos nuestros datos personales y números de cuenta.",
+      "automatizacion_comercial_finalizada": true,
+      "derivado_at": "2026-10-07T23:53:47.512Z",
+      "handoff_at": "2026-10-07T23:53:47.512Z"
+    }
+  ],
+  "esperado": {
+    "categoria_notificacion": "INTERESADO_PAGO",
+    "prioridad_notificacion": "ALTA",
+    "asunto_notificacion": "🔥 Pegaso - Prospecto solicita datos de pago",
+    "canal_notificacion": "EMAIL",
+    "intencion": "CONSULTAR_PAGO",
+    "handoff_motivo": "SOLICITA_DATOS_PAGO",
+    "mensaje_notificacion": "PEGASO ADHESIVOS\n\nNueva conversación requiere atención.\n\nPrioridad: ALTA\nCategoría: INTERESADO_PAGO\nMotivo: SOLICITA_DATOS_PAGO\nIntención: CONSULTAR_PAGO\nOrigen: CEREBRO_COMERCIAL\n\nProspecto: Borys Espinoza\nTeléfono: 593987654321\nCiudad: Cuenca\nClasificación: A\n\nÚltimo mensaje:\nHola. Envíeme un número de cuenta por favor.\n\nConversación ID: 41\nProspecto ID: 16"
+  }
+}

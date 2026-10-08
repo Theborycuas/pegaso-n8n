@@ -1,0 +1,35 @@
+{
+  "archivo": "code/06-derivacion-humana/preparar-derivacion-humana.js",
+  "descripcion": "La IA dejó motivo NINGUNO para CONSULTAR_PAGO: el motivo se deduce de la intención (SOLICITA_DATOS_PAGO), con CIERRE_COMERCIAL, prioridad ALTA y notificación; origen CEREBRO_COMERCIAL.",
+  "input": [
+    {
+      "conversacion_id": 41,
+      "prospecto_id": 16,
+      "telefono": "593987654321",
+      "prospecto_nombre": "Borys Espinoza",
+      "prospecto_ciudad": "Cuenca",
+      "clasificacion_prospecto": "A",
+      "mensaje_actual": "Hola. Envíeme un número de cuenta por favor.",
+      "intencion": "CONSULTAR_PAGO",
+      "accion": "DERIVAR_HUMANO",
+      "requiere_humano": true,
+      "motivo_derivacion": "NINGUNO",
+      "requiere_notificacion": false,
+      "prioridad_derivacion": "NORMAL"
+    }
+  ],
+  "esperado": {
+    "intencion": "CONSULTAR_PAGO",
+    "accion": "DERIVAR_HUMANO",
+    "handoff_motivo": "SOLICITA_DATOS_PAGO",
+    "handoff_clasificacion": "CIERRE_COMERCIAL",
+    "handoff_prioridad": "ALTA",
+    "requiere_notificacion": true,
+    "origen_derivacion": "CEREBRO_COMERCIAL",
+    "derivacion_directa": false,
+    "prospecto_nombre": "Borys Espinoza",
+    "prospecto_ciudad": "Cuenca",
+    "prospecto_clasificacion": "A",
+    "mensaje_cliente_original": "Hola. Envíeme un número de cuenta por favor."
+  }
+}

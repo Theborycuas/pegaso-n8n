@@ -1,16 +1,19 @@
 // ======================================================
 // NODO N8N: Normalizar decisión IA
 // ARCHIVO: code/04-cerebro-comercial/normalizar-decision-ia.js
-// VERSION: 2.1
+// VERSION: 2.2
 // RESPONSABILIDAD:
 // - Convertir la decisión YA VALIDADA (de cualquier proveedor) en un contrato único Pegaso con tipos normalizados.
 // - Unir la decisión con el contexto de "Preparar contexto IA" (IDs, prospecto, tipo_actor, contexto_comercial) y resolver ciudad/provincia.
 // - Aplicar la evidencia multimedia del turno (media_turno): comprobante detectado -> REPORTAR_PAGO + DERIVAR_HUMANO + ENVIA_COMPROBANTE;
-//   imagen/archivo que requiere revisión -> DERIVAR_HUMANO + IMAGEN_REQUIERE_REVISION / ARCHIVO_NO_PROCESABLE.
+//   imagen/archivo/entrada que requiere revisión -> DERIVAR_HUMANO + IMAGEN_REQUIERE_REVISION / ARCHIVO_NO_PROCESABLE / ENTRADA_NO_SOPORTADA.
 //   Si la IA ya derivó por otro motivo, se respeta (salvo comprobante frente a motivos no prioritarios).
+// - Respetar la derivación ya resuelta por la IA: DERIVAR_HUMANO implica requiere_humano; un motivo NINGUNO se deduce de la intención
+//   (CONSULTAR_PAGO -> SOLICITA_DATOS_PAGO) en vez de degradarlo.
 // - Impedir degradar la clasificación A/B/C: máximo entre anterior, IA y mínimo por intención/motivo.
 // - Calcular etiqueta_grande (lado corto > 10 o lado largo > 15 cm) y banderas de continuidad.
-// - Forzar requiere_notificacion=requiere_humano y calcular prioridad_derivacion (ALTA/MEDIA/NORMAL).
+// - Forzar requiere_notificacion=requiere_humano y calcular prioridad_derivacion: la mayor entre la de la IA (si la trae) y la regla
+//   (ALTA por pago, comprobante, pedido o reclamo; MEDIA para cualquier otra derivación; NORMAL sin derivación).
 // - Limpiar el tono de respuesta_sugerida (😊 y aperturas robóticas).
 // - Lanzar error si hay medidas/cantidad <= 0 o requiere_humano sin DERIVAR_HUMANO.
 // - NO decidir la acción final (lo hace "Resolver contexto comercial").
@@ -230,6 +233,34 @@ let motivoDerivacion =
 
 
 // ======================================================
+// 4.A. DERIVACIÓN YA RESUELTA POR LA IA
+// ======================================================
+//
+// DERIVAR_HUMANO siempre requiere humano. Si la IA no puso
+// motivo, se deduce de la intención para que la derivación no
+// llegue a la etapa 06 como OTRO / ATENCION_COMERCIAL.
+// ======================================================
+
+const MOTIVO_POR_INTENCION = {
+  CONSULTAR_PAGO: 'SOLICITA_DATOS_PAGO',
+  REPORTAR_PAGO: 'REPORTA_PAGO',
+  CONFIRMAR_PEDIDO: 'CONFIRMAR_PEDIDO',
+  NEGOCIAR: 'NEGOCIACION',
+  RECLAMO: 'RECLAMO',
+  SOLICITAR_LLAMADA: 'SOLICITA_LLAMADA',
+  SOLICITAR_HUMANO: 'SOLICITA_HABLAR_CON_PERSONA'
+};
+
+if (accion === 'DERIVAR_HUMANO') {
+  requiereHumano = true;
+
+  if (motivoDerivacion === 'NINGUNO' && MOTIVO_POR_INTENCION[intencion]) {
+    motivoDerivacion = MOTIVO_POR_INTENCION[intencion];
+  }
+}
+
+
+// ======================================================
 // 4.0. EVIDENCIA MULTIMEDIA DEL TURNO
 // ======================================================
 //
@@ -272,8 +303,11 @@ if (
     'Muchas gracias. En breve verificamos la información para continuar con su pedido.';
 } else if (
   mediaTurno.requiere_revision_humana === true &&
-  requiereHumano !== true &&
-  ['IMAGEN_REQUIERE_REVISION', 'ARCHIVO_NO_PROCESABLE'].includes(mediaTurno.motivo_derivacion)
+  (
+    requiereHumano !== true ||
+    ['NINGUNO', 'OTRO'].includes(motivoDerivacion)
+  ) &&
+  ['IMAGEN_REQUIERE_REVISION', 'ARCHIVO_NO_PROCESABLE', 'ENTRADA_NO_SOPORTADA'].includes(mediaTurno.motivo_derivacion)
 ) {
   derivacionPorMedia = 'REVISION_MEDIA';
   accion = 'DERIVAR_HUMANO';
@@ -282,7 +316,9 @@ if (
   respuestaSugerida =
     motivoDerivacion === 'IMAGEN_REQUIERE_REVISION'
       ? 'Permítame un momento por favor, ya revisamos la imagen que nos envió.'
-      : 'Permítame un momento por favor, ya revisamos el archivo que nos envió.';
+      : motivoDerivacion === 'ARCHIVO_NO_PROCESABLE'
+        ? 'Permítame un momento por favor, ya revisamos el archivo que nos envió.'
+        : 'Permítame un momento por favor, ya revisamos el mensaje que nos envió.';
 }
 
 
@@ -570,7 +606,13 @@ const cierreCordial =
 const requiereNotificacion =
   requiereHumano === true;
 
-let prioridadDerivacion =
+const RANGO_PRIORIDAD = {
+  NORMAL: 1,
+  MEDIA: 2,
+  ALTA: 3
+};
+
+let prioridadPorRegla =
   'NORMAL';
 
 if (
@@ -585,14 +627,28 @@ if (
     'PROBLEMA_ENTREGA'
   ].includes(motivoDerivacion)
 ) {
-  prioridadDerivacion =
+  prioridadPorRegla =
     'ALTA';
 } else if (
   requiereHumano
 ) {
-  prioridadDerivacion =
+  prioridadPorRegla =
     'MEDIA';
 }
+
+// Si el schema del proveedor trae prioridad_derivacion, se respeta
+// cuando es mayor; sin derivación no hay prioridad que subir.
+const prioridadIA =
+  texto(
+    decision.prioridad_derivacion,
+    ''
+  ).toUpperCase();
+
+const prioridadDerivacion =
+  requiereHumano &&
+  RANGO_PRIORIDAD[prioridadIA] > RANGO_PRIORIDAD[prioridadPorRegla]
+    ? prioridadIA
+    : prioridadPorRegla;
 
 
 // ======================================================

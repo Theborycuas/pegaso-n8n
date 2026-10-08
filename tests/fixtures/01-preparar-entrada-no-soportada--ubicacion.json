@@ -1,0 +1,34 @@
+{
+  "archivo": "code/01-entrada/preparar-entrada-no-soportada.js",
+  "descripcion": "Ubicación (no es texto ni media procesable): sale con un descriptor controlado, derivacion_directa = true y motivo ENTRADA_NO_SOPORTADA; sigue a \"Normalizar mensaje\" para guardarse y luego va directo a \"Preparar derivación humana\".",
+  "input": [
+    {
+      "telefono": "593987654321",
+      "nombre_whatsapp": "Ana Pérez",
+      "mensaje": "",
+      "tipo": "UBICACION",
+      "canal": "WHATSAPP",
+      "mensaje_externo_id": "wamid.LOC1",
+      "apto_para_flujo_texto": false,
+      "requiere_procesamiento_media": false,
+      "entrada_soportada_flujo": false,
+      "meta_whatsapp": { "tipo_original": "location" }
+    }
+  ],
+  "esperado": {
+    "telefono": "593987654321",
+    "mensaje_externo_id": "wamid.LOC1",
+    "tipo": "UBICACION",
+    "mensaje": "[UBICACION]\n[ENTRADA NO SOPORTADA · tipo=UBICACION · original=location] El bot no puede revisar este tipo de mensaje automáticamente.",
+    "entrada_soportada_flujo": false,
+    "derivacion_directa": true,
+    "derivacion_directa_motivo": "ENTRADA_NO_SOPORTADA",
+    "origen_derivacion": "ENTRADA_NO_SOPORTADA",
+    "derivacion_motivo": "ENTRADA_NO_SOPORTADA",
+    "derivacion_clasificacion": "REVISION_COMERCIAL",
+    "derivacion_prioridad": "MEDIA"
+  },
+  "esperadoItem": {
+    "pairedItem": { "item": 0 }
+  }
+}

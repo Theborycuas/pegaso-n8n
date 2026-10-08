@@ -1,0 +1,42 @@
+{
+  "archivo": "code/04-cerebro-comercial/normalizar-decision-ia.js",
+  "descripcion": "La IA eligió DERIVAR_HUMANO para CONSULTAR_PAGO pero dejó requiere_humano=false y motivo NINGUNO: la acción manda (requiere_humano=true) y el motivo se deduce de la intención (SOLICITA_DATOS_PAGO, ALTA, notifica).",
+  "input": [
+    {
+      "intencion": "CONSULTAR_PAGO",
+      "accion": "DERIVAR_HUMANO",
+      "producto": null,
+      "material": null,
+      "cantidad": null,
+      "ancho_cm": null,
+      "alto_cm": null,
+      "forma": "NO_ESPECIFICADA",
+      "datos_suficientes_para_cotizar": false,
+      "requiere_humano": false,
+      "motivo_derivacion": "NINGUNO",
+      "requiere_notificacion": false,
+      "clasificacion_prospecto": "A",
+      "respuesta_sugerida": "En breve le pasamos nuestros datos personales y números de cuenta.",
+      "valid": true
+    }
+  ],
+  "nodos": {
+    "Preparar contexto IA": [
+      {
+        "conversacion_id": 41,
+        "prospecto_id": 16,
+        "prospecto_estado": "NUEVO",
+        "tipo_actor": "PROSPECTO",
+        "mensaje_actual": "Envíeme un número de cuenta",
+        "contexto_comercial": {}
+      }
+    ]
+  },
+  "esperado": {
+    "accion": "DERIVAR_HUMANO",
+    "requiere_humano": true,
+    "motivo_derivacion": "SOLICITA_DATOS_PAGO",
+    "prioridad_derivacion": "ALTA",
+    "requiere_notificacion": true
+  }
+}

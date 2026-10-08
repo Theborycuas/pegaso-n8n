@@ -1,0 +1,61 @@
+{
+  "archivo": "code/06-derivacion-humana/preparar-derivacion-humana.js",
+  "descripcion": "Ubicación derivada sin IA: por \"IF: ¿Derivación directa por entrada?\" llega la salida de \"Resolver turno conversacional\" (sin decisión). La decisión se toma de \"Normalizar mensaje\" (ENTRADA_NO_SOPORTADA / REVISION_COMERCIAL / MEDIA) y la identidad de \"Preparar conversación\".",
+  "input": [
+    {
+      "continuar_procesamiento": true,
+      "conversacion_id": 41,
+      "mensaje_id": 900,
+      "turno_mensaje_ids": [900],
+      "turno_texto": "[UBICACION]\n[ENTRADA NO SOPORTADA · tipo=UBICACION · original=location] El bot no puede revisar este tipo de mensaje automáticamente."
+    }
+  ],
+  "nodos": {
+    "Normalizar mensaje": [
+      {
+        "telefono": "593987654321",
+        "nombre_whatsapp": "Ana Pérez",
+        "tipo": "UBICACION",
+        "derivacion_directa": true,
+        "derivacion_directa_motivo": "ENTRADA_NO_SOPORTADA",
+        "origen_derivacion": "ENTRADA_NO_SOPORTADA",
+        "derivacion_motivo": "ENTRADA_NO_SOPORTADA",
+        "derivacion_clasificacion": "REVISION_COMERCIAL",
+        "derivacion_prioridad": "MEDIA"
+      }
+    ],
+    "Preparar conversación": [
+      {
+        "telefono": "593987654321",
+        "nombre_whatsapp": "Ana Pérez",
+        "prospecto_id": 16,
+        "prospecto_nombre": "Ana Pérez",
+        "prospecto_ciudad": "Quito",
+        "prospecto_clasificacion": "C",
+        "conversacion_id": 41,
+        "contexto_comercial": { "prospecto": { "id": 16 } }
+      }
+    ]
+  },
+  "esperado": {
+    "conversacion_id": 41,
+    "prospecto_id": 16,
+    "telefono": "593987654321",
+    "prospecto_nombre": "Ana Pérez",
+    "prospecto_ciudad": "Quito",
+    "intencion": "OTRO",
+    "accion": "DERIVAR_HUMANO",
+    "requiere_humano": true,
+    "handoff_motivo": "ENTRADA_NO_SOPORTADA",
+    "motivo_derivacion": "ENTRADA_NO_SOPORTADA",
+    "handoff_clasificacion": "REVISION_COMERCIAL",
+    "handoff_prioridad": "MEDIA",
+    "requiere_notificacion": true,
+    "handoff_requiere_notificacion": true,
+    "origen_derivacion": "ENTRADA_NO_SOPORTADA",
+    "derivacion_directa": true,
+    "derivacion_directa_motivo": "ENTRADA_NO_SOPORTADA",
+    "analisis_imagen_fallido": false,
+    "contexto_comercial": { "prospecto": { "id": 16 } }
+  }
+}

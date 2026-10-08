@@ -1,0 +1,41 @@
+{
+  "archivo": "code/03-conversacion/preparar-contexto-ia.js",
+  "descripcion": "Cascada visual · una imagen falló en Groq, DeepSeek y OpenAI: ese turno lo atiende \"Preparar derivación imagen fallida\"; aunque otra imagen del turno sea válida, este nodo no saca item (no hay respuesta del cerebro además del handoff).",
+  "input": [
+    { "mensaje_id": 701, "analisis_valido": true }
+  ],
+  "nodos": {
+    "Resolver turno conversacional": [
+      {
+        "continuar_procesamiento": true,
+        "conversacion_id": 41,
+        "mensaje_id": 702,
+        "turno_mensaje_ids": [701, 702],
+        "turno_mensajes": [
+          { "id": 701, "tipo": "IMAGEN", "contenido": "[IMAGEN]" },
+          { "id": 702, "tipo": "IMAGEN", "contenido": "[IMAGEN]" }
+        ],
+        "turno_texto": "[IMAGEN]\n[IMAGEN]"
+      }
+    ],
+    "Preparar media del turno": [
+      { "analizar_imagen": true, "mensaje_id": 701 },
+      { "analizar_imagen": true, "mensaje_id": 702 }
+    ],
+    "Validar análisis imagen Groq": [
+      { "mensaje_id": 701, "proveedor_analisis": "GROQ", "analisis_valido": true, "contenido_actualizado": "[IMAGEN]\n[CONTEXTO DE IMAGEN · proveedor=GROQ · contenido=LOGO · confianza=ALTA · revision=NO] Logo." },
+      { "mensaje_id": 702, "proveedor_analisis": "GROQ", "analisis_valido": false }
+    ],
+    "Validar análisis imagen DeepSeek": [
+      { "mensaje_id": 702, "proveedor_analisis": "DEEPSEEK", "analisis_valido": false }
+    ],
+    "Validar análisis imagen OpenAI": [
+      { "mensaje_id": 702, "proveedor_analisis": "OPENAI", "analisis_valido": false }
+    ],
+    "Recuperar historial conversación": [],
+    "Preparar conversación": [
+      { "mensaje": "[IMAGEN]", "tipo": "IMAGEN", "prospecto_id": 16, "conversacion_id": 41, "contexto_comercial": {}, "tipo_actor": "PROSPECTO" }
+    ]
+  },
+  "esperadoCantidad": 0
+}

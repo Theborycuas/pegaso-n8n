@@ -12,7 +12,8 @@ Reglas de negocio que aplica hoy el bot, con el archivo donde vive cada una. Cua
 | Prospecto con `requiere_humano = true` | No responde; ya lo atiende una persona | IF "¿Requiere atención humana?" |
 | Imagen JPEG/PNG/WebP (con o sin caption) | Responde: la analiza la IA visual y entra al turno como contexto (ver [Imágenes](#imágenes-y-archivos)) | `01-entrada/preparar-entrada-whatsapp.js` → etapa 03 |
 | Audio, video, documento, imagen en otro formato | Guarda el mensaje y deriva a una persona (`ARCHIVO_NO_PROCESABLE`) | mismos archivos + `04-cerebro-comercial/normalizar-decision-ia.js` |
-| Sticker, ubicación, contacto, reacción, interactivo | No responde | `01-entrada/preparar-entrada-whatsapp.js` |
+| Sticker, reacción | No responde (se ignora en silencio) | `01-entrada/preparar-entrada-no-soportada.js` |
+| Ubicación, contacto, interactivo, tipo desconocido | Guarda el mensaje y deriva a una persona sin pasar por la IA (`ENTRADA_NO_SOPORTADA`, prioridad MEDIA, correo); al cliente: "Permítame un momento por favor, ya revisamos el mensaje que nos envió." | `01-entrada/preparar-entrada-no-soportada.js` → "IF: ¿Derivación directa por entrada?" → `06-derivacion-humana/` |
 | `MODO_PRUEBA` activo | Solo responde a `telefonos_permitidos` | `03-conversacion/resolver-permiso-automatizacion.js` |
 | Varios mensajes seguidos | Responde **una sola vez**, después del último, a todos juntos | `03-conversacion/resolver-turno-conversacional.js` + "Confirmar turno conversacional" |
 
@@ -56,9 +57,11 @@ Una imagen es un mensaje más del turno: texto + imagen + texto se responde **un
 | Medidas | **nunca** se deducen de una foto; solo se toman si están escritas en la imagen. Sin medidas → `PEDIR_MEDIDAS` | `prompts/analisis-imagen.md`, `prompts/cerebro-comercial.md` §28 |
 | Caption | siempre forma parte del turno y de la consulta a la IA visual | `preparar-entrada-whatsapp.js`, `preparar-media-turno.js` |
 | Diseño o etiqueta enviada | el cliente ya tiene diseño (no pregunta "¿tiene diseño?") | `prompts/cerebro-comercial.md` §28 |
-| Foto no relacionada | no se inventa producto; el cerebro responde normal | `validar-analisis-imagen.js`, prompt §28 |
-| Comprobante de pago | se **detecta**, no se confirma: `REPORTAR_PAGO` + `DERIVAR_HUMANO` + `ENVIA_COMPROBANTE` (clasificación A, ALTA, correo) | `validar-analisis-imagen.js`, `normalizar-decision-ia.js` |
-| Imagen ilegible, ambigua, confianza baja, no descargable o análisis fallido | `DERIVAR_HUMANO` + `IMAGEN_REQUIERE_REVISION`; al cliente: "Permítame un momento por favor, ya revisamos la imagen que nos envió." | `validar-analisis-imagen.js`, `normalizar-decision-ia.js` |
+| Proveedores | Groq → DeepSeek → OpenAI en cascada, mismo prompt y schema; el primero válido gana | `validar-analisis-imagen-{groq,deepseek,openai}.js` |
+| Foto no relacionada | no se inventa producto; el cerebro responde normal | `validar-analisis-imagen-*.js`, prompt §28 |
+| Comprobante de pago | se **detecta**, no se confirma: `REPORTAR_PAGO` + `DERIVAR_HUMANO` + `ENVIA_COMPROBANTE` (clasificación A, ALTA, correo) | `validar-analisis-imagen-*.js`, `normalizar-decision-ia.js` |
+| Imagen analizada pero ilegible, ambigua o de confianza baja | `DERIVAR_HUMANO` + `IMAGEN_REQUIERE_REVISION` (vía cerebro); al cliente: "Permítame un momento por favor, ya revisamos la imagen que nos envió." | `validar-analisis-imagen-*.js`, `normalizar-decision-ia.js` |
+| Imagen no descargable o que falla en los tres proveedores | derivación directa, sin cerebro: `IMAGEN_REQUIERE_REVISION` / `REVISION_IMAGEN` / MEDIA, correo; mismo texto al cliente | `preparar-derivacion-imagen-fallida.js` |
 | Audio, video, documento, otro formato | `DERIVAR_HUMANO` + `ARCHIVO_NO_PROCESABLE`; al cliente: "…ya revisamos el archivo que nos envió." | `preparar-entrada-whatsapp.js`, `normalizar-decision-ia.js` |
 
 Una imagen clara (botella, etiqueta, logo, referencia) **no** deriva. Fórmula de precio, mínimo de 1000, reglas P4 y clasificación A/B/C no cambian; el comprobante llega a A por las reglas existentes de `REPORTAR_PAGO`.
@@ -77,18 +80,21 @@ Texto al cliente: *"La cantidad mínima de impresión es de 1000 etiquetas por d
 
 ## 3. Medidas mínimas producibles
 
-⚠️ Hoy conviven dos umbrales:
+**Regla principal**: un lado de **1 cm o menos** no se cotiza. Se resuelve en el cerebro (etapa 04) con la acción `MEDIDA_NO_PRODUCIBLE`, que va a la respuesta comercial (etapa 05) y **nunca** entra al cotizador. No deriva a humano. Texto al cliente:
+
+*"No trabajamos etiquetas que tengan 1 cm o menos en cualquiera de sus lados. La medida mínima que podemos trabajar debe ser mayor a 1 cm. Si gusta, indíquenos una medida mayor y con gusto le cotizamos."*
 
 | Nodo | Regla | Efecto |
 |---|---|---|
-| `04-cerebro-comercial/validar-extraccion-cerebro.js` | lado ≤ 1 cm | exige acción `MEDIDA_NO_PRODUCIBLE` |
-| `04-cerebro-comercial/aplicar-reglas-comerciales.js` | lado ≤ 1 cm | fuerza `RESPONDER_NO_PRODUCIBLE` |
+| `04-cerebro-comercial/validar-extraccion-cerebro.js` | lado ≤ 1 cm | exige acción `MEDIDA_NO_PRODUCIBLE` a la IA |
+| `04-cerebro-comercial/resolver-contexto-comercial.js` | lado ≤ 1 cm y la acción iba a ser `COTIZAR_P4` | `MEDIDA_NO_PRODUCIBLE` (no la convierte en `COTIZAR_P4`) |
+| `04-cerebro-comercial/aplicar-reglas-comerciales.js` | lado ≤ 1 cm, solo en acciones de cotización | `MEDIDA_NO_PRODUCIBLE` y restricción en `contexto_comercial`; una derivación humana no se toca |
+| `04-cerebro-comercial/recuperar-decision-comercial.js` | solicitud bloqueada por la regla anterior | el Switch recibe `MEDIDA_NO_PRODUCIBLE` |
 | `07-cotizacion/validar-producibilidad-p4.js` | lado **< 2 cm** | bloquea la cotización completa |
 | `07-cotizacion/calcular-precio-detalle.js` | lado < 2 cm | lanza error |
+| `07-cotizacion/finalizar-cotizacion-comercial.js` | cotización bloqueada | cierre válido `NO_PRODUCIBLE` (no lanza error) |
 
-Mensaje al cliente (`construir-mensaje-no-producible.js`): *"La medida de AxB cm no es posible de producir. No trabajamos etiquetas que tengan 1 cm o menos en cualquiera de sus lados. Indíquenos otra medida y con gusto le cotizamos."*
-
-Ese texto sale solo si un lado mide ≤ 1 cm. Entre 1 y 2 cm (p. ej. 1,5) el mensaje es genérico: *"No podemos producir las etiquetas con las medidas indicadas. Indíquenos otra medida y con gusto le cotizamos."* (pendiente técnico 8).
+⚠️ Entre 1 y 2 cm (p. ej. 1,5) la medida sí llega al cotizador y la bloquea "Validar producibilidad P4" con el mensaje genérico de `construir-mensaje-no-producible.js`: *"No podemos producir las etiquetas con las medidas indicadas. Indíquenos otra medida y con gusto le cotizamos."* (pendiente técnico 8). Si un lado ≤ 1 cm llegara igual al cotizador, ese nodo usa *"La medida de AxB cm no es posible de producir. No trabajamos etiquetas que tengan 1 cm o menos en cualquiera de sus lados. Indíquenos otra medida y con gusto le cotizamos."*
 
 Un solo detalle no producible bloquea **toda** la cotización. No hay medida máxima.
 
@@ -221,10 +227,12 @@ La IA elige **una intención** y **una acción** (`schemas/cerebro-comercial.sch
 | INFORMAR_METODOLOGIA_PAGO | CONSULTAR_PAGO | 05 Respuesta |
 | REGISTRAR_ACEPTACION | ACEPTAR_COTIZACION, clasificación A | 05 Respuesta |
 | RESPONDER_GENERAL | OTRO, APORTAR_DATOS, POSPONER_DECISION | 05 Respuesta |
-| MEDIDA_NO_PRODUCIBLE ⚠️ | lado ≤ 1 cm | por confirmar (hoy termina en 07 Cotización) |
+| MEDIDA_NO_PRODUCIBLE | lado ≤ 1 cm (cualquier intención de cotizar) | 05 Respuesta (pide una medida mayor; no cotiza ni deriva) |
 | DERIVAR_HUMANO | REPORTAR_PAGO, CONFIRMAR_PEDIDO, SOLICITAR_LLAMADA, SOLICITAR_HUMANO, NEGOCIAR, RECLAMO (obligatorio); CONSULTAR_PAGO concreto | 06 Derivación |
 
-⚠️ `MEDIDA_NO_PRODUCIBLE` no está en el enum del schema ni en el prompt, y hoy "Resolver contexto comercial" la convierte en `COTIZAR_P4`. `RESPONDER_NO_PRODUCIBLE` (de `aplicar-reglas-comerciales.js`) nunca llega al Switch (pendiente técnico 2). Las reglas exactas del Switch y su salida Fallback están por documentar (pendiente técnico 37).
+`MEDIDA_NO_PRODUCIBLE` está en el enum del schema y en el prompt (§8); "Resolver contexto comercial" y "Aplicar reglas comerciales determinísticas" la fijan, y "Recuperar decisión comercial" la entrega al Switch. El nombre antiguo `RESPONDER_NO_PRODUCIBLE` ya no se genera. Las reglas exactas del Switch y su salida Fallback están por documentar (pendiente técnico 37); la salida `MEDIDA_NO_PRODUCIBLE` debe ir a la etapa 05.
+
+Ejemplo de derivación que **no** se degrada: "Hola. Envíeme un número de cuenta por favor." → `CONSULTAR_PAGO` / `DERIVAR_HUMANO` / `SOLICITA_DATOS_PAGO` / ALTA. Ni "Normalizar decisión IA" ni "Preparar derivación humana" recalculan una decisión que la IA ya resolvió bien: solo completan lo que falta y solo suben la prioridad.
 
 ### Cómo se decide la acción final
 
@@ -236,6 +244,7 @@ La IA propone; `04-cerebro-comercial/resolver-contexto-comercial.js` decide, en 
 4. Datos suficientes e intención SOLICITAR_COTIZACION o CONSULTAR_PRECIO → `COTIZAR_P4`.
 5. Datos suficientes, APORTAR_DATOS y algún dato cambió respecto a la cotización guardada → `COTIZAR_P4` (recotiza).
 6. Datos suficientes y la IA eligió COTIZAR_P4 → `COTIZAR_P4`.
+7. Al final: si un lado mide ≤ 1 cm y la acción quedó en `COTIZAR_P4` (o la IA eligió `MEDIDA_NO_PRODUCIBLE`) → `MEDIDA_NO_PRODUCIBLE` con el texto fijo de [§3](#3-medidas-mínimas-producibles).
 
 Los datos nuevos del mensaje ganan; si faltan, se usan los de la cotización guardada en `contexto_comercial`. Con medidas y sin forma se asume `RECTANGULAR`.
 

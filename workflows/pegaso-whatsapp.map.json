@@ -3,6 +3,7 @@
   "code": {
     "code/01-entrada/normalizar-evento-whatsapp.js": ["Normalizar evento WhatsApp"],
     "code/01-entrada/preparar-entrada-whatsapp.js": ["Preparar entrada WhatsApp"],
+    "code/01-entrada/preparar-entrada-no-soportada.js": ["Preparar entrada no soportada"],
     "code/01-entrada/normalizar-mensaje.js": ["Normalizar mensaje"],
 
     "code/02-contacto-prospecto/resolver-contacto.js": ["Resolver contacto"],
@@ -17,7 +18,10 @@
     "code/03-conversacion/finalizar-mensaje-modo-prueba.js": ["Finalizar mensaje modo prueba"],
     "code/03-conversacion/resolver-turno-conversacional.js": ["Resolver turno conversacional"],
     "code/03-conversacion/preparar-media-turno.js": ["Preparar media del turno"],
-    "code/03-conversacion/validar-analisis-imagen.js": ["Validar análisis imagen"],
+    "code/03-conversacion/validar-analisis-imagen-groq.js": ["Validar análisis imagen Groq"],
+    "code/03-conversacion/validar-analisis-imagen-deepseek.js": ["Validar análisis imagen DeepSeek"],
+    "code/03-conversacion/validar-analisis-imagen-openai.js": ["Validar análisis imagen OpenAI"],
+    "code/03-conversacion/preparar-derivacion-imagen-fallida.js": ["Preparar derivación imagen fallida"],
     "code/03-conversacion/preparar-contexto-ia.js": ["Preparar contexto IA"],
 
     "code/04-cerebro-comercial/validar-extraccion-cerebro.js": [
@@ -79,7 +83,11 @@
       "Extractor → DeepSeek Chat Model",
       "Extractor → OpenAI Chat Model1"
     ],
-    "prompts/analisis-imagen.md": ["Analizar imagen"]
+    "prompts/analisis-imagen.md": [
+      "Analizar imagen Groq Basic LLM",
+      "Analizar imagen DeepSeek1",
+      "Analizar imagen Open IA"
+    ]
   },
   "schemas": {
     "schemas/cerebro-comercial.schema.json": [

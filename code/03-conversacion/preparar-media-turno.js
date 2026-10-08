@@ -1,11 +1,14 @@
 // ======================================================
 // NODO N8N: Preparar media del turno
 // ARCHIVO: code/03-conversacion/preparar-media-turno.js
-// VERSION: 1.0
+// VERSION: 1.1
 // RESPONSABILIDAD:
 // - Tras "IF: ¿Procesar turno?" (true), buscar en el turno las imágenes todavía sin analizar (tipo IMAGEN con línea "[MEDIA_PENDIENTE] {json}")
-// - Revalidar cada una: MIME JPEG/PNG/WebP y enlace https://api.ycloud.com/v2/whatsapp/media/download/ (anti-SSRF); máximo MAX_IMAGENES_POR_TURNO
-// - Emitir un item por imagen a analizar (analizar_imagen = true) con mensaje_id, enlace, MIME, caption y el contexto comercial breve para la IA visual
+// - Extraer de esa línea el enlace YCloud, el MIME y el media_id persistidos por la etapa 01
+// - Revalidar cada una: MIME JPEG/PNG/WebP y enlace https://api.ycloud.com/v2/whatsapp/media/download/<id> (anti-SSRF: host, esquema,
+//   sin usuario ni puerto); la query firmada (sig, payload) se acepta tal cual; máximo MAX_IMAGENES_POR_TURNO
+// - Emitir un item por imagen a analizar (analizar_imagen = true) con conversacion_id, mensaje_id, mime_type, media_link, caption,
+//   contenido_base, texto_turno_cliente y contexto_comercial_breve para los analizadores visuales (Groq, DeepSeek, OpenAI)
 // - Si no hay ninguna: un solo item con analizar_imagen = false (el IF siguiente va directo a "Preparar contexto IA")
 // - Las imágenes que no pasan la validación o exceden el máximo quedan pendientes: "Preparar contexto IA" las marca para revisión humana
 // - NO descargar, NO llamar a la IA, NO escribir en PostgreSQL
@@ -16,7 +19,9 @@ const MAX_IMAGENES_POR_TURNO = 3;
 const MIME_IMAGEN_SOPORTADOS = ['image/jpeg', 'image/png', 'image/webp'];
 
 const LINK_YCLOUD_PERMITIDO =
-  /^https:\/\/api\.ycloud\.com\/v2\/whatsapp\/media\/download\/[A-Za-z0-9_-]+(\?[A-Za-z0-9%._~&=+-]*)?$/;
+  /^https:\/\/api\.ycloud\.com\/v2\/whatsapp\/media\/download\/[A-Za-z0-9_.-]+(\?[^\s#]*)?$/;
+
+const LARGO_MAXIMO_LINK = 2048;
 
 const PREFIJO_PENDIENTE = '[MEDIA_PENDIENTE] ';
 
@@ -37,12 +42,33 @@ function textoONull(valor) {
   return limpio !== '' ? limpio : null;
 }
 
+function linkYCloudPermitido(link) {
+  if (!link || link.length > LARGO_MAXIMO_LINK || !LINK_YCLOUD_PERMITIDO.test(link)) {
+    return false;
+  }
+
+  try {
+    const url = new URL(link);
+
+    return (
+      url.protocol === 'https:' &&
+      url.hostname === 'api.ycloud.com' &&
+      url.port === '' &&
+      url.username === '' &&
+      url.password === '' &&
+      url.pathname.startsWith('/v2/whatsapp/media/download/')
+    );
+  } catch (error) {
+    return false;
+  }
+}
+
 function lineas(contenido) {
   return String(contenido ?? '').split('\n');
 }
 
 function esLineaDeSistema(linea) {
-  return /^\[(MEDIA_PENDIENTE|CONTEXTO DE IMAGEN|ARCHIVO NO PROCESABLE)[\]\s·]/.test(linea.trim());
+  return /^\[(MEDIA_PENDIENTE|CONTEXTO DE IMAGEN|ARCHIVO NO PROCESABLE|ENTRADA NO SOPORTADA)[\]\s·]/.test(linea.trim());
 }
 
 function leerPendiente(contenido) {
@@ -99,7 +125,7 @@ const turnoMensajes = Array.isArray(turno.turno_mensajes)
 const textoTurnoCliente = turnoMensajes
   .map(m => lineas(m.contenido)
     .filter(l => !esLineaDeSistema(l))
-    .map(l => l.replace(/^\[(IMAGEN|AUDIO|VIDEO|DOCUMENTO)\]\s*/, '').trim())
+    .map(l => l.replace(/^\[(IMAGEN|AUDIO|VIDEO|DOCUMENTO|UBICACION|CONTACTO|INTERACTIVO|DESCONOCIDO)\]\s*/, '').trim())
     .filter(Boolean)
     .join(' '))
   .filter(Boolean)
@@ -157,9 +183,7 @@ for (const mensaje of turnoMensajes) {
 
   const valida =
     MIME_IMAGEN_SOPORTADOS.includes(mime) &&
-    link !== null &&
-    link.length <= 2048 &&
-    LINK_YCLOUD_PERMITIDO.test(link);
+    linkYCloudPermitido(link);
 
   if (!valida || candidatas.length >= MAX_IMAGENES_POR_TURNO) {
     descartadas++;
@@ -180,6 +204,11 @@ for (const mensaje of turnoMensajes) {
 // 5. SALIDA
 // ======================================================
 
+const conversacionId =
+  turno.conversacion_id ??
+  conversacion.conversacion_id ??
+  null;
+
 if (candidatas.length === 0) {
   return [
     {
@@ -187,7 +216,7 @@ if (candidatas.length === 0) {
         analizar_imagen: false,
         imagenes_por_analizar: 0,
         imagenes_descartadas: descartadas,
-        conversacion_id: turno.conversacion_id ?? null
+        conversacion_id: conversacionId
       }
     }
   ];
@@ -199,7 +228,7 @@ return candidatas.map((imagen, indice) => ({
     imagenes_por_analizar: candidatas.length,
     imagenes_descartadas: descartadas,
     indice_imagen: indice,
-    conversacion_id: turno.conversacion_id ?? null,
+    conversacion_id: conversacionId,
     ...imagen,
     texto_turno_cliente: textoTurnoCliente || '(el cliente no escribió texto)',
     contexto_comercial_breve: contextoComercialBreve

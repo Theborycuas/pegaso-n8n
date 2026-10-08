@@ -11,23 +11,26 @@ Todo corre en **un solo workflow de n8n**. Este documento describe el recorrido 
 | YCloud | Webhook de mensajes entrantes y API de envío de WhatsApp |
 | PostgreSQL | Contactos, prospectos, conversaciones, mensajes, cotizaciones, diseños, configuración |
 | Groq → DeepSeek → OpenAI | Modelos de IA en cascada (si uno falla o devuelve algo inválido, se usa el siguiente) |
-| OpenAI (visión) | Análisis de imágenes JPEG/PNG/WebP del cliente ("Analizar imagen"); un solo proveedor, sin cascada |
-| Brevo → Resend | Correo interno al equipo cuando un prospecto requiere humano (Resend es respaldo) |
+| Groq → DeepSeek → OpenAI (visión) | Análisis de imágenes JPEG/PNG/WebP del cliente, también en cascada con un prompt y un schema compartidos (etapa 03) |
+| Brevo → Resend | Correo interno al equipo cuando un prospecto requiere humano. Brevo es el principal; Resend (dominio `pegasoadhesivos.com`) solo corre en la salida de error de Brevo |
 
-Credenciales, API keys y destinatarios de correo viven en los nodos HTTP/credenciales de n8n, **no** en este repo.
+Credenciales, API keys, remitentes y destinatarios de correo viven en los nodos HTTP/credenciales de n8n, **no** en este repo (en la documentación aparecen como placeholders `<RESEND_API_KEY>`, `<REMITENTE_RESEND>`…).
 
 ## Vista general
 
 ```mermaid
 flowchart TD
     A[01 Entrada<br/>Webhook YCloud] --> B[02 Contacto y prospecto]
+    A -->|entrada no soportada<br/>ubicación, contacto…| B
     B -->|cliente registrado| X1((fin sin respuesta))
     B --> C[03 Conversación<br/>guardar mensaje, MODO_PRUEBA]
     C -->|bot no autorizado| X2((fin modo prueba))
     C -->|prospecto ya con humano| X3((fin atención humana))
     C -->|llegó otro mensaje durante la espera| X4((fin sin respuesta<br/>debounce))
-    C -->|turno con imágenes| V[Descargar + analizar imagen<br/>OpenAI visión]
-    V --> D
+    C -->|derivación directa por entrada| E
+    C -->|turno con imágenes| V[Descargar + analizar imagen<br/>Groq → DeepSeek → OpenAI]
+    V -->|algún análisis válido| D
+    V -->|los tres fallan| E
     C -->|turno agrupado| D[04 Cerebro comercial IA<br/>Groq → DeepSeek → OpenAI]
     D -->|turno no confirmado| X4
     D --> S{Enrutar acción comercial}
@@ -58,7 +61,7 @@ Los nodos Postgres suelen devolver **solo la fila afectada**, no el objeto anter
 
 ## 01 · Entrada (`code/01-entrada/`)
 
-Recibe el webhook y lo convierte en un mensaje normalizado. Soporta YCloud y Meta Cloud API directo. Siguen el flujo el **texto** y la **media** (imagen, audio, video, documento): la media entra como un texto controlado; las imágenes JPEG/PNG/WebP con enlace de YCloud quedan marcadas `[MEDIA_PENDIENTE]` para analizarse en la etapa 03, y lo demás como no procesable. Stickers, ubicaciones y contactos siguen sin procesarse.
+Recibe el webhook y lo convierte en un mensaje normalizado. Soporta YCloud y Meta Cloud API directo. Siguen el flujo el **texto** y la **media** (imagen, audio, video, documento): la media entra como un texto controlado; las imágenes JPEG/PNG/WebP con enlace de YCloud quedan marcadas `[MEDIA_PENDIENTE]` para analizarse en la etapa 03, y lo demás como no procesable. Lo que no es ni texto ni media procesable (ubicación, contacto, interactivo, tipo desconocido) ya no se pierde: "Preparar entrada no soportada" lo convierte en un mensaje controlado con `derivacion_directa = true` y sigue por "Normalizar mensaje" para identificarse y guardarse. Reacciones y stickers se ignoran en silencio.
 
 Configuración detallada de cada nodo: [etapas/01-entrada.md](etapas/01-entrada.md).
 
@@ -68,11 +71,12 @@ Configuración detallada de cada nodo: [etapas/01-entrada.md](etapas/01-entrada.
 | Normalizar evento WhatsApp | Code | `normalizar-evento-whatsapp.js` |
 | IF: ¿Evento WhatsApp procesable? | IF | — (`evento_whatsapp.procesable`) |
 | Preparar entrada WhatsApp | Code | `preparar-entrada-whatsapp.js` |
-| IF: ¿Apto para flujo de texto? | IF | — (`apto_para_flujo_conversacional`; antes `apto_para_flujo_texto`) |
+| IF: ¿Entrada soportada por el flujo? | IF | — (OR: `apto_para_flujo_texto` **o** `requiere_procesamiento_media`; equivale a `entrada_soportada_flujo`). Antes "IF: ¿Apto para flujo de texto?" |
+| Preparar entrada no soportada | Code (rama false del IF anterior) | `preparar-entrada-no-soportada.js` **nuevo** |
 | When clicking 'Execute workflow' + Mensaje entrante TEST | Trigger manual + Set | — (pruebas manuales) |
 | Normalizar mensaje | Code | `normalizar-mensaje.js` |
 
-`Normalizar mensaje` unifica la entrada real y la de prueba, y convierte teléfonos locales `09…` a `5939…`.
+`Normalizar mensaje` unifica la entrada real, la no soportada y la de prueba, convierte teléfonos locales `09…` a `5939…` y conserva `derivacion_directa` y los datos de la derivación.
 
 ## 02 · Contacto y prospecto (`code/02-contacto-prospecto/`)
 
@@ -117,18 +121,22 @@ Configuración detallada de cada nodo: [etapas/03-conversacion.md](etapas/03-con
 | Esperar ventana de turno | Wait (`debounce_segundos`) | — **nuevo** |
 | Recuperar historial conversación | Postgres select | — (ahora después de la espera) |
 | Resolver turno conversacional | Code | `resolver-turno-conversacional.js` **nuevo** |
-| IF: ¿Procesar turno? | IF | — (`continuar_procesamiento`; false = fin sin respuesta) **nuevo** |
-| Preparar media del turno | Code | `preparar-media-turno.js` **nuevo (imágenes)** |
-| IF: ¿Hay imágenes por analizar? | IF | — (`analizar_imagen`; false = directo a Preparar contexto IA) **nuevo** |
-| Descargar imagen YCloud | HTTP GET (Header Auth YCloud, respuesta File) | — **nuevo** |
-| Analizar imagen | Basic LLM Chain + OpenAI Chat Model + Structured Output Parser | prompt `analisis-imagen.md`, schema `analisis-imagen.schema.json` **nuevo** |
-| Validar análisis imagen | Code | `validar-analisis-imagen.js` **nuevo** |
-| Guardar análisis imagen | Postgres update (`mensajes.contenido`) | — **nuevo** |
+| IF: ¿Procesar turno? | IF | — (`continuar_procesamiento`; false = fin sin respuesta) |
+| IF: ¿Derivación directa por entrada? | IF | — (`$('Normalizar mensaje').first().json.derivacion_directa`; true = 06 Preparar derivación humana) **nuevo** |
+| Preparar media del turno | Code | `preparar-media-turno.js` |
+| IF: ¿Hay imágenes por analizar? | IF | — (`analizar_imagen`; false = directo a Preparar contexto IA) |
+| Descargar imagen YCloud | HTTP GET (Header Auth YCloud, respuesta File en `imagen`, Retry On Fail, Continue on error) | — (sin JavaScript) |
+| Analizar imagen Groq Basic LLM / Analizar imagen DeepSeek1 / Analizar imagen Open IA | Basic LLM Chain + Chat Model + Structured Output Parser | prompt `analisis-imagen.md`, schema `analisis-imagen.schema.json` (compartidos) |
+| Validar análisis imagen Groq / DeepSeek / OpenAI | Code (un archivo por proveedor) | `validar-analisis-imagen-groq.js`, `-deepseek.js`, `-openai.js` **nuevos** |
+| IF ¿Análisis Groq válido? / ¿Análisis DeepSeek válido? / ¿Análisis OpenAI válido? | IF | — (`analisis_valido`; false = siguiente proveedor) **nuevos** |
+| Preparar derivación imagen fallida | Code (rama false de OpenAI) | `preparar-derivacion-imagen-fallida.js` **nuevo** |
 | Preparar contexto IA | Code | `preparar-contexto-ia.js` |
 
 El mensaje entrante **siempre** queda guardado, aunque el bot no responda. Los caminos de modo prueba y atención humana no pasan por la espera.
 
-Las imágenes se analizan **solo en la ejecución que gana el turno**, después de la espera: una ráfaga "texto / imagen / texto" es un turno con una sola llamada visual. El análisis queda guardado en `mensajes.contenido`, así que una ejecución posterior no lo repite. Fallos de descarga o de IA no detienen el flujo: la imagen pasa como "no analizada" y el turno se deriva con `IMAGEN_REQUIERE_REVISION`.
+Las imágenes se analizan **solo en la ejecución que gana el turno**, después de la espera: una ráfaga "texto / imagen / texto" es un turno, y cada imagen se descarga una vez y prueba Groq → DeepSeek → OpenAI hasta obtener un análisis válido. "Preparar contexto IA" espera a que todas las imágenes del turno tengan análisis válido y reemplaza cada mensaje de imagen por su contenido actualizado (sin enlaces ni errores técnicos). Si una imagen falla en los tres proveedores, el turno va a derivación humana (`IMAGEN_REQUIERE_REVISION`) y el cerebro no corre. No hay nodo "Guardar análisis imagen": el análisis vive solo en esta ejecución (`media_actualizaciones` queda listo para un UPDATE futuro).
+
+Las entradas no soportadas de la etapa 01 pasan por la identificación, el guardado y el debounce como cualquier mensaje; "IF: ¿Derivación directa por entrada?" las saca **después** de "IF: ¿Procesar turno?" hacia la derivación humana, sin pasar por la IA. Va aquí y no en la etapa 01 porque allí aún no existen `prospecto_id` ni `conversacion_id`.
 
 ## 04 · Cerebro comercial (`code/04-cerebro-comercial/`)
 
@@ -167,10 +175,10 @@ flowchart LR
 Qué hace cada paso de código:
 
 1. **Validar extracción**: rechaza la respuesta si viola el contrato o las reglas (tipos, coherencia acción/intención/motivo, tono, anti-repetición). Un rechazo hace que se pruebe el siguiente proveedor.
-2. **Normalizar decisión IA**: une la decisión con el contexto, fija la clasificación A/B/C (nunca baja), la prioridad y la notificación, y limpia el tono.
-3. **Resolver contexto comercial**: combina los datos nuevos con la cotización guardada, aplica mínimo de 1000 y decide la acción final.
-4. **Aplicar reglas comerciales determinísticas**: bloquea medidas de 1 cm o menos.
-5. **Preparar actualización prospecto** y **Recuperar decisión comercial**: preparan el UPDATE del prospecto y recuperan la decisión para el Switch (ver pendientes técnicos 2 y 36).
+2. **Normalizar decisión IA**: une la decisión con el contexto, fija la clasificación A/B/C (nunca baja), la prioridad (respeta una mayor de la IA) y la notificación, y limpia el tono. Una decisión de la IA bien resuelta ("Envíeme un número de cuenta" → `CONSULTAR_PAGO` / `DERIVAR_HUMANO` / `SOLICITA_DATOS_PAGO` / `ALTA`) no se recalcula.
+3. **Resolver contexto comercial**: combina los datos nuevos con la cotización guardada, aplica mínimo de 1000 y decide la acción final. Un lado de 1 cm o menos termina en `MEDIDA_NO_PRODUCIBLE`, no en `COTIZAR_P4`.
+4. **Aplicar reglas comerciales determinísticas**: en acciones de cotización, bloquea medidas de 1 cm o menos con `MEDIDA_NO_PRODUCIBLE`; no toca las derivaciones.
+5. **Preparar actualización prospecto** y **Recuperar decisión comercial**: preparan el UPDATE del prospecto y recuperan la decisión para el Switch, respetando el bloqueo de las reglas determinísticas (ver pendiente técnico 36).
 6. **Confirmar turno conversacional**: antes del Switch, marca `procesado = true` en los mensajes del turno solo si siguen siendo los últimos; si llegó otro mensaje mientras la IA pensaba, esta ejecución termina sin responder y la nueva responde a todo.
 
 Ver detalle de reglas en [reglas-comerciales.md](reglas-comerciales.md).
@@ -197,17 +205,17 @@ Configuración detallada de cada nodo: [etapas/05-respuesta-comercial.md](etapas
 
 ## 06 · Derivación humana (`code/06-derivacion-humana/`)
 
-Cuando la acción es `DERIVAR_HUMANO`: marca al prospecto, guarda el handoff en el contexto, responde al cliente con un mensaje de transición y avisa al equipo por correo. Reglas en [flujo-handoff.md](flujo-handoff.md); configuración de cada nodo en [etapas/06-derivacion-humana.md](etapas/06-derivacion-humana.md).
+Cuando hay que derivar: marca al prospecto, guarda el handoff en el contexto, responde al cliente con un mensaje de transición y avisa al equipo por correo. Es una **única ruta** con tres entradas a "Preparar derivación humana": el Switch (`DERIVAR_HUMANO`), "IF: ¿Derivación directa por entrada?" (true) y "Preparar derivación imagen fallida". Reglas en [flujo-handoff.md](flujo-handoff.md); configuración de cada nodo en [etapas/06-derivacion-humana.md](etapas/06-derivacion-humana.md).
 
 | Nodo | Tipo | Archivo |
 |---|---|---|
-| Preparar derivación humana | Code | `preparar-derivacion-humana.js` |
+| Preparar derivación humana | Code (3 entradas) | `preparar-derivacion-humana.js` |
 | Marcar prospecto requiere humano | Postgres update | — |
 | Preparar contexto handoff | Code | `preparar-contexto-handoff.js` |
 | Guardar contexto handoff | Postgres update | — |
 | Preparar mensaje transición humano | Code | `preparar-mensaje-transicion-humano.js` |
 | Guardar mensaje transición humano | Postgres insert | — (va a 08 Salida WhatsApp) |
-| Finalizar derivación humana | Code (en paralelo al insert, desde Preparar mensaje transición) | `finalizar-derivacion-humana.js` |
+| Finalizar derivación humana | Code (después de Guardar mensaje transición humano, o en paralelo al insert) | `finalizar-derivacion-humana.js` |
 | IF: ¿Requiere notificación? | IF | — |
 | Peparar notificacion humano | Code | `preparar-notificacion-humano.js` |
 | Brevo - Enviar notificación humana | HTTP POST | — (salida Error → Resend) |
@@ -280,8 +288,12 @@ Solo se envía si la ejecución vino de un webhook real de YCloud y el mensaje e
 
 | Situación | Dónde termina | ¿Responde al cliente? |
 |---|---|---|
-| Evento no procesable / sticker, ubicación, contacto | IF de 01 | No |
-| Imagen ilegible, no descargable o análisis fallido; audio/video/documento | Derivación humana (`IMAGEN_REQUIERE_REVISION` / `ARCHIVO_NO_PROCESABLE`) | Sí (mensaje sutil) + correo interno |
+| Evento no procesable (estados, eventos sin mensaje) | IF: ¿Evento WhatsApp procesable? | No |
+| Reacción o sticker | Preparar entrada no soportada (sin item) | No |
+| Ubicación, contacto, interactivo, tipo desconocido | Derivación humana directa (`ENTRADA_NO_SOPORTADA`) | Sí (mensaje sutil) + correo interno |
+| Imagen que falla en Groq, DeepSeek y OpenAI | Preparar derivación imagen fallida → derivación humana (`IMAGEN_REQUIERE_REVISION`) | Sí (mensaje sutil) + correo interno |
+| Imagen analizada que requiere revisión; audio/video/documento | Cerebro → derivación humana (`IMAGEN_REQUIERE_REVISION` / `ARCHIVO_NO_PROCESABLE`) | Sí (mensaje sutil) + correo interno |
+| Medida con un lado de 1 cm o menos | Respuesta comercial (`MEDIDA_NO_PRODUCIBLE`) | Sí (pide otra medida) |
 | Cliente registrado | ¿Cliente existente? | No |
 | `MODO_PRUEBA` activo y teléfono no autorizado | Finalizar mensaje modo prueba | No (mensaje guardado) |
 | Prospecto ya marcado `requiere_humano` | Finalizar mensaje atención humana | No (mensaje guardado) |

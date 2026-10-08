@@ -1,5 +1,5 @@
 {
-  "archivo": "code/03-conversacion/validar-analisis-imagen.js",
+  "archivo": "code/03-conversacion/validar-analisis-imagen-groq.js",
   "descripcion": "Caso 4 · transferencia + \"ya pagué\": comprobante_detectado = true (evidencia, no confirma pago). Aunque la IA transcriba datos bancarios, el texto visible se descarta y no llega a la base ni al cerebro.",
   "input": [
     {
@@ -22,16 +22,18 @@
   ],
   "nodos": {
     "Preparar media del turno": [
-      { "analizar_imagen": true, "mensaje_id": 130, "mime_type": "image/jpeg", "caption": "ya pagué", "contenido_base": "[IMAGEN] ya pagué" }
+      { "analizar_imagen": true, "mensaje_id": 130, "conversacion_id": 77, "mime_type": "image/jpeg", "caption": "ya pagué", "contenido_base": "[IMAGEN] ya pagué" }
     ]
   },
   "esperado": {
+    "proveedor_analisis": "GROQ",
     "analisis_valido": true,
     "comprobante_detectado": true,
+    "contenido_detectado": "COMPROBANTE_PAGO",
     "requiere_revision": false,
     "analisis": {
       "texto_visible_relevante": null
     },
-    "contenido_actualizado": "[IMAGEN] ya pagué\n[CONTEXTO DE IMAGEN · contenido=COMPROBANTE_PAGO · confianza=ALTA · revision=NO] Parece un comprobante de transferencia bancaria."
+    "contenido_actualizado": "[IMAGEN] ya pagué\n[CONTEXTO DE IMAGEN · proveedor=GROQ · contenido=COMPROBANTE_PAGO · confianza=ALTA · revision=NO] Parece un comprobante de transferencia bancaria."
   }
 }

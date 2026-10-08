@@ -1,0 +1,22 @@
+{
+  "archivo": "code/01-entrada/preparar-entrada-no-soportada.js",
+  "descripcion": "Audio sin media_id (no se puede procesar): conserva el descriptor de archivo que armó la etapa 01 y deriva con ARCHIVO_NO_PROCESABLE / REVISION_ARCHIVO.",
+  "input": [
+    {
+      "telefono": "593987654321",
+      "mensaje": "[AUDIO]\n[ARCHIVO NO PROCESABLE · tipo=AUDIO · mime=audio/ogg] El bot no puede revisar este archivo automáticamente.",
+      "tipo": "AUDIO",
+      "mensaje_externo_id": "wamid.AUD1",
+      "entrada_soportada_flujo": false,
+      "meta_whatsapp": { "tipo_original": "audio" }
+    }
+  ],
+  "esperado": {
+    "tipo": "AUDIO",
+    "mensaje": "[AUDIO]\n[ARCHIVO NO PROCESABLE · tipo=AUDIO · mime=audio/ogg] El bot no puede revisar este archivo automáticamente.",
+    "derivacion_directa": true,
+    "derivacion_motivo": "ARCHIVO_NO_PROCESABLE",
+    "derivacion_clasificacion": "REVISION_ARCHIVO",
+    "derivacion_prioridad": "MEDIA"
+  }
+}

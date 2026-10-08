@@ -8,12 +8,16 @@ flowchart LR
     N --> I1{¿Evento WhatsApp<br/>procesable?}
     I1 -->|false| X1((fin))
     I1 -->|true| P[Preparar entrada WhatsApp]
-    P --> I2{¿Apto para flujo<br/>de texto?<br/>apto_para_flujo_conversacional}
-    I2 -->|false| X2((fin))
+    P --> I2{IF: ¿Entrada soportada<br/>por el flujo?<br/>texto OR media}
     I2 -->|true| M[Normalizar mensaje]
+    I2 -->|false| NS[Preparar entrada no soportada]
+    NS -->|reacción, sticker, vacío| X2((fin))
+    NS -->|derivacion_directa = true| M
     T[Execute workflow] --> S[Mensaje entrante TEST] --> M
     M --> E02[Etapa 02]
 ```
+
+Las entradas no soportadas (ubicación, contacto, interactivo, tipo desconocido, media sin `media_id`) **no se pierden**: pasan por identidad y se guardan como cualquier mensaje, y en la etapa 03 "IF: ¿Derivación directa por entrada?" las manda a "Preparar derivación humana" sin pasar por la IA. El IF de derivación está en la etapa 03 y no aquí porque la derivación necesita `prospecto_id` y `conversacion_id`.
 
 ## Nodos
 
@@ -68,7 +72,7 @@ Traduce el evento al mismo contrato que usa "Mensaje entrante TEST" y decide si 
 | interactive | `INTERACTIVO` |
 | otro | `DESCONOCIDO` |
 
-Salida (v2.0): `telefono`, `nombre_whatsapp`, `mensaje`, `tipo`, `canal`, `mensaje_externo_id`, `meta_whatsapp` (datos extra y multimedia, con `media.link_permitido`, `media.soportada`, `media.motivo_no_procesable`), `apto_para_flujo_texto` (solo `text` con mensaje no vacío), **`apto_para_flujo_conversacional`** (texto, o imagen/audio/video/documento), `media_soportada` y `requiere_procesamiento_media`.
+Salida (v2.1): `telefono`, `nombre_whatsapp`, `mensaje`, `tipo`, `canal`, `mensaje_externo_id`, `meta_whatsapp` (datos extra y multimedia, con `media.link_permitido`, `media.soportada`, `media.motivo_no_procesable`), `apto_para_flujo_texto` (solo `text` con mensaje no vacío), `apto_para_flujo_conversacional` (texto, o imagen/audio/video/documento), `media_soportada`, `requiere_procesamiento_media` (imagen/audio/video/documento **con `media_id`**; nunca sticker) y **`entrada_soportada_flujo`** = `apto_para_flujo_texto OR requiere_procesamiento_media` (la misma condición del IF siguiente, útil para depurar).
 
 `mensaje` según el tipo (es lo que se guarda en `mensajes.contenido`; formato en [modelo-datos.md](../modelo-datos.md#contenido-de-mensajes-con-media)):
 
@@ -78,24 +82,51 @@ Salida (v2.0): `telefono`, `nombre_whatsapp`, `mensaje`, `tipo`, `canal`, `mensa
 | Imagen JPEG/PNG/WebP con enlace YCloud permitido | `[IMAGEN] caption` + `\n[MEDIA_PENDIENTE] {"mime_type","media_id","link"}` |
 | Imagen soportada sin enlace válido (Meta, host distinto) | `[IMAGEN] caption` + `\n[CONTEXTO DE IMAGEN · revision=SI · motivo=IMAGEN_NO_DESCARGABLE] …` |
 | Imagen de otro formato, audio, video, documento | `[TIPO] caption` + `\n[ARCHIVO NO PROCESABLE · tipo=… · mime=…] …` |
-| Sticker, ubicación, contacto, interactivo | igual que antes (no entra al flujo) |
+| Sticker, ubicación, contacto, interactivo | `[TIPO]` o vacío; no entra al flujo directo: lo procesa "Preparar entrada no soportada" |
 
 Seguridad:
 
-- Solo se acepta un enlace que cumpla `^https://api\.ycloud\.com/v2/whatsapp/media/download/<id>(?<query>)?$` y tenga como máximo 2048 caracteres. Así la credencial de YCloud nunca se envía a otro host: cubre el SSRF y trucos como `https://api.ycloud.com@otro-host/…`.
+- Solo se acepta un enlace que cumpla `^https://api\.ycloud\.com/v2/whatsapp/media/download/<id>(?<query>)?$`, tenga como máximo 2048 caracteres y, parseado con `URL`, sea `https`, host `api.ycloud.com`, sin puerto ni usuario/contraseña. Así la credencial de YCloud nunca se envía a otro host: cubre el SSRF y trucos como `https://api.ycloud.com@otro-host/…`. La query firmada (`sig`, `payload`) se acepta tal cual.
 - El caption se aplana a una línea (máx. 1000 caracteres): el cliente no puede fabricar una línea `[MEDIA_PENDIENTE]` ni `[CONTEXTO DE IMAGEN …]`.
 - Los stickers quedan fuera a propósito: no aportan información y derivarlos a un asesor sería ruido.
 
 Lanza error si el evento no es procesable o le falta teléfono o `mensaje_id`.
 
-### IF: ¿Apto para flujo de texto? · IF
+### IF: ¿Entrada soportada por el flujo? · IF
 
 | Campo | Valor |
 |---|---|
-| Condición | `{{ $json.apto_para_flujo_conversacional }}` **is true** (**cambio manual**: antes `{{ $json.apto_para_flujo_texto }}`) |
-| Nombre | se puede dejar igual; opcional renombrar a "IF: ¿Apto para flujo conversacional?" (ningún código lo referencia por nombre) |
+| NOMBRE | `IF: ¿Entrada soportada por el flujo?` (antes "IF: ¿Apto para flujo de texto?") |
+| VA DESPUÉS DE | Preparar entrada WhatsApp |
+| VA ANTES DE | `true` → Normalizar mensaje · `false` → Preparar entrada no soportada |
+| CONFIGURACIÓN | **dos** condiciones *Boolean* → **is true**, combinadas con **OR** (no AND: una imagen tiene `apto_para_flujo_texto = false` y debe pasar) |
+| EXPRESIONES | 1) `{{ $json.apto_para_flujo_texto }}` · 2) `{{ $json.requiere_procesamiento_media }}` |
+| EQUIVALENTE | una sola condición `{{ $json.entrada_soportada_flujo }}` **is true** da el mismo resultado |
 
-La rama `false` no tiene conexión: **stickers, ubicaciones, contactos y mensajes interactivos** no reciben respuesta ni se guardan. Imágenes, audios, videos y documentos siguen al flujo y quedan guardados.
+Texto procesable e imágenes/audios/videos/documentos con `media_id` siguen al flujo. Lo demás va a "Preparar entrada no soportada".
+
+### Preparar entrada no soportada · Code — NUEVO
+
+Archivo: [`code/01-entrada/preparar-entrada-no-soportada.js`](../../code/01-entrada/preparar-entrada-no-soportada.js)
+
+| Campo | Valor |
+|---|---|
+| NOMBRE | `Preparar entrada no soportada` |
+| TIPO | **Code** (JavaScript, *Run Once for All Items*) |
+| VA DESPUÉS DE | IF: ¿Entrada soportada por el flujo? (rama **false**) |
+| VA ANTES DE | Normalizar mensaje (tercera entrada del nodo) |
+| CONFIGURACIÓN | pegar el archivo (o `npm run build` cuando el nodo exista) |
+| CREDENCIAL | ninguna |
+| SALIDA ESPERADA | el contrato de "Preparar entrada WhatsApp" con `mensaje` controlado y la derivación fijada; **sin item** para reacciones, stickers y textos vacíos |
+
+| Entrada | `mensaje` | `derivacion_motivo` | `derivacion_clasificacion` |
+|---|---|---|---|
+| Reacción, sticker, texto vacío | — (no sale item: fin en silencio) | — | — |
+| Imagen sin `media_id` | el descriptor de imagen de la etapa 01 | `IMAGEN_REQUIERE_REVISION` | `REVISION_IMAGEN` |
+| Audio, video, documento sin `media_id` | el descriptor `[ARCHIVO NO PROCESABLE …]` | `ARCHIVO_NO_PROCESABLE` | `REVISION_ARCHIVO` |
+| Ubicación, contacto, interactivo, desconocido | `[TIPO]\n[ENTRADA NO SOPORTADA · tipo=… · original=…] El bot no puede revisar este tipo de mensaje automáticamente.` | `ENTRADA_NO_SOPORTADA` | `REVISION_COMERCIAL` |
+
+Además: `entrada_soportada_flujo: false`, `derivacion_directa: true`, `derivacion_directa_motivo: ENTRADA_NO_SOPORTADA`, `origen_derivacion: ENTRADA_NO_SOPORTADA`, `derivacion_prioridad: MEDIA`. "Preparar derivación humana" toma esos datos de `$('Normalizar mensaje')`.
 
 ### When clicking 'Execute workflow' + Mensaje entrante TEST · Trigger manual + Set
 
@@ -107,7 +138,7 @@ En estas ejecuciones el mensaje **se guarda pero no se envía** por WhatsApp (ve
 
 Archivo: [`code/01-entrada/normalizar-mensaje.js`](../../code/01-entrada/normalizar-mensaje.js)
 
-Une las dos entradas (real y de prueba) en el contrato mínimo:
+Une las tres entradas (real soportada, entrada no soportada y prueba) en el contrato mínimo. Conserva el resto de campos de la entrada (`...data`) y expone `derivacion_directa` siempre como booleano (y `derivacion_directa_motivo`, o `null`): lo lee "IF: ¿Derivación directa por entrada?" en la etapa 03.
 
 | Campo | Regla |
 |---|---|
@@ -129,10 +160,12 @@ Une las dos entradas (real y de prueba) en el contrato mínimo:
   "tipo": "TEXTO",
   "canal": "WHATSAPP",
   "mensaje_externo_id": "wamid.TEST001",
-  "recibido_at": "2026-10-07T23:00:01.000Z"
+  "recibido_at": "2026-10-07T23:00:01.000Z",
+  "derivacion_directa": false,
+  "derivacion_directa_motivo": null
 }
 ```
 
 ## Pruebas
 
-`tests/fixtures/01-*.json` (ejecutar con `npm test`): texto, imagen (con `media_link`) y evento no procesable de YCloud; preparación de texto, imagen con enlace, imagen sin caption, imagen GIF, audio, enlace no permitido con caption malicioso y sticker; normalización con teléfono local.
+`tests/fixtures/01-*.json` (ejecutar con `npm test`): texto, imagen (con `media_link`) y evento no procesable de YCloud; preparación de texto, imagen con enlace, imagen sin caption, imagen GIF, audio, enlace no permitido con caption malicioso y sticker (con `entrada_soportada_flujo`); entrada no soportada (ubicación, audio sin `media_id`, sticker ignorado); normalización con teléfono local.

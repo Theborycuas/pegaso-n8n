@@ -1,0 +1,29 @@
+{
+  "archivo": "code/04-cerebro-comercial/aplicar-reglas-comerciales.js",
+  "descripcion": "La memoria tiene una medida de 1x5 pero el cliente pide datos de pago: la regla de medida mínima solo aplica a acciones de cotización, así que la derivación humana sigue intacta.",
+  "input": [
+    {
+      "conversacion_id": 41,
+      "prospecto_id": 16,
+      "intencion": "CONSULTAR_PAGO",
+      "accion": "DERIVAR_HUMANO",
+      "ancho_cm": 1,
+      "alto_cm": 5,
+      "datos_suficientes_para_cotizar": false,
+      "requiere_humano": true,
+      "motivo_derivacion": "SOLICITA_DATOS_PAGO",
+      "requiere_notificacion": true,
+      "prioridad_derivacion": "ALTA",
+      "respuesta_sugerida": "Permítame un momento por favor, ya le ayudamos con los datos de pago.",
+      "contexto_comercial": { "cotizacion": { "ancho_cm": 1, "alto_cm": 5 } }
+    }
+  ],
+  "esperado": {
+    "accion": "DERIVAR_HUMANO",
+    "requiere_humano": true,
+    "motivo_derivacion": "SOLICITA_DATOS_PAGO",
+    "requiere_notificacion": true,
+    "solicitud_producible": true,
+    "restriccion_comercial": null
+  }
+}

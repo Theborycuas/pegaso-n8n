@@ -1,0 +1,49 @@
+{
+  "archivo": "code/08-salida-whatsapp/preparar-envio-whatsapp.js",
+  "descripcion": "Handoff por imagen fallida: no corrió \"Recuperar decisión comercial\" y la fila guardada no trae teléfono. El destino sale de \"Preparar mensaje transición humano\" (respaldo) en vez de lanzar error.",
+  "input": [
+    {
+      "id": 777,
+      "conversacion_id": 41,
+      "direccion": "SALIENTE",
+      "tipo": "TEXTO",
+      "contenido": "Permítame un momento por favor, ya revisamos la imagen que nos envió.",
+      "procesado": true
+    }
+  ],
+  "nodos": {
+    "Preparar mensaje transición humano": [
+      { "conversacion_id": 41, "prospecto_id": 16, "telefono": "593987654321", "mensaje_transicion": "Permítame un momento por favor, ya revisamos la imagen que nos envió." }
+    ],
+    "Preparar entrada WhatsApp": [
+      { "telefono": "593987654321", "mensaje_externo_id": "wamid.IMG1", "entrada_whatsapp_preparada": true }
+    ],
+    "Normalizar evento WhatsApp": [
+      {
+        "evento_whatsapp": {
+          "procesable": true,
+          "canal": "WHATSAPP",
+          "origen": "YCLOUD",
+          "display_phone_number": "593900000001",
+          "telefono_cliente": "593987654321",
+          "mensaje_id": "wamid.IMG1",
+          "tipo_mensaje": "image"
+        }
+      }
+    ]
+  },
+  "esperado": {
+    "mensaje_db_id": 777,
+    "telefono_destino": "593987654321",
+    "telefono_emisor": "593900000001",
+    "enviar_whatsapp": true,
+    "ycloud_request": {
+      "body": {
+        "from": "+593900000001",
+        "to": "+593987654321",
+        "type": "text",
+        "text": { "body": "Permítame un momento por favor, ya revisamos la imagen que nos envió." }
+      }
+    }
+  }
+}

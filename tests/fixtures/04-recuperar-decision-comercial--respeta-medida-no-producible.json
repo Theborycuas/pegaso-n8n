@@ -1,0 +1,58 @@
+{
+  "archivo": "code/04-cerebro-comercial/recuperar-decision-comercial.js",
+  "descripcion": "Con 1x5 \"Aplicar reglas comerciales determinísticas\" bloqueó la solicitud (solicitud_producible = false): el Switch recibe MEDIDA_NO_PRODUCIBLE con la respuesta fija y no entra al cotizador (antes recibía COTIZAR_P4, pendiente técnico 2).",
+  "input": [
+    { "id": 16, "telefono": "593987654321", "estado": "NUEVO", "ultima_intencion": "APORTAR_DATOS", "ultima_accion": "MEDIDA_NO_PRODUCIBLE", "requiere_humano": false, "activo": true }
+  ],
+  "nodos": {
+    "Resolver contexto comercial": [
+      {
+        "conversacion_id": 41,
+        "prospecto_id": 16,
+        "telefono": "593987654321",
+        "intencion": "APORTAR_DATOS",
+        "accion": "COTIZAR_P4",
+        "cantidad": 1000,
+        "ancho_cm": 1,
+        "alto_cm": 5,
+        "forma": "RECTANGULAR",
+        "datos_suficientes_para_cotizar": true,
+        "requiere_humano": false,
+        "motivo_derivacion": "NINGUNO",
+        "requiere_notificacion": false,
+        "respuesta_sugerida": "",
+        "contexto_comercial": { "cotizacion": { "ancho_cm": 1, "alto_cm": 5 } }
+      }
+    ],
+    "Aplicar reglas comerciales determinísticas": [
+      {
+        "conversacion_id": 41,
+        "prospecto_id": 16,
+        "telefono": "593987654321",
+        "intencion": "APORTAR_DATOS",
+        "accion": "MEDIDA_NO_PRODUCIBLE",
+        "cantidad": 1000,
+        "ancho_cm": 1,
+        "alto_cm": 5,
+        "forma": "RECTANGULAR",
+        "datos_suficientes_para_cotizar": false,
+        "requiere_humano": false,
+        "motivo_derivacion": "NINGUNO",
+        "requiere_notificacion": false,
+        "solicitud_producible": false,
+        "restriccion_comercial": { "codigo": "MEDIDA_MINIMA_NO_PRODUCIBLE", "tipo": "PRODUCCION" },
+        "respuesta_sugerida": "No trabajamos etiquetas que tengan 1 cm o menos en cualquiera de sus lados. La medida mínima que podemos trabajar debe ser mayor a 1 cm. Si gusta, indíquenos una medida mayor y con gusto le cotizamos.",
+        "contexto_comercial": { "cotizacion": { "ancho_cm": 1, "alto_cm": 5, "producible": false } }
+      }
+    ]
+  },
+  "esperado": {
+    "accion": "MEDIDA_NO_PRODUCIBLE",
+    "datos_suficientes_para_cotizar": false,
+    "solicitud_producible": false,
+    "respuesta_sugerida": "No trabajamos etiquetas que tengan 1 cm o menos en cualquiera de sus lados. La medida mínima que podemos trabajar debe ser mayor a 1 cm. Si gusta, indíquenos una medida mayor y con gusto le cotizamos.",
+    "contexto_comercial": { "cotizacion": { "producible": false } },
+    "prospecto_actualizado": true,
+    "conversacion_id": 41
+  }
+}

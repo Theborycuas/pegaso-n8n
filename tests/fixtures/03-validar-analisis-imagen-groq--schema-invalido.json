@@ -1,0 +1,44 @@
+{
+  "archivo": "code/03-conversacion/validar-analisis-imagen-groq.js",
+  "descripcion": "Fallback · Groq respondió JSON fuera del schema (contenido_detectado inventado): análisis inválido y el item sale con el binary \"imagen\" de \"Descargar imagen YCloud\" para que DeepSeek pueda analizarla.",
+  "input": [
+    {
+      "output": {
+        "contenido_detectado": "FOTO_BONITA",
+        "confianza": "ALTA",
+        "motivo_revision": "NINGUNO",
+        "envase_detectado": true,
+        "etiqueta_visible": false,
+        "diseno_visible": false,
+        "requiere_revision_humana": false,
+        "resumen_para_cerebro": "Una foto."
+      }
+    }
+  ],
+  "nodos": {
+    "Preparar media del turno": [
+      { "analizar_imagen": true, "mensaje_id": 160, "conversacion_id": 77, "contenido_base": "[IMAGEN]" }
+    ],
+    "Descargar imagen YCloud": [
+      {}
+    ]
+  },
+  "binarios": {
+    "Descargar imagen YCloud": [
+      { "imagen": { "mimeType": "image/jpeg", "fileName": "imagen.jpg", "data": "QUJD" } }
+    ]
+  },
+  "esperado": {
+    "proveedor_analisis": "GROQ",
+    "analisis_valido": false,
+    "requiere_revision": true,
+    "error_analisis": "SCHEMA_INVALIDO",
+    "detalle_error": "contenido_detectado inválido"
+  },
+  "esperadoItem": {
+    "binary": {
+      "imagen": { "mimeType": "image/jpeg", "fileName": "imagen.jpg" }
+    },
+    "pairedItem": { "item": 0 }
+  }
+}

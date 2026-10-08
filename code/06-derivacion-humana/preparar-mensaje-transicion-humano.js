@@ -1,10 +1,11 @@
 // ======================================================
 // NODO N8N: Preparar mensaje transición humano
 // ARCHIVO: code/06-derivacion-humana/preparar-mensaje-transicion-humano.js
-// VERSION: 3.1
+// VERSION: 3.2
 // RESPONSABILIDAD:
 // - Recibir la salida del UPDATE "Guardar contexto handoff" y recuperar el contrato de "Preparar contexto handoff"
-// - Elegir el texto fijo de transición al prospecto según el motivo (pago, reporte de pago o comprobante, pedido, llamada, imagen, archivo, negociación, reclamo)
+// - Elegir el texto fijo de transición al prospecto según el motivo (pago, reporte de pago o comprobante, pedido, llamada, imagen,
+//   archivo, entrada no soportada, negociación, reclamo); nunca menciona errores técnicos
 // - Aplicar un fallback por intención cuando el motivo no tiene texto propio
 // - Mantener separados handoff_mensaje_cliente (mensaje ORIGINAL del prospecto) y mensaje_transicion (respuesta de Pegaso)
 // - Exponer mensaje_salida y tipo_mensaje_salida = HANDOFF_HUMANO para el guardado del mensaje saliente
@@ -162,7 +163,10 @@ else if (
 // ------------------------------------------------------
 
 else if (
-  motivo === 'DESEA_CONTINUAR_PEDIDO'
+  [
+    'DESEA_CONTINUAR_PEDIDO',
+    'CONFIRMAR_PEDIDO'
+  ].includes(motivo)
 ) {
 
   mensaje =
@@ -178,6 +182,7 @@ else if (
 else if (
   [
     'SOLICITA_LLAMADA',
+    'SOLICITA_HABLAR_CON_PERSONA',
     'QUIERE_LLAMAR',
     'QUIERE_QUE_LO_LLAMEN',
     'ATENCION_TELEFONICA'
@@ -228,6 +233,20 @@ else if (
 
 
 // ------------------------------------------------------
+// ENTRADA NO SOPORTADA (ubicación, contacto, interactivo…)
+// ------------------------------------------------------
+
+else if (
+  motivo === 'ENTRADA_NO_SOPORTADA'
+) {
+
+  mensaje =
+    'Permítame un momento por favor, ya revisamos el mensaje que nos envió.';
+
+}
+
+
+// ------------------------------------------------------
 // NEGOCIACIÓN
 // ------------------------------------------------------
 
@@ -254,6 +273,9 @@ else if (
 else if (
   [
     'RECLAMO',
+    'PROBLEMA_PEDIDO',
+    'PROBLEMA_PAGO',
+    'PROBLEMA_ENTREGA',
     'INCONVENIENTE',
     'QUEJA'
   ].includes(motivo)

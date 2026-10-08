@@ -1,15 +1,22 @@
 // ======================================================
 // NODO N8N: Normalizar mensaje
 // ARCHIVO: code/01-entrada/normalizar-mensaje.js
-// VERSION: 2.0
+// VERSION: 2.1
 // ======================================================
 //
 // RESPONSABILIDAD:
 //
-// - Unificar entrada real de WhatsApp y entrada TEST.
+// - Unificar entrada real de WhatsApp ("IF: ¿Entrada soportada
+//   por el flujo?" true), entrada no soportada ("Preparar entrada
+//   no soportada") y entrada TEST.
 // - Normalizar teléfono, nombre, mensaje, tipo y canal.
 // - CONSERVAR metadatos multimedia provenientes de
 //   "Preparar entrada WhatsApp".
+// - Exponer derivacion_directa siempre como booleano: lo lee
+//   "IF: ¿Derivación directa por entrada?" con
+//   $('Normalizar mensaje').
+// - No decidir la derivación (la fija "Preparar entrada no
+//   soportada").
 // - No decidir si una imagen se analiza.
 // - No descargar multimedia.
 // - No consultar PostgreSQL.
@@ -184,6 +191,19 @@ return items.map((item) => {
 
       apto_para_flujo_conversacional:
         data.apto_para_flujo_conversacional === true,
+
+
+      // -----------------------------------------------
+      // DERIVACIÓN DIRECTA (entradas no soportadas)
+      // -----------------------------------------------
+
+      derivacion_directa:
+        data.derivacion_directa === true,
+
+      derivacion_directa_motivo:
+        data.derivacion_directa === true
+          ? data.derivacion_directa_motivo ?? 'ENTRADA_NO_SOPORTADA'
+          : null,
 
 
       // -----------------------------------------------

@@ -1,5 +1,5 @@
 {
-  "archivo": "code/03-conversacion/validar-analisis-imagen.js",
+  "archivo": "code/03-conversacion/validar-analisis-imagen-groq.js",
   "descripcion": "Caso 3 · etiqueta + \"este es el diseño\": se reconoce ETIQUETA_O_DISENO con su texto y colores; no requiere revisión (la decisión comercial la toma el cerebro). La IA devolvió texto con JSON en lugar de objeto (sin parser).",
   "input": [
     {
@@ -8,11 +8,12 @@
   ],
   "nodos": {
     "Preparar media del turno": [
-      { "analizar_imagen": true, "mensaje_id": 120, "mime_type": "image/png", "caption": "este es el diseño", "contenido_base": "[IMAGEN] este es el diseño" }
+      { "analizar_imagen": true, "mensaje_id": 120, "conversacion_id": 77, "mime_type": "image/png", "caption": "este es el diseño", "contenido_base": "[IMAGEN] este es el diseño" }
     ]
   },
   "esperado": {
     "mensaje_id": 120,
+    "proveedor_analisis": "GROQ",
     "analisis_valido": true,
     "requiere_revision": false,
     "contenido_detectado": "ETIQUETA_O_DISENO",
@@ -21,6 +22,6 @@
       "etiqueta_visible": true,
       "colores_relevantes": ["amarillo", "café"]
     },
-    "contenido_actualizado": "[IMAGEN] este es el diseño\n[CONTEXTO DE IMAGEN · contenido=ETIQUETA_O_DISENO · confianza=ALTA · revision=NO] Diseño de etiqueta rectangular para miel 'Dulce Valle', fondo amarillo con letras cafés. Producto probable: miel de abeja. Texto visible: \"Dulce Valle - Miel de abeja 500 g\". Colores: amarillo, café. Sin medidas visibles."
+    "contenido_actualizado": "[IMAGEN] este es el diseño\n[CONTEXTO DE IMAGEN · proveedor=GROQ · contenido=ETIQUETA_O_DISENO · confianza=ALTA · revision=NO] Diseño de etiqueta rectangular para miel 'Dulce Valle', fondo amarillo con letras cafés. Producto probable: miel de abeja. Texto visible: \"Dulce Valle - Miel de abeja 500 g\". Colores: amarillo, café. Sin medidas visibles."
   }
 }

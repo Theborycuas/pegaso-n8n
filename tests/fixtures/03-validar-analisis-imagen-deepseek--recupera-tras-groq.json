@@ -1,0 +1,43 @@
+{
+  "archivo": "code/03-conversacion/validar-analisis-imagen-deepseek.js",
+  "descripcion": "Fallback 1 · Groq falló y DeepSeek analizó la imagen: el origen (mensaje_id, conversacion_id, contenido_base) se recupera por pairedItem aunque la entrada de DeepSeek venga del validador de Groq (sin binary propio); la cabecera dice proveedor=DEEPSEEK.",
+  "input": [
+    {
+      "output": {
+        "contenido_detectado": "ENVASE_O_PRODUCTO",
+        "producto_probable": "yogur en vaso",
+        "envase_detectado": true,
+        "forma_envase": "vaso cilíndrico",
+        "etiqueta_visible": false,
+        "diseno_visible": false,
+        "texto_visible_relevante": null,
+        "colores_relevantes": [],
+        "medidas_visibles": null,
+        "requiere_revision_humana": false,
+        "motivo_revision": "NINGUNO",
+        "confianza": "MEDIA",
+        "resumen_para_cerebro": "Vaso plástico blanco de yogur sin etiqueta."
+      }
+    }
+  ],
+  "nodos": {
+    "Preparar media del turno": [
+      { "analizar_imagen": true, "mensaje_id": 210, "conversacion_id": 88, "caption": "para este vaso", "contenido_base": "[IMAGEN] para este vaso" }
+    ],
+    "Validar análisis imagen Groq": [
+      { "mensaje_id": 210, "conversacion_id": 88, "proveedor_analisis": "GROQ", "analisis_valido": false, "contenido_base": "[IMAGEN] para este vaso" }
+    ]
+  },
+  "esperado": {
+    "mensaje_id": 210,
+    "conversacion_id": 88,
+    "proveedor_analisis": "DEEPSEEK",
+    "analisis_valido": true,
+    "requiere_revision": false,
+    "motivo_revision": null,
+    "contenido_actualizado": "[IMAGEN] para este vaso\n[CONTEXTO DE IMAGEN · proveedor=DEEPSEEK · contenido=ENVASE_O_PRODUCTO · confianza=MEDIA · revision=NO] Vaso plástico blanco de yogur sin etiqueta. Producto probable: yogur en vaso. Envase: vaso cilíndrico. Sin medidas visibles."
+  },
+  "esperadoItem": {
+    "pairedItem": { "item": 0 }
+  }
+}

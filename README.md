@@ -24,9 +24,9 @@ pegaso-n8n/
 │   ├── pegaso-whatsapp.map.json    # Qué archivo corresponde a qué nodo
 │   └── snapshots/                  # Copias de producción antes de cambios grandes
 ├── code/                           # Un .js por nodo Code, agrupado por etapa del flujo
-│   ├── 01-entrada/                 # Webhook YCloud → mensaje normalizado
+│   ├── 01-entrada/                 # Webhook YCloud → mensaje normalizado (y entradas no soportadas)
 │   ├── 02-contacto-prospecto/      # Cliente existente / prospecto
-│   ├── 03-conversacion/            # Conversación, modo prueba, contexto IA
+│   ├── 03-conversacion/            # Conversación, modo prueba, turno, imágenes (Groq → DeepSeek → OpenAI), contexto IA
 │   ├── 04-cerebro-comercial/       # Validación y reglas sobre la decisión de la IA
 │   ├── 05-respuesta-comercial/     # Respuesta y estado del prospecto
 │   ├── 06-derivacion-humana/       # Handoff a humano y notificaciones (Brevo/Resend)
@@ -42,7 +42,9 @@ pegaso-n8n/
     └── run-node.mjs                # Ejecuta nodos Code con fixtures (npm test)
 ```
 
-Cuando varios nodos comparten la misma lógica (por ejemplo, los tres "Validar extracción" del fallback Groq → DeepSeek → OpenAI), apuntan al mismo archivo en el mapa. Un cambio de regla se hace una sola vez.
+Cuando varios nodos comparten la misma lógica (por ejemplo, los tres "Validar extracción" del fallback Groq → DeepSeek → OpenAI), apuntan al mismo archivo en el mapa. Un cambio de regla se hace una sola vez. Si la lógica depende del proveedor, cada nodo tiene su archivo (los tres "Validar análisis imagen Groq / DeepSeek / OpenAI" marcan `proveedor_analisis` y deciden el siguiente paso de la cascada), y el prompt y el schema siguen siendo compartidos.
+
+`workflows/pegaso-whatsapp.json` no está en el repo todavía: `npm run status`, `build` y `extract` fallan hasta exportarlo (paso 1 del flujo de trabajo).
 
 ## Encabezado de cada archivo
 

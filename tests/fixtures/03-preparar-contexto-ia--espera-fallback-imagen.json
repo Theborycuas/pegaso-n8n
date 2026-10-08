@@ -1,0 +1,35 @@
+{
+  "archivo": "code/03-conversacion/preparar-contexto-ia.js",
+  "descripcion": "Cascada visual · hay 2 imágenes en el turno y solo una tiene análisis válido (la otra sigue en DeepSeek): no sale ningún item, así el cerebro corre una sola vez cuando todas las imágenes están resueltas.",
+  "input": [
+    { "mensaje_id": 601, "analisis_valido": true }
+  ],
+  "nodos": {
+    "Resolver turno conversacional": [
+      {
+        "continuar_procesamiento": true,
+        "conversacion_id": 41,
+        "mensaje_id": 602,
+        "turno_mensaje_ids": [601, 602],
+        "turno_mensajes": [
+          { "id": 601, "tipo": "IMAGEN", "contenido": "[IMAGEN]\n[MEDIA_PENDIENTE] {\"link\":\"https://api.ycloud.com/v2/whatsapp/media/download/m601\"}" },
+          { "id": 602, "tipo": "IMAGEN", "contenido": "[IMAGEN]\n[MEDIA_PENDIENTE] {\"link\":\"https://api.ycloud.com/v2/whatsapp/media/download/m602\"}" }
+        ],
+        "turno_texto": "[IMAGEN]\n[IMAGEN]"
+      }
+    ],
+    "Preparar media del turno": [
+      { "analizar_imagen": true, "mensaje_id": 601 },
+      { "analizar_imagen": true, "mensaje_id": 602 }
+    ],
+    "Validar análisis imagen Groq": [
+      { "mensaje_id": 601, "proveedor_analisis": "GROQ", "analisis_valido": true, "contenido_actualizado": "[IMAGEN]\n[CONTEXTO DE IMAGEN · proveedor=GROQ · contenido=LOGO · confianza=ALTA · revision=NO] Logo." },
+      { "mensaje_id": 602, "proveedor_analisis": "GROQ", "analisis_valido": false }
+    ],
+    "Recuperar historial conversación": [],
+    "Preparar conversación": [
+      { "mensaje": "[IMAGEN]", "tipo": "IMAGEN", "prospecto_id": 16, "conversacion_id": 41, "contexto_comercial": {}, "tipo_actor": "PROSPECTO" }
+    ]
+  },
+  "esperadoCantidad": 0
+}

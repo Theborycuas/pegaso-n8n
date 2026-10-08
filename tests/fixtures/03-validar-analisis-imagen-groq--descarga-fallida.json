@@ -1,0 +1,28 @@
+{
+  "archivo": "code/03-conversacion/validar-analisis-imagen-groq.js",
+  "descripcion": "Fallback · la descarga falló (Descargar imagen YCloud no entregó binary) y Groq continuó con un item de error: análisis inválido, error DESCARGA_FALLIDA, sin binary que reenviar y una línea sin detalle técnico (ni el error ni el enlace llegan a la base o al cliente). El IF lo manda a DeepSeek.",
+  "input": [
+    {
+      "error": "403 - {\"message\":\"Forbidden\"} https://api.ycloud.com/v2/whatsapp/media/download/media_150?sig=x"
+    }
+  ],
+  "nodos": {
+    "Preparar media del turno": [
+      { "analizar_imagen": true, "mensaje_id": 150, "conversacion_id": 77, "mime_type": "image/webp", "caption": "precio?", "contenido_base": "[IMAGEN] precio?" }
+    ],
+    "Descargar imagen YCloud": [
+      { "error": "403 - Forbidden" }
+    ]
+  },
+  "esperado": {
+    "mensaje_id": 150,
+    "conversacion_id": 77,
+    "proveedor_analisis": "GROQ",
+    "analisis_valido": false,
+    "requiere_revision": true,
+    "motivo_revision": "ANALISIS_NO_DISPONIBLE",
+    "error_analisis": "DESCARGA_FALLIDA",
+    "analisis": null,
+    "contenido_actualizado": "[IMAGEN] precio?\n[CONTEXTO DE IMAGEN · proveedor=GROQ · revision=SI · motivo=ANALISIS_NO_DISPONIBLE] La imagen no pudo revisarse automáticamente."
+  }
+}

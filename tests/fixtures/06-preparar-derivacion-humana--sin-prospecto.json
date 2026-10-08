@@ -1,6 +1,6 @@
 {
   "archivo": "code/06-derivacion-humana/preparar-derivacion-humana.js",
-  "descripcion": "Sin prospecto_id detiene la ejecución.",
+  "descripcion": "Sin prospecto_id en la entrada ni en ningún nodo anterior (Recuperar decisión comercial, Preparar contexto IA, Preparar conversación, Unificar prospecto) detiene la ejecución.",
   "input": [
     {
       "conversacion_id": 41,
@@ -99,7 +99,7 @@
         "mensaje_actual": "Pásame una cuenta para pagar",
         "tipo_mensaje": "TEXTO",
         "prospecto_existe": true,
-        "prospecto_id": 16,
+        "prospecto_id": null,
         "prospecto_estado": "NUEVO",
         "prospecto_clasificacion_anterior": "C",
         "clasificacion_prospecto": "A",

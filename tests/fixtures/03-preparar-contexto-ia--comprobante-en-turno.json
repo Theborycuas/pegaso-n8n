@@ -1,6 +1,6 @@
 {
   "archivo": "code/03-conversacion/preparar-contexto-ia.js",
-  "descripcion": "Caso 4 · \"ya pagué\" + captura de transferencia: la cabecera contenido=COMPROBANTE_PAGO de la imagen analizada marca comprobante_detectado; \"Normalizar decisión IA\" derivará con ENVIA_COMPROBANTE.",
+  "descripcion": "Caso 4 · \"ya pagué\" + captura de transferencia: Groq falló y DeepSeek la analizó; se usa el análisis válido (el inválido de Groq se ignora) y la cabecera contenido=COMPROBANTE_PAGO marca comprobante_detectado; \"Normalizar decisión IA\" derivará con ENVIA_COMPROBANTE.",
   "input": [
     { "id": 502, "conversacion_id": 41 }
   ],
@@ -20,12 +20,19 @@
         "turno_texto": "ya pagué\n[IMAGEN]"
       }
     ],
-    "Validar análisis imagen": [
+    "Preparar media del turno": [
+      { "analizar_imagen": true, "mensaje_id": 502, "conversacion_id": 41, "contenido_base": "[IMAGEN]" }
+    ],
+    "Validar análisis imagen Groq": [
+      { "mensaje_id": 502, "proveedor_analisis": "GROQ", "analisis_valido": false }
+    ],
+    "Validar análisis imagen DeepSeek": [
       {
         "mensaje_id": 502,
+        "proveedor_analisis": "DEEPSEEK",
         "analisis_valido": true,
         "comprobante_detectado": true,
-        "contenido_actualizado": "[IMAGEN]\n[CONTEXTO DE IMAGEN · contenido=COMPROBANTE_PAGO · confianza=ALTA · revision=NO] Parece un comprobante de transferencia bancaria."
+        "contenido_actualizado": "[IMAGEN]\n[CONTEXTO DE IMAGEN · proveedor=DEEPSEEK · contenido=COMPROBANTE_PAGO · confianza=ALTA · revision=NO] Parece un comprobante de transferencia bancaria."
       }
     ],
     "Recuperar historial conversación": [],
@@ -34,13 +41,14 @@
     ]
   },
   "esperado": {
-    "mensaje_actual": "ya pagué\n[IMAGEN]\n[CONTEXTO DE IMAGEN · contenido=COMPROBANTE_PAGO · confianza=ALTA · revision=NO] Parece un comprobante de transferencia bancaria.",
+    "mensaje_actual": "ya pagué\n[IMAGEN]\n[CONTEXTO DE IMAGEN · proveedor=DEEPSEEK · contenido=COMPROBANTE_PAGO · confianza=ALTA · revision=NO] Parece un comprobante de transferencia bancaria.",
     "media_turno": {
       "cantidad_media": 1,
       "imagenes_analizadas": 1,
       "comprobante_detectado": true,
       "requiere_revision_humana": false,
-      "motivo_derivacion": null
+      "motivo_derivacion": null,
+      "proveedores_analisis": ["DEEPSEEK"]
     }
   }
 }

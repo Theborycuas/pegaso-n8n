@@ -39,6 +39,7 @@
         "INFORMAR_ENTREGA",
         "INFORMAR_DISENO",
         "COTIZAR_P4",
+        "MEDIDA_NO_PRODUCIBLE",
         "REGISTRAR_ACEPTACION",
         "DERIVAR_HUMANO",
         "RESPONDER_GENERAL"

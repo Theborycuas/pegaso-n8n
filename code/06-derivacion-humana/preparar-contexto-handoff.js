@@ -1,11 +1,12 @@
 // ======================================================
 // NODO N8N: Preparar contexto handoff
 // ARCHIVO: code/06-derivacion-humana/preparar-contexto-handoff.js
-// VERSION: 3
+// VERSION: 3.1
 // RESPONSABILIDAD:
 // - Recibir la fila de prospectos devuelta por "Marcar prospecto requiere humano"
-// - Recuperar explícitamente el contrato creado por "Preparar derivación humana"
-// - Construir contexto_comercial.handoff (activo, motivo, intención, clasificación, prioridad, notificación, mensaje del cliente, iniciado_at)
+// - Recuperar explícitamente el contrato creado por "Preparar derivación humana" (cerebro, imagen fallida o entrada no soportada)
+// - Construir contexto_comercial.handoff (activo, motivo, intención, clasificación, prioridad, notificación, origen, mensaje del cliente, iniciado_at)
+//   sobre la memoria comercial que trae el contrato
 // - Fusionar fila DB + contrato handoff, dando prioridad al contrato y protegiendo prospecto_id
 // - Marcar handoff_activo = true
 // - NO escribir en PostgreSQL (lo hace "Guardar contexto handoff")
@@ -189,6 +190,10 @@ const contextoNuevo = {
 
     requiere_notificacion:
       requiereNotificacion,
+
+    origen:
+      texto(handoff.origen_derivacion) ??
+      'CEREBRO_COMERCIAL',
 
     mensaje_cliente:
       mensajeCliente,

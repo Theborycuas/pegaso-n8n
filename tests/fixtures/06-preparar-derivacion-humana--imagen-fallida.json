@@ -1,0 +1,48 @@
+{
+  "archivo": "code/06-derivacion-humana/preparar-derivacion-humana.js",
+  "descripcion": "Entrada desde \"Preparar derivación imagen fallida\": el contrato ya viene completo y se respeta tal cual (IMAGEN_REQUIERE_REVISION / REVISION_IMAGEN / MEDIA / notifica / origen ANALISIS_IMAGEN / FALLO_TOTAL_ANALISIS_IMAGEN) con el mensaje real del cliente.",
+  "input": [
+    {
+      "conversacion_id": 41,
+      "prospecto_id": 16,
+      "telefono": "593987654321",
+      "nombre_whatsapp": "Ana Pérez",
+      "prospecto_nombre": "Ana Pérez",
+      "prospecto_clasificacion": "B",
+      "mensaje_actual": "Quiero etiquetas para esta botella\n[IMAGEN]",
+      "handoff_mensaje_cliente": "Quiero etiquetas para esta botella\n[IMAGEN]",
+      "intencion": "OTRO",
+      "accion": "DERIVAR_HUMANO",
+      "requiere_humano": true,
+      "handoff_motivo": "IMAGEN_REQUIERE_REVISION",
+      "motivo_derivacion": "IMAGEN_REQUIERE_REVISION",
+      "handoff_clasificacion": "REVISION_IMAGEN",
+      "clasificacion_handoff": "REVISION_IMAGEN",
+      "handoff_prioridad": "MEDIA",
+      "prioridad_derivacion": "MEDIA",
+      "requiere_notificacion": true,
+      "handoff_requiere_notificacion": true,
+      "origen_derivacion": "ANALISIS_IMAGEN",
+      "analisis_imagen_fallido": true,
+      "derivacion_directa": true,
+      "derivacion_directa_motivo": "FALLO_TOTAL_ANALISIS_IMAGEN",
+      "contexto_comercial": { "cotizacion": { "ancho_cm": 10 } }
+    }
+  ],
+  "esperado": {
+    "conversacion_id": 41,
+    "prospecto_id": 16,
+    "intencion": "OTRO",
+    "accion": "DERIVAR_HUMANO",
+    "handoff_motivo": "IMAGEN_REQUIERE_REVISION",
+    "handoff_clasificacion": "REVISION_IMAGEN",
+    "handoff_prioridad": "MEDIA",
+    "requiere_notificacion": true,
+    "origen_derivacion": "ANALISIS_IMAGEN",
+    "analisis_imagen_fallido": true,
+    "derivacion_directa": true,
+    "derivacion_directa_motivo": "FALLO_TOTAL_ANALISIS_IMAGEN",
+    "mensaje_cliente_original": "Quiero etiquetas para esta botella\n[IMAGEN]",
+    "contexto_comercial": { "cotizacion": { "ancho_cm": 10 } }
+  }
+}

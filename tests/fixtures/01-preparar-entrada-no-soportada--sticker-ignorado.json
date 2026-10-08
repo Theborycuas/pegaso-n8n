@@ -1,0 +1,17 @@
+{
+  "archivo": "code/01-entrada/preparar-entrada-no-soportada.js",
+  "descripcion": "Sticker: no necesita respuesta ni asesor; el nodo no emite item y la ejecución termina en silencio.",
+  "input": [
+    {
+      "telefono": "593987654321",
+      "mensaje": "[STICKER]",
+      "tipo": "STICKER",
+      "mensaje_externo_id": "wamid.STK1",
+      "apto_para_flujo_texto": false,
+      "requiere_procesamiento_media": false,
+      "entrada_soportada_flujo": false,
+      "meta_whatsapp": { "tipo_original": "sticker" }
+    }
+  ],
+  "esperadoCantidad": 0
+}

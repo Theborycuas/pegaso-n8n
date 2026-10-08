@@ -1,19 +1,23 @@
 // ======================================================
 // NODO N8N: Preparar derivación humana
 // ARCHIVO: code/06-derivacion-humana/preparar-derivacion-humana.js
-// VERSION: 3.1
+// VERSION: 4.0
 // RESPONSABILIDAD:
-// - Recibir la salida DERIVAR_HUMANO de "Enrutar acción comercial" y validar conversacion_id y prospecto_id
-// - Convertir la decisión comercial en un contrato estable de HANDOFF (respaldo en "Recuperar decisión comercial")
-// - Decidir el motivo funcional (explícito o derivado de la intención) y la clasificación del handoff
-// - Decidir la prioridad (IA + reglas deterministas ALTA/MEDIA por motivo)
-// - Decidir si requiere notificación interna (motivos notificables o prioridad ALTA)
-// - Preservar el mensaje original del cliente, separado del mensaje de transición de Pegaso
+// - Punto ÚNICO de entrada a la ruta de handoff. Recibe tres orígenes:
+//   1. "Enrutar acción comercial" (DERIVAR_HUMANO) con la decisión del cerebro (respaldo: "Recuperar decisión comercial")
+//   2. "Preparar derivación imagen fallida" (las 3 IA visuales fallaron), que ya trae el contrato completo
+//   3. "IF: ¿Derivación directa por entrada?" (true): entrada no soportada; la decisión se toma de "Normalizar mensaje"
+// - Recuperar la identidad si no viene en el input ("Preparar contexto IA", "Preparar conversación", "Unificar prospecto") y lanzar error
+//   solo si conversacion_id o prospecto_id no existen en ningún nodo
+// - Convertir la decisión en un contrato estable de HANDOFF: motivo (explícito; NINGUNO u OTRO se deducen de la intención), clasificación del handoff,
+//   prioridad (la mayor entre la recibida y la mínima por motivo: nunca baja una ALTA) y notificación (nunca apaga una notificación pedida)
+// - Conservar contexto_comercial (para que "Guardar contexto handoff" no borre la memoria) y el origen de la derivación
+// - Preservar el mensaje original del cliente, separado del mensaje de transición de Pegaso, sin enlaces de media
 // - NO escribir en PostgreSQL (lo hace "Marcar prospecto requiere humano")
 // - NO dejar que los nodos posteriores reinterpreten estas decisiones: solo deben preservarlas
 // ======================================================
 
-const input = $input.first().json;
+const input = $input.first().json ?? {};
 
 
 // ======================================================
@@ -21,679 +25,536 @@ const input = $input.first().json;
 // ======================================================
 
 function texto(valor) {
-
-  if (
-    valor === undefined ||
-    valor === null
-  ) {
+  if (valor === undefined || valor === null) {
     return null;
   }
 
-  const limpio =
-    String(valor).trim();
+  const limpio = String(valor).trim();
 
-  return limpio !== ''
-    ? limpio
-    : null;
+  return limpio !== '' ? limpio : null;
 }
 
-
-function numeroONull(valor) {
-
-  if (
-    valor === undefined ||
-    valor === null ||
-    valor === ''
-  ) {
+function numeroPositivoONull(valor) {
+  if (valor === undefined || valor === null || valor === '') {
     return null;
   }
 
   const n = Number(valor);
 
-  return Number.isFinite(n)
-    ? n
-    : null;
+  return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-
 function booleano(valor, defecto = false) {
-
   if (typeof valor === 'boolean') {
     return valor;
   }
 
-  if (
-    valor === 'true' ||
-    valor === 1 ||
-    valor === '1'
-  ) {
+  if (valor === 'true' || valor === 1 || valor === '1') {
     return true;
   }
 
-  if (
-    valor === 'false' ||
-    valor === 0 ||
-    valor === '0'
-  ) {
+  if (valor === 'false' || valor === 0 || valor === '0') {
     return false;
   }
 
   return defecto;
 }
 
+function primero(...valores) {
+  for (const valor of valores) {
+    if (valor !== undefined && valor !== null && valor !== '') {
+      return valor;
+    }
+  }
 
-// ======================================================
-// 2. IDENTIDAD
-// ======================================================
-
-const conversacionId =
-  numeroONull(
-    input.conversacion_id
-  );
-
-const prospectoId =
-  numeroONull(
-    input.prospecto_id
-  );
-
-const clienteId =
-  numeroONull(
-    input.cliente_id
-  );
-
-const contactoId =
-  numeroONull(
-    input.contacto_id
-  );
-
-
-if (
-  conversacionId === null ||
-  conversacionId <= 0
-) {
-
-  throw new Error(
-    'PREPARAR DERIVACIÓN HUMANA: conversacion_id inválido.'
-  );
-
+  return null;
 }
 
-
-if (
-  prospectoId === null ||
-  prospectoId <= 0
-) {
-
-  throw new Error(
-    'PREPARAR DERIVACIÓN HUMANA: prospecto_id inválido.'
-  );
-
+function jsonDe(nodo) {
+  try {
+    return $(nodo).first().json ?? {};
+  } catch (error) {
+    return {};
+  }
 }
 
+function objetoONull(valor) {
+  if (valor && typeof valor === 'object' && !Array.isArray(valor)) {
+    return valor;
+  }
 
-// ======================================================
-// 3. RECUPERAR DECISIÓN COMERCIAL
-// ======================================================
-//
-// El input normalmente ya la contiene.
-// Sin embargo dejamos respaldo directo al nodo anterior
-// para no perderla si en el futuro cambia la conexión.
-//
-// ======================================================
+  if (typeof valor === 'string') {
+    try {
+      const parsed = JSON.parse(valor);
 
-let decisionAnterior = {};
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+    } catch (error) {
+      return null;
+    }
+  }
 
-try {
+  return null;
+}
 
-  decisionAnterior =
-    $('Recuperar decisión comercial')
-      .first()
-      .json ?? {};
+function sinLineasDeMedia(valor) {
+  const limpio = String(valor ?? '')
+    .split('\n')
+    .filter(linea => !linea.trim().startsWith('[MEDIA_PENDIENTE]'))
+    .join('\n')
+    .trim();
 
-} catch (_) {
-
-  decisionAnterior = {};
-
+  return limpio !== '' ? limpio : null;
 }
 
 
 // ======================================================
-// 4. INTENCIÓN / ACCIÓN
+// 2. FUENTES
 // ======================================================
 
-const intencion =
-  (
-    texto(
-      input.intencion
-    ) ??
-    texto(
-      decisionAnterior.intencion
-    ) ??
-    'OTRO'
-  ).toUpperCase();
-
-
-const accionOriginal =
-  (
-    texto(
-      input.accion
-    ) ??
-    texto(
-      decisionAnterior.accion
-    ) ??
-    'DERIVAR_HUMANO'
-  ).toUpperCase();
+const decisionAnterior = jsonDe('Recuperar decisión comercial');
+const contextoIA = jsonDe('Preparar contexto IA');
+const conversacion = jsonDe('Preparar conversación');
+const prospectoUnificado = jsonDe('Unificar prospecto');
 
 
 // ======================================================
-// 5. MENSAJE ORIGINAL DEL CLIENTE
+// 3. DERIVACIÓN DIRECTA POR ENTRADA NO SOPORTADA
 // ======================================================
 //
-// MUY IMPORTANTE:
+// Por "IF: ¿Derivación directa por entrada?" llega la salida de
+// "Resolver turno conversacional", sin decisión. La decisión la
+// fijó "Preparar entrada no soportada" y viaja en "Normalizar mensaje".
+// ======================================================
+
+let entradaDirecta = {};
+
+if (input.derivacion_directa !== true && !texto(input.accion)) {
+  const normalizado = jsonDe('Normalizar mensaje');
+
+  if (normalizado.derivacion_directa === true) {
+    entradaDirecta = {
+      intencion: 'OTRO',
+      accion: 'DERIVAR_HUMANO',
+      handoff_motivo: texto(normalizado.derivacion_motivo) ?? 'ENTRADA_NO_SOPORTADA',
+      handoff_clasificacion: texto(normalizado.derivacion_clasificacion) ?? 'REVISION_COMERCIAL',
+      handoff_prioridad: texto(normalizado.derivacion_prioridad) ?? 'MEDIA',
+      requiere_notificacion: true,
+      origen_derivacion: texto(normalizado.origen_derivacion) ?? 'ENTRADA_NO_SOPORTADA',
+      derivacion_directa: true,
+      derivacion_directa_motivo: texto(normalizado.derivacion_directa_motivo) ?? 'ENTRADA_NO_SOPORTADA',
+      telefono: normalizado.telefono,
+      nombre_whatsapp: normalizado.nombre_whatsapp
+    };
+  }
+}
+
+const base = {
+  ...entradaDirecta,
+  ...input
+};
+
+
+// ======================================================
+// 4. IDENTIDAD
+// ======================================================
+
+const conversacionId = numeroPositivoONull(
+  primero(
+    base.conversacion_id,
+    decisionAnterior.conversacion_id,
+    contextoIA.conversacion_id,
+    conversacion.conversacion_id
+  )
+);
+
+const prospectoId = numeroPositivoONull(
+  primero(
+    base.prospecto_id,
+    decisionAnterior.prospecto_id,
+    contextoIA.prospecto_id,
+    conversacion.prospecto_id,
+    prospectoUnificado.prospecto_id
+  )
+);
+
+const clienteId = numeroPositivoONull(
+  primero(base.cliente_id, decisionAnterior.cliente_id, contextoIA.cliente_id, conversacion.cliente_id)
+);
+
+const contactoId = numeroPositivoONull(
+  primero(base.contacto_id, decisionAnterior.contacto_id, contextoIA.contacto_id, conversacion.contacto_id)
+);
+
+if (conversacionId === null) {
+  throw new Error('PREPARAR DERIVACIÓN HUMANA: conversacion_id inválido.');
+}
+
+if (prospectoId === null) {
+  throw new Error('PREPARAR DERIVACIÓN HUMANA: prospecto_id inválido.');
+}
+
+
+// ======================================================
+// 5. INTENCIÓN / ACCIÓN
+// ======================================================
+
+const intencion = (texto(base.intencion) ?? texto(decisionAnterior.intencion) ?? 'OTRO').toUpperCase();
+
+const accionOriginal = (texto(base.accion) ?? texto(decisionAnterior.accion) ?? 'DERIVAR_HUMANO').toUpperCase();
+
+
+// ======================================================
+// 6. MENSAJE ORIGINAL DEL CLIENTE
+// ======================================================
 //
-// Este campo representa exclusivamente lo que escribió
-// el prospecto.
-//
-// Jamás debe reemplazarse posteriormente con el mensaje
-// de transición generado por Pegaso.
-//
+// Representa exclusivamente lo que escribió el prospecto.
+// Jamás debe reemplazarse con el mensaje de transición de
+// Pegaso. Nunca lleva el enlace de una imagen pendiente.
 // ======================================================
 
 const mensajeClienteOriginal =
-  texto(
-    input.mensaje_actual
-  ) ??
-  texto(
-    decisionAnterior.mensaje_actual
-  ) ??
-  texto(
-    input.handoff_mensaje_cliente
-  ) ??
-  null;
+  texto(base.mensaje_actual) ??
+  texto(decisionAnterior.mensaje_actual) ??
+  texto(base.handoff_mensaje_cliente) ??
+  sinLineasDeMedia(base.turno_texto) ??
+  texto(contextoIA.mensaje_actual) ??
+  sinLineasDeMedia(conversacion.mensaje);
 
 
 // ======================================================
-// 6. DATOS DEL PROSPECTO
+// 7. DATOS DEL PROSPECTO
 // ======================================================
 
-const nombreProspecto =
-  texto(
-    input.prospecto_nombre
-  ) ??
-  texto(
-    decisionAnterior.prospecto_nombre
-  ) ??
-  texto(
-    input.nombre_whatsapp
-  ) ??
-  texto(
-    decisionAnterior.nombre_whatsapp
-  );
+const nombreProspecto = texto(
+  primero(
+    base.prospecto_nombre,
+    decisionAnterior.prospecto_nombre,
+    contextoIA.prospecto_nombre,
+    conversacion.prospecto_nombre,
+    prospectoUnificado.prospecto_nombre,
+    base.nombre_whatsapp,
+    decisionAnterior.nombre_whatsapp,
+    contextoIA.nombre_whatsapp,
+    conversacion.nombre_whatsapp
+  )
+);
 
+const telefono = texto(
+  primero(base.telefono, decisionAnterior.telefono, contextoIA.telefono, conversacion.telefono, prospectoUnificado.telefono)
+);
 
-const telefono =
-  texto(
-    input.telefono
-  ) ??
-  texto(
-    decisionAnterior.telefono
-  );
+const ciudad = texto(
+  primero(
+    base.prospecto_ciudad,
+    decisionAnterior.prospecto_ciudad,
+    base.ciudad_detectada,
+    decisionAnterior.ciudad_detectada,
+    contextoIA.prospecto_ciudad,
+    conversacion.prospecto_ciudad,
+    prospectoUnificado.prospecto_ciudad
+  )
+);
 
+const provincia = texto(
+  primero(
+    base.prospecto_provincia,
+    decisionAnterior.prospecto_provincia,
+    base.provincia_detectada,
+    decisionAnterior.provincia_detectada,
+    contextoIA.prospecto_provincia,
+    conversacion.prospecto_provincia,
+    prospectoUnificado.prospecto_provincia
+  )
+);
 
-const ciudad =
-  texto(
-    input.prospecto_ciudad
-  ) ??
-  texto(
-    decisionAnterior.prospecto_ciudad
-  ) ??
-  texto(
-    input.ciudad_detectada
-  ) ??
-  texto(
-    decisionAnterior.ciudad_detectada
-  );
+const clasificacionProspecto = texto(
+  primero(
+    base.clasificacion_prospecto,
+    base.prospecto_clasificacion,
+    decisionAnterior.clasificacion_prospecto,
+    decisionAnterior.prospecto_clasificacion,
+    contextoIA.prospecto_clasificacion,
+    conversacion.prospecto_clasificacion
+  )
+)?.toUpperCase() ?? null;
 
-
-const provincia =
-  texto(
-    input.prospecto_provincia
-  ) ??
-  texto(
-    decisionAnterior.prospecto_provincia
-  ) ??
-  texto(
-    input.provincia_detectada
-  ) ??
-  texto(
-    decisionAnterior.provincia_detectada
-  );
-
-
-const clasificacionProspecto =
-  texto(
-    input.clasificacion_prospecto
-  ) ??
-  texto(
-    input.prospecto_clasificacion
-  ) ??
-  texto(
-    decisionAnterior.clasificacion_prospecto
-  ) ??
-  texto(
-    decisionAnterior.prospecto_clasificacion
-  );
+const contextoComercial =
+  objetoONull(base.contexto_comercial) ??
+  objetoONull(decisionAnterior.contexto_comercial) ??
+  objetoONull(contextoIA.contexto_comercial) ??
+  objetoONull(conversacion.contexto_comercial) ??
+  {};
 
 
 // ======================================================
-// 7. MOTIVO FUNCIONAL
+// 8. MOTIVO FUNCIONAL
 // ======================================================
 //
-// Primero respetamos un motivo explícito si ya existe.
-//
-// Si no existe, lo derivamos desde la intención.
-//
+// Se respeta el motivo explícito. NINGUNO (o un OTRO cuando la
+// intención es concreta) se deduce de la intención:
+// "Envíeme un número de cuenta" -> CONSULTAR_PAGO -> SOLICITA_DATOS_PAGO.
 // ======================================================
 
-let motivo =
-  (
-    texto(
-      input.handoff_motivo
-    ) ??
-    texto(
-      input.motivo_derivacion
-    ) ??
-    texto(
-      decisionAnterior.handoff_motivo
-    ) ??
-    texto(
-      decisionAnterior.motivo_derivacion
-    )
-  );
+const MOTIVO_POR_INTENCION = {
+  CONSULTAR_PAGO: 'SOLICITA_DATOS_PAGO',
+  REPORTAR_PAGO: 'REPORTA_PAGO',
+  CONFIRMAR_PEDIDO: 'DESEA_CONTINUAR_PEDIDO',
+  ACEPTAR_COTIZACION: 'DESEA_CONTINUAR_PEDIDO',
+  NEGOCIAR: 'NEGOCIACION_COMERCIAL',
+  RECLAMO: 'RECLAMO',
+  SOLICITAR_LLAMADA: 'SOLICITA_LLAMADA',
+  SOLICITAR_HUMANO: 'SOLICITA_HABLAR_CON_PERSONA'
+};
 
+const motivoExplicito = texto(
+  primero(
+    base.handoff_motivo,
+    base.motivo_derivacion,
+    decisionAnterior.handoff_motivo,
+    decisionAnterior.motivo_derivacion
+  )
+)?.toUpperCase() ?? null;
 
-if (motivo) {
+const motivoDeIntencion = MOTIVO_POR_INTENCION[intencion] ?? null;
 
-  motivo =
-    motivo.toUpperCase();
+let motivo = motivoExplicito;
 
-}
-
-
-if (!motivo) {
-
-  switch (intencion) {
-
-    case 'CONSULTAR_PAGO':
-
-      motivo =
-        'SOLICITA_DATOS_PAGO';
-
-      break;
-
-
-    case 'REPORTAR_PAGO':
-
-      motivo =
-        'REPORTA_PAGO';
-
-      break;
-
-
-    case 'CONFIRMAR_PEDIDO':
-
-      motivo =
-        'DESEA_CONTINUAR_PEDIDO';
-
-      break;
-
-
-    case 'NEGOCIAR':
-
-      motivo =
-        'NEGOCIACION_COMERCIAL';
-
-      break;
-
-
-    case 'RECLAMO':
-
-      motivo =
-        'RECLAMO';
-
-      break;
-
-
-    case 'SOLICITAR_LLAMADA':
-
-      motivo =
-        'SOLICITA_LLAMADA';
-
-      break;
-
-
-    default:
-
-      motivo =
-        'ATENCION_COMERCIAL';
-
-  }
-
+if (!motivo || motivo === 'NINGUNO' || (motivo === 'OTRO' && motivoDeIntencion)) {
+  motivo = motivoDeIntencion ?? (motivo === 'OTRO' ? 'OTRO' : 'ATENCION_COMERCIAL');
 }
 
 
 // ======================================================
-// 8. CLASIFICACIÓN HANDOFF
+// 9. CLASIFICACIÓN HANDOFF
 // ======================================================
 
-let clasificacionHandoff =
-  texto(
-    input.handoff_clasificacion
-  ) ??
-  texto(
-    input.clasificacion_handoff
-  ) ??
-  texto(
-    decisionAnterior.handoff_clasificacion
-  ) ??
-  texto(
+let clasificacionHandoff = texto(
+  primero(
+    base.handoff_clasificacion,
+    base.clasificacion_handoff,
+    decisionAnterior.handoff_clasificacion,
     decisionAnterior.clasificacion_handoff
-  );
-
-
-if (clasificacionHandoff) {
-
-  clasificacionHandoff =
-    clasificacionHandoff.toUpperCase();
-
-}
-
+  )
+)?.toUpperCase() ?? null;
 
 if (!clasificacionHandoff) {
-
   switch (motivo) {
-
     case 'SOLICITA_DATOS_PAGO':
     case 'REPORTA_PAGO':
     case 'ENVIA_COMPROBANTE':
     case 'DESEA_CONTINUAR_PEDIDO':
-
-      clasificacionHandoff =
-        'CIERRE_COMERCIAL';
-
+    case 'CONFIRMAR_PEDIDO':
+      clasificacionHandoff = 'CIERRE_COMERCIAL';
       break;
-
 
     case 'RECLAMO':
-
-      clasificacionHandoff =
-        'POSTVENTA';
-
+    case 'PROBLEMA_PEDIDO':
+    case 'PROBLEMA_PAGO':
+    case 'PROBLEMA_ENTREGA':
+      clasificacionHandoff = 'POSTVENTA';
       break;
-
 
     case 'NEGOCIACION_COMERCIAL':
-
-      clasificacionHandoff =
-        'NEGOCIACION';
-
+    case 'NEGOCIACION':
+      clasificacionHandoff = 'NEGOCIACION';
       break;
-
 
     case 'SOLICITA_LLAMADA':
-
-      clasificacionHandoff =
-        'CONTACTO_DIRECTO';
-
+    case 'SOLICITA_HABLAR_CON_PERSONA':
+      clasificacionHandoff = 'CONTACTO_DIRECTO';
       break;
 
+    case 'IMAGEN_REQUIERE_REVISION':
+      clasificacionHandoff = 'REVISION_IMAGEN';
+      break;
+
+    case 'ARCHIVO_NO_PROCESABLE':
+    case 'ARCHIVO_DISENO':
+      clasificacionHandoff = 'REVISION_ARCHIVO';
+      break;
 
     default:
-
-      clasificacionHandoff =
-        'REVISION_COMERCIAL';
-
+      clasificacionHandoff = 'REVISION_COMERCIAL';
   }
-
 }
 
 
 // ======================================================
-// 9. PRIORIDAD
+// 10. PRIORIDAD
 // ======================================================
 //
-// MUY IMPORTANTE:
-//
-// La IA ya puede entregar:
-//
-// prioridad_derivacion = ALTA
-//
-// Antes nuestro flujo ignoraba ese campo.
-//
+// La prioridad recibida (IA o derivación directa) se respeta y
+// las reglas solo pueden SUBIRLA: nunca baja una ALTA.
 // ======================================================
 
-let prioridad =
-  (
-    texto(
-      input.handoff_prioridad
-    ) ??
-    texto(
-      input.prioridad_derivacion
-    ) ??
-    texto(
-      decisionAnterior.handoff_prioridad
-    ) ??
-    texto(
+const RANGO_PRIORIDAD = { NORMAL: 1, MEDIA: 2, ALTA: 3 };
+
+const MOTIVOS_PRIORIDAD_ALTA = [
+  'SOLICITA_DATOS_PAGO',
+  'REPORTA_PAGO',
+  'ENVIA_COMPROBANTE',
+  'DESEA_CONTINUAR_PEDIDO',
+  'CONFIRMAR_PEDIDO',
+  'RECLAMO',
+  'PROBLEMA_PAGO',
+  'PROBLEMA_PEDIDO',
+  'PROBLEMA_ENTREGA'
+];
+
+const MOTIVOS_PRIORIDAD_MEDIA = [
+  'NEGOCIACION_COMERCIAL',
+  'NEGOCIACION',
+  'SOLICITA_LLAMADA',
+  'SOLICITA_HABLAR_CON_PERSONA',
+  'IMAGEN_REQUIERE_REVISION',
+  'ARCHIVO_NO_PROCESABLE',
+  'ARCHIVO_DISENO',
+  'DISENO_ESPECIAL',
+  'ENTRADA_NO_SOPORTADA'
+];
+
+const prioridadRecibida = (
+  texto(
+    primero(
+      base.handoff_prioridad,
+      base.prioridad_derivacion,
+      decisionAnterior.handoff_prioridad,
       decisionAnterior.prioridad_derivacion
-    ) ??
-    'NORMAL'
-  ).toUpperCase();
+    )
+  ) ?? 'NORMAL'
+).toUpperCase();
 
+const prioridadMinima = MOTIVOS_PRIORIDAD_ALTA.includes(motivo)
+  ? 'ALTA'
+  : MOTIVOS_PRIORIDAD_MEDIA.includes(motivo)
+    ? 'MEDIA'
+    : 'NORMAL';
 
-// Reglas determinísticas tienen autoridad mínima.
-
-if (
-  motivo === 'SOLICITA_DATOS_PAGO' ||
-  motivo === 'REPORTA_PAGO' ||
-  motivo === 'ENVIA_COMPROBANTE' ||
-  motivo === 'DESEA_CONTINUAR_PEDIDO' ||
-  motivo === 'RECLAMO'
-) {
-
-  prioridad =
-    'ALTA';
-
-}
-
-
-else if (
-  motivo === 'NEGOCIACION_COMERCIAL' ||
-  motivo === 'SOLICITA_LLAMADA'
-) {
-
-  if (prioridad !== 'ALTA') {
-
-    prioridad =
-      'MEDIA';
-
-  }
-
-}
+const prioridad =
+  RANGO_PRIORIDAD[prioridadRecibida] >= RANGO_PRIORIDAD[prioridadMinima]
+    ? prioridadRecibida
+    : prioridadMinima;
 
 
 // ======================================================
-// 10. RESOLVER NOTIFICACIÓN
+// 11. NOTIFICACIÓN
 // ======================================================
 //
-// Regla:
-// No dependemos solo de la IA.
-//
-// Los eventos comerciales que necesitan atención pronta
-// notifican siempre.
-//
+// Los eventos que necesitan atención pronta notifican siempre;
+// una notificación pedida por la IA nunca se apaga aquí.
 // ======================================================
 
-let requiereNotificacion =
+const MOTIVOS_NOTIFICABLES = new Set([
+  ...MOTIVOS_PRIORIDAD_ALTA,
+  ...MOTIVOS_PRIORIDAD_MEDIA,
+  'ARCHIVO_REQUIERE_REVISION',
+  'DISENO_REQUIERE_REVISION',
+  'COTIZACION_ESPECIAL'
+]);
+
+const requiereNotificacion =
   booleano(
-    input.requiere_notificacion ??
-    input.handoff_requiere_notificacion ??
-    decisionAnterior.requiere_notificacion ??
-    decisionAnterior.handoff_requiere_notificacion,
+    primero(
+      base.requiere_notificacion,
+      base.handoff_requiere_notificacion,
+      decisionAnterior.requiere_notificacion,
+      decisionAnterior.handoff_requiere_notificacion
+    ),
     false
-  );
-
-
-const motivosNotificables =
-  new Set([
-    'SOLICITA_DATOS_PAGO',
-    'REPORTA_PAGO',
-    'DESEA_CONTINUAR_PEDIDO',
-    'NEGOCIACION_COMERCIAL',
-    'RECLAMO',
-    'SOLICITA_LLAMADA',
-    'ENVIA_COMPROBANTE',
-    'IMAGEN_REQUIERE_REVISION',
-    'ARCHIVO_NO_PROCESABLE',
-    'ARCHIVO_DISENO',
-    'ARCHIVO_REQUIERE_REVISION',
-    'DISENO_REQUIERE_REVISION',
-    'COTIZACION_ESPECIAL'
-  ]);
-
-
-if (
-  motivosNotificables.has(
-    motivo
-  )
-) {
-
-  requiereNotificacion =
-    true;
-
-}
-
-
-// Prioridad ALTA también obliga notificación.
-
-if (
-  prioridad === 'ALTA'
-) {
-
-  requiereNotificacion =
-    true;
-
-}
+  ) ||
+  MOTIVOS_NOTIFICABLES.has(motivo) ||
+  prioridad === 'ALTA';
 
 
 // ======================================================
-// 11. SALIDA
+// 12. ORIGEN
+// ======================================================
+
+const derivacionDirecta = base.derivacion_directa === true;
+
+const origenDerivacion =
+  texto(base.origen_derivacion) ??
+  (derivacionDirecta ? 'DERIVACION_DIRECTA' : 'CEREBRO_COMERCIAL');
+
+
+// ======================================================
+// 13. SALIDA
 // ======================================================
 
 return [
   {
     json: {
-
-      ...input,
+      ...base,
 
       // ----------------------------------------------
       // IDENTIDAD
       // ----------------------------------------------
 
-      conversacion_id:
-        conversacionId,
-
-      prospecto_id:
-        prospectoId,
-
-      cliente_id:
-        clienteId,
-
-      contacto_id:
-        contactoId,
-
+      conversacion_id: conversacionId,
+      prospecto_id: prospectoId,
+      cliente_id: clienteId,
+      contacto_id: contactoId,
       telefono,
-
-      nombre_whatsapp:
-        nombreProspecto,
-
-      prospecto_nombre:
-        nombreProspecto,
-
-      prospecto_ciudad:
-        ciudad,
-
-      prospecto_provincia:
-        provincia,
-
-      prospecto_clasificacion:
-        clasificacionProspecto,
-
+      nombre_whatsapp: nombreProspecto,
+      prospecto_nombre: nombreProspecto,
+      prospecto_ciudad: ciudad,
+      prospecto_provincia: provincia,
+      prospecto_clasificacion: clasificacionProspecto,
 
       // ----------------------------------------------
       // DECISIÓN
       // ----------------------------------------------
 
       intencion,
-
-      accion_original:
-        accionOriginal,
-
-      accion:
-        'DERIVAR_HUMANO',
-
-      requiere_humano:
-        true,
-
+      accion_original: accionOriginal,
+      accion: 'DERIVAR_HUMANO',
+      requiere_humano: true,
 
       // ----------------------------------------------
       // HANDOFF
       // ----------------------------------------------
 
-      handoff_motivo:
-        motivo,
-
-      handoff_clasificacion:
-        clasificacionHandoff,
-
-      clasificacion_handoff:
-        clasificacionHandoff,
-
-      handoff_prioridad:
-        prioridad,
-
-      prioridad_derivacion:
-        prioridad,
-
+      handoff_motivo: motivo,
+      motivo_derivacion: motivo,
+      handoff_clasificacion: clasificacionHandoff,
+      clasificacion_handoff: clasificacionHandoff,
+      handoff_prioridad: prioridad,
+      prioridad_derivacion: prioridad,
 
       // ----------------------------------------------
       // NOTIFICACIÓN
       // ----------------------------------------------
 
-      requiere_notificacion:
-        requiereNotificacion,
+      requiere_notificacion: requiereNotificacion,
+      handoff_requiere_notificacion: requiereNotificacion,
 
-      handoff_requiere_notificacion:
-        requiereNotificacion,
+      // ----------------------------------------------
+      // ORIGEN
+      // ----------------------------------------------
 
+      origen_derivacion: origenDerivacion,
+      derivacion_directa: derivacionDirecta,
+      derivacion_directa_motivo: derivacionDirecta ? texto(base.derivacion_directa_motivo) : null,
+      analisis_imagen_fallido: base.analisis_imagen_fallido === true,
 
       // ----------------------------------------------
       // MENSAJE ORIGINAL CLIENTE
       // ----------------------------------------------
 
-      mensaje_cliente_original:
-        mensajeClienteOriginal,
+      mensaje_cliente_original: mensajeClienteOriginal,
+      handoff_mensaje_cliente: mensajeClienteOriginal,
 
-      handoff_mensaje_cliente:
-        mensajeClienteOriginal,
+      // ----------------------------------------------
+      // MEMORIA COMERCIAL
+      // ----------------------------------------------
 
+      contexto_comercial: contextoComercial,
 
       // ----------------------------------------------
       // CONTROL
       // ----------------------------------------------
 
-      handoff_at:
-        new Date().toISOString()
-
+      handoff_at: new Date().toISOString()
     }
   }
 ];

@@ -67,6 +67,7 @@
     "apto_para_flujo_texto": false,
     "apto_para_flujo_conversacional": true,
     "media_soportada": true,
-    "requiere_procesamiento_media": true
+    "requiere_procesamiento_media": true,
+    "entrada_soportada_flujo": true
   }
 }

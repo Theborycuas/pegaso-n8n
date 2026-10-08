@@ -19,6 +19,8 @@
     "tipo": "STICKER",
     "mensaje": null,
     "apto_para_flujo_texto": false,
-    "apto_para_flujo_conversacional": false
+    "apto_para_flujo_conversacional": false,
+    "requiere_procesamiento_media": false,
+    "entrada_soportada_flujo": false
   }
 }

@@ -71,7 +71,7 @@ Columnas completas según "Guardar mensaje entrante":
 | `conversacion_id` | id de la conversación | filtro de "Recuperar historial conversación" |
 | `cliente_id` | `null` en prospectos | |
 | `direccion` | `ENTRANTE` | `SALIENTE` para respuestas del bot |
-| `tipo` | `TEXTO`, `IMAGEN`, `AUDIO`, `VIDEO` o `DOCUMENTO` | los salientes siempre son `TEXTO` (solo `TEXTO` se envía por WhatsApp). *Verificar* que no exista un `CHECK` que limite la columna a `TEXTO` |
+| `tipo` | `TEXTO`, `IMAGEN`, `AUDIO`, `VIDEO`, `DOCUMENTO` o, en entradas no soportadas, el tipo que traiga la etapa 01 (p. ej. `UBICACION`, `CONTACTO`, `INTERACTIVO`, `DESCONOCIDO`) | los salientes siempre son `TEXTO` (solo `TEXTO` se envía por WhatsApp). *Verificar* que no exista un `CHECK` que limite la columna: un valor fuera de la lista haría fallar "Guardar mensaje entrante" |
 | `contenido` | texto del mensaje; en media, el descriptor de abajo | |
 | `mensaje_externo_id` | wamid de WhatsApp | `null` en ejecuciones con "Mensaje entrante TEST"; un valor repetido = reenvío del webhook |
 | `enviado_at` | `recibido_at` | el historial se ordena por esta columna ASC |
@@ -89,18 +89,19 @@ Sin columnas nuevas: imagen, audio, video y documento se guardan como **texto co
 |---|---|---|
 | 1 | `[IMAGEN] caption` (o `[AUDIO]`, `[VIDEO]`, `[DOCUMENTO]`; sin caption: solo la etiqueta). El caption va en una línea, máx. 1000 caracteres | "Preparar entrada WhatsApp" (01) |
 | 2 · pendiente | `[MEDIA_PENDIENTE] {"mime_type":"image/jpeg","media_id":"…","link":"https://api.ycloud.com/v2/whatsapp/media/download/…"}` | "Preparar entrada WhatsApp" (01), solo imágenes JPEG/PNG/WebP con enlace permitido |
-| 2 · analizada | `[CONTEXTO DE IMAGEN · contenido=ENVASE_O_PRODUCTO · confianza=ALTA · revision=NO] Botella de vidrio… Sin medidas visibles.` | UPDATE de "Guardar análisis imagen" (03), que reemplaza la línea pendiente |
+| 2 · analizada | `[CONTEXTO DE IMAGEN · proveedor=GROQ · contenido=ENVASE_O_PRODUCTO · confianza=ALTA · revision=NO] Botella de vidrio… Sin medidas visibles.` (`proveedor` = `GROQ`, `DEEPSEEK` u `OPENAI`) | "Validar análisis imagen Groq / DeepSeek / OpenAI" (03) en `contenido_actualizado`; **no se guarda** en la base (no hay "Guardar análisis imagen") |
 | 2 · revisión | `[CONTEXTO DE IMAGEN · revision=SI · motivo=…] La imagen no pudo revisarse automáticamente.` (motivos: `IMAGEN_NO_DESCARGABLE`, `ANALISIS_NO_DISPONIBLE`, `CONFIANZA_BAJA`, `IMAGEN_ILEGIBLE`, `IMAGEN_AMBIGUA`, `DISENO_COMPLEJO`, `OTRO`) | 01 o 03 |
 | 2 · no procesable | `[ARCHIVO NO PROCESABLE · tipo=AUDIO · mime=audio/ogg] El bot no puede revisar este archivo automáticamente.` (audio, video, documento e imágenes que no son JPEG/PNG/WebP) | "Preparar entrada WhatsApp" (01) |
+| 2 · no soportada | `[ENTRADA NO SOPORTADA · tipo=UBICACION · original=location] El bot no puede revisar este tipo de mensaje automáticamente.` (ubicación, contacto, interactivo, tipo desconocido) | "Preparar entrada no soportada" (01) |
 
-Si la línea pendiente sigue ahí al llegar a "Preparar contexto IA" (imagen descartada en esta ejecución), el cerebro recibe `[CONTEXTO DE IMAGEN · revision=SI · motivo=IMAGEN_NO_ANALIZADA] …` en su lugar; eso no se guarda.
+Como el análisis no se persiste, la fila de la imagen conserva la línea `[MEDIA_PENDIENTE]`. "Preparar contexto IA" nunca la envía al cerebro: en el turno la reemplaza por el `contenido_actualizado` del validador, y en el historial de turnos anteriores la convierte en `[CONTEXTO DE IMAGEN · revision=SI · motivo=IMAGEN_NO_ANALIZADA] …`. `media_actualizaciones` (salida de "Preparar contexto IA") trae `mensaje_id` + `contenido_actualizado` listo para un UPDATE futuro.
 
 Reglas:
 
 - Las líneas de sistema solo se interpretan en filas con `tipo` distinto de `TEXTO`. Un cliente que escribe "[CONTEXTO DE IMAGEN…]" en un texto no activa derivaciones ni descargas.
-- El enlace firmado (`link`) vive en `contenido` **solo mientras la imagen está pendiente**. "Preparar contexto IA" nunca lo envía al cerebro y el UPDATE lo borra al analizar. Las imágenes que nunca se analizan (turno bloqueado por MODO_PRUEBA o handoff) lo conservan; con la API key caduca a los 30 días (pendiente técnico 56).
+- El enlace firmado (`link`) queda en `contenido` mientras la línea siga pendiente, y hoy eso es siempre (no hay UPDATE del análisis). "Preparar contexto IA" nunca lo envía al cerebro; con la API key caduca a los 30 días (pendiente técnico 56).
 - No se guarda la imagen ni datos bancarios: de un comprobante solo queda "comprobante detectado".
-- Los stickers no se guardan (no entran al flujo conversacional).
+- Los stickers y reacciones no se guardan (no entran al flujo conversacional). Ubicaciones, contactos e interactivos sí, con la línea "no soportada".
 
 ### Semántica de `procesado`
 

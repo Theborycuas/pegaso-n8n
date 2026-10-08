@@ -1,6 +1,6 @@
 {
   "archivo": "code/04-cerebro-comercial/aplicar-reglas-comerciales.js",
-  "descripcion": "Lado de 1 cm: acción RESPONDER_NO_PRODUCIBLE, sin humano, con la restricción en contexto_comercial.",
+  "descripcion": "Lado de 1 cm en una cotización: acción MEDIDA_NO_PRODUCIBLE (salida del Switch), sin humano, con la restricción en contexto_comercial.",
   "input": [
     {
       "conversacion_id": 41,
@@ -87,7 +87,7 @@
     }
   ],
   "esperado": {
-    "accion": "RESPONDER_NO_PRODUCIBLE",
+    "accion": "MEDIDA_NO_PRODUCIBLE",
     "solicitud_producible": false,
     "requiere_humano": false,
     "requiere_notificacion": false,

@@ -1,6 +1,6 @@
 {
   "archivo": "code/04-cerebro-comercial/resolver-contexto-comercial.js",
-  "descripcion": "Comportamiento actual (pendiente técnico 2): la IA decide MEDIDA_NO_PRODUCIBLE para 1x5 y este nodo lo cambia a COTIZAR_P4 porque hay medidas y la intención es APORTAR_DATOS.",
+  "descripcion": "La IA decide MEDIDA_NO_PRODUCIBLE para 1x5: aunque la regla D convertiría APORTAR_DATOS con medidas en COTIZAR_P4, la regla H lo devuelve a MEDIDA_NO_PRODUCIBLE con la respuesta fija y sin datos suficientes para cotizar (antes terminaba en COTIZAR_P4, pendiente técnico 2).",
   "input": [
     {
       "conversacion_id": 41,
@@ -166,8 +166,9 @@
     ]
   },
   "esperado": {
-    "accion": "COTIZAR_P4",
-    "respuesta_sugerida": "",
+    "accion": "MEDIDA_NO_PRODUCIBLE",
+    "datos_suficientes_para_cotizar": false,
+    "respuesta_sugerida": "No trabajamos etiquetas que tengan 1 cm o menos en cualquiera de sus lados. La medida mínima que podemos trabajar debe ser mayor a 1 cm. Si gusta, indíquenos una medida mayor y con gusto le cotizamos.",
     "ancho_cm": 1
   }
 }

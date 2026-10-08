@@ -1,6 +1,6 @@
 {
-  "archivo": "code/03-conversacion/validar-analisis-imagen.js",
-  "descripcion": "Caso 5 · imagen ilegible: la IA pide revisión (IMAGEN_ILEGIBLE, confianza BAJA) → requiere_revision = true y la línea queda con revision=SI; \"Normalizar decisión IA\" derivará con IMAGEN_REQUIERE_REVISION.",
+  "archivo": "code/03-conversacion/validar-analisis-imagen-groq.js",
+  "descripcion": "Caso 5 · imagen ilegible: el análisis es válido pero la IA pide revisión (IMAGEN_ILEGIBLE, confianza BAJA) → requiere_revision = true y la línea queda con revision=SI; \"Normalizar decisión IA\" derivará con IMAGEN_REQUIERE_REVISION.",
   "input": [
     {
       "output": {
@@ -22,14 +22,15 @@
   ],
   "nodos": {
     "Preparar media del turno": [
-      { "analizar_imagen": true, "mensaje_id": 140, "mime_type": "image/jpeg", "caption": "", "contenido_base": "[IMAGEN]" }
+      { "analizar_imagen": true, "mensaje_id": 140, "conversacion_id": 77, "mime_type": "image/jpeg", "caption": "", "contenido_base": "[IMAGEN]" }
     ]
   },
   "esperado": {
+    "proveedor_analisis": "GROQ",
     "analisis_valido": true,
     "requiere_revision": true,
     "motivo_revision": "IMAGEN_ILEGIBLE",
     "comprobante_detectado": false,
-    "contenido_actualizado": "[IMAGEN]\n[CONTEXTO DE IMAGEN · contenido=NO_DETERMINABLE · confianza=BAJA · revision=SI · motivo=IMAGEN_ILEGIBLE] Imagen muy borrosa; no se distingue el contenido."
+    "contenido_actualizado": "[IMAGEN]\n[CONTEXTO DE IMAGEN · proveedor=GROQ · contenido=NO_DETERMINABLE · confianza=BAJA · revision=SI · motivo=IMAGEN_ILEGIBLE] Imagen muy borrosa; no se distingue el contenido."
   }
 }

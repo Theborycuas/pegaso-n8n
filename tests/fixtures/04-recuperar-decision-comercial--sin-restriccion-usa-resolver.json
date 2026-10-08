@@ -1,0 +1,20 @@
+{
+  "archivo": "code/04-cerebro-comercial/recuperar-decision-comercial.js",
+  "descripcion": "Medida producible: \"Aplicar reglas comerciales determinísticas\" no bloqueó (solicitud_producible = true), así que la decisión sale tal cual de \"Resolver contexto comercial\" (COTIZAR_P4).",
+  "input": [
+    { "id": 16, "estado": "NUEVO", "activo": true }
+  ],
+  "nodos": {
+    "Resolver contexto comercial": [
+      { "conversacion_id": 41, "prospecto_id": 16, "accion": "COTIZAR_P4", "ancho_cm": 10, "alto_cm": 5, "datos_suficientes_para_cotizar": true }
+    ],
+    "Aplicar reglas comerciales determinísticas": [
+      { "conversacion_id": 41, "prospecto_id": 16, "accion": "COTIZAR_P4", "ancho_cm": 10, "alto_cm": 5, "datos_suficientes_para_cotizar": true, "solicitud_producible": true }
+    ]
+  },
+  "esperado": {
+    "accion": "COTIZAR_P4",
+    "datos_suficientes_para_cotizar": true,
+    "prospecto_actualizado": true
+  }
+}

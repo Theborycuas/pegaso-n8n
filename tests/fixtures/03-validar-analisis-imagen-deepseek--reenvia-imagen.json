@@ -1,0 +1,37 @@
+{
+  "archivo": "code/03-conversacion/validar-analisis-imagen-deepseek.js",
+  "descripcion": "Fallback 1 · DeepSeek también falló (sin visión o error del nodo): análisis inválido y el item vuelve a llevar el binary \"imagen\" de \"Descargar imagen YCloud\" para que OpenAI pueda analizarla.",
+  "input": [
+    {
+      "error": "This model does not support image input"
+    }
+  ],
+  "nodos": {
+    "Preparar media del turno": [
+      { "analizar_imagen": true, "mensaje_id": 220, "conversacion_id": 88, "contenido_base": "[IMAGEN]" }
+    ],
+    "Validar análisis imagen Groq": [
+      { "mensaje_id": 220, "conversacion_id": 88, "analisis_valido": false, "contenido_base": "[IMAGEN]" }
+    ],
+    "Descargar imagen YCloud": [
+      {}
+    ]
+  },
+  "binarios": {
+    "Descargar imagen YCloud": [
+      { "imagen": { "mimeType": "image/png", "fileName": "imagen.png", "data": "QUJD" } }
+    ]
+  },
+  "esperado": {
+    "mensaje_id": 220,
+    "proveedor_analisis": "DEEPSEEK",
+    "analisis_valido": false,
+    "error_analisis": "DESCARGA_O_IA_FALLIDA",
+    "contenido_actualizado": "[IMAGEN]\n[CONTEXTO DE IMAGEN · proveedor=DEEPSEEK · revision=SI · motivo=ANALISIS_NO_DISPONIBLE] La imagen no pudo revisarse automáticamente."
+  },
+  "esperadoItem": {
+    "binary": {
+      "imagen": { "mimeType": "image/png" }
+    }
+  }
+}

@@ -1,11 +1,12 @@
 // ======================================================
 // NODO N8N: Finalizar derivación humana
 // ARCHIVO: code/06-derivacion-humana/finalizar-derivacion-humana.js
-// VERSION: 3
+// VERSION: 3.1
 // RESPONSABILIDAD:
-// - Recibir la salida de "Preparar mensaje transición humano" (corre en paralelo a "Guardar mensaje transición humano")
-// - Recuperar el contrato de "Preparar mensaje transición humano" con $() por si la conexión cambia
-// - Construir el contrato FINAL de handoff (identidad, prospecto, motivo, clasificación, prioridad, mensajes)
+// - Recibir la salida de "Guardar mensaje transición humano" (fila de mensajes) o de "Preparar mensaje transición humano"
+//   si corre en paralelo al INSERT: el contrato sale siempre de los nodos anteriores, no del input
+// - Recuperar el contrato de "Preparar mensaje transición humano" con $() por si la conexión cambia; si falta algún dato, de "Preparar derivación humana"
+// - Construir el contrato FINAL de handoff (identidad, prospecto, motivo, clasificación, prioridad, origen de la derivación, mensajes)
 // - Normalizar requiere_notificacion a booleano para el IF "¿Requiere notificación?"
 // - Marcar automatizacion_comercial_finalizada = true y fijar derivado_at / handoff_at
 // - NO modificar decisiones comerciales, NO recalcular prioridad, NO decidir notificación
@@ -41,7 +42,24 @@ try {
 }
 
 
+let derivacion = {};
+
+try {
+
+  derivacion =
+    $('Preparar derivación humana')
+      .first()
+      .json ?? {};
+
+} catch (_) {
+
+  derivacion = {};
+
+}
+
+
 const input = {
+  ...derivacion,
   ...db,
   ...handoff
 };
@@ -303,6 +321,28 @@ return [
 
       handoff_requiere_notificacion:
         requiereNotificacion,
+
+
+      // ----------------------------------------------
+      // ORIGEN DE LA DERIVACIÓN
+      // ----------------------------------------------
+
+      origen_derivacion:
+        textoONull(
+          input.origen_derivacion
+        ) ??
+        'CEREBRO_COMERCIAL',
+
+      derivacion_directa:
+        input.derivacion_directa === true,
+
+      derivacion_directa_motivo:
+        textoONull(
+          input.derivacion_directa_motivo
+        ),
+
+      analisis_imagen_fallido:
+        input.analisis_imagen_fallido === true,
 
 
       // ----------------------------------------------

@@ -1,0 +1,52 @@
+{
+  "archivo": "code/04-cerebro-comercial/normalizar-decision-ia.js",
+  "descripcion": "\"Hola. Envíeme un número de cuenta por favor.\": la IA ya resolvió CONSULTAR_PAGO / DERIVAR_HUMANO / SOLICITA_DATOS_PAGO / ALTA / notifica y no se degrada nada (el cliente es Borys Espinoza, Cuenca, clasificación A).",
+  "input": [
+    {
+      "intencion": "CONSULTAR_PAGO",
+      "accion": "DERIVAR_HUMANO",
+      "producto": null,
+      "material": null,
+      "cantidad": null,
+      "ancho_cm": null,
+      "alto_cm": null,
+      "forma": "NO_ESPECIFICADA",
+      "ciudad_detectada": null,
+      "provincia_detectada": null,
+      "datos_suficientes_para_cotizar": false,
+      "requiere_humano": true,
+      "motivo_derivacion": "SOLICITA_DATOS_PAGO",
+      "requiere_notificacion": true,
+      "prioridad_derivacion": "ALTA",
+      "clasificacion_prospecto": "A",
+      "respuesta_sugerida": "En breve le pasamos nuestros datos personales y números de cuenta.",
+      "valid": true
+    }
+  ],
+  "nodos": {
+    "Preparar contexto IA": [
+      {
+        "conversacion_id": 41,
+        "prospecto_id": 16,
+        "prospecto_estado": "COTIZADO",
+        "prospecto_clasificacion": "B",
+        "prospecto_nombre": "Borys Espinoza",
+        "prospecto_ciudad": "Cuenca",
+        "tipo_actor": "PROSPECTO",
+        "telefono": "593987654321",
+        "mensaje_actual": "Hola. Envíeme un número de cuenta por favor.",
+        "contexto_comercial": {}
+      }
+    ]
+  },
+  "esperado": {
+    "intencion": "CONSULTAR_PAGO",
+    "accion": "DERIVAR_HUMANO",
+    "requiere_humano": true,
+    "motivo_derivacion": "SOLICITA_DATOS_PAGO",
+    "prioridad_derivacion": "ALTA",
+    "requiere_notificacion": true,
+    "clasificacion_prospecto": "A",
+    "mensaje_actual": "Hola. Envíeme un número de cuenta por favor."
+  }
+}

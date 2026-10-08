@@ -1,24 +1,21 @@
 {
   "archivo": "code/06-derivacion-humana/preparar-notificacion-humano.js",
-  "descripcion": "Comportamiento actual (pendiente técnico 11): SOLICITA_LLAMADA con prioridad ALTA baja a MEDIA en el correo.",
+  "descripcion": "SOLICITA_LLAMADA con prioridad ALTA en el handoff: la categoría es SOLICITA_CONTACTO y la prioridad del correo ya no baja a MEDIA (la prioridad final es la mayor entre el handoff y el mínimo de la categoría; antes bajaba, pendiente técnico 11).",
   "input": [
     {
       "success": true,
       "flujo": "DERIVACION_HUMANA",
       "conversacion_id": 41,
       "prospecto_id": 16,
-      "cliente_id": null,
-      "contacto_id": null,
       "telefono": "593987654321",
       "nombre_whatsapp": "Ana Pérez",
       "prospecto_nombre": "Ana Pérez",
       "prospecto_ciudad": null,
-      "prospecto_provincia": null,
       "prospecto_clasificacion": "A",
       "intencion": "SOLICITAR_LLAMADA",
       "accion": "DERIVAR_HUMANO",
       "handoff_motivo": "SOLICITA_LLAMADA",
-      "motivo": "SOLICITA_DATOS_PAGO",
+      "motivo": "SOLICITA_LLAMADA",
       "handoff_clasificacion": "CIERRE_COMERCIAL",
       "clasificacion_handoff": "CIERRE_COMERCIAL",
       "handoff_prioridad": "ALTA",
@@ -26,17 +23,14 @@
       "requiere_humano": true,
       "requiere_notificacion": true,
       "handoff_requiere_notificacion": true,
-      "mensaje_cliente_original": "Pásame una cuenta para pagar",
-      "handoff_mensaje_cliente": "Pásame una cuenta para pagar",
-      "mensaje_transicion": "En breve le pasamos nuestros datos personales y números de cuenta.",
-      "handoff_mensaje_transicion": "En breve le pasamos nuestros datos personales y números de cuenta.",
-      "automatizacion_comercial_finalizada": true,
-      "derivado_at": "2026-10-07T23:53:47.512Z",
-      "handoff_at": "2026-10-07T23:53:47.512Z"
+      "mensaje_cliente_original": "Llámenme por favor",
+      "handoff_mensaje_cliente": "Llámenme por favor",
+      "automatizacion_comercial_finalizada": true
     }
   ],
   "esperado": {
     "categoria_notificacion": "SOLICITA_CONTACTO",
-    "prioridad_notificacion": "MEDIA"
+    "prioridad_notificacion": "ALTA",
+    "asunto_notificacion": "📞 Pegaso - Prospecto solicita contacto"
   }
 }

@@ -1,0 +1,34 @@
+{
+  "archivo": "code/03-conversacion/validar-analisis-imagen-openai.js",
+  "descripcion": "Último proveedor · OpenAI también falló: análisis inválido sin binary (no hay siguiente proveedor) y origen recuperado por pairedItem; el IF lo manda a \"Preparar derivación imagen fallida\".",
+  "input": [
+    {
+      "error": "timeout"
+    }
+  ],
+  "nodos": {
+    "Preparar media del turno": [
+      { "analizar_imagen": true, "mensaje_id": 230, "conversacion_id": 88, "contenido_base": "[IMAGEN] cotícenme" }
+    ],
+    "Descargar imagen YCloud": [
+      {}
+    ]
+  },
+  "binarios": {
+    "Descargar imagen YCloud": [
+      { "imagen": { "mimeType": "image/jpeg", "data": "QUJD" } }
+    ]
+  },
+  "esperado": {
+    "mensaje_id": 230,
+    "conversacion_id": 88,
+    "proveedor_analisis": "OPENAI",
+    "analisis_valido": false,
+    "requiere_revision": true,
+    "error_analisis": "DESCARGA_O_IA_FALLIDA",
+    "contenido_actualizado": "[IMAGEN] cotícenme\n[CONTEXTO DE IMAGEN · proveedor=OPENAI · revision=SI · motivo=ANALISIS_NO_DISPONIBLE] La imagen no pudo revisarse automáticamente."
+  },
+  "esperadoItem": {
+    "pairedItem": { "item": 0 }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "archivo": "code/03-conversacion/validar-analisis-imagen-groq.js",
+  "descripcion": "Caso 1 · botella + \"si, es esta botella\": análisis Groq válido, sin revisión humana, resumen disponible para el cerebro, cabecera con proveedor=GROQ y sin medidas inventadas.",
+  "input": [
+    {
+      "output": {
+        "contenido_detectado": "ENVASE_O_PRODUCTO",
+        "producto_probable": "salsa en botella",
+        "envase_detectado": true,
+        "forma_envase": "botella cilíndrica",
+        "etiqueta_visible": false,
+        "diseno_visible": false,
+        "texto_visible_relevante": null,
+        "colores_relevantes": [],
+        "medidas_visibles": null,
+        "requiere_revision_humana": false,
+        "motivo_revision": "NINGUNO",
+        "confianza": "ALTA",
+        "resumen_para_cerebro": "Fotografía de una botella plástica cilíndrica transparente de salsa, sin etiqueta."
+      }
+    }
+  ],
+  "nodos": {
+    "Preparar media del turno": [
+      { "analizar_imagen": true, "mensaje_id": 102, "conversacion_id": 77, "mime_type": "image/jpeg", "caption": "si, es esta botella", "contenido_base": "[IMAGEN] si, es esta botella" }
+    ]
+  },
+  "esperado": {
+    "mensaje_id": 102,
+    "conversacion_id": 77,
+    "proveedor_analisis": "GROQ",
+    "analisis_valido": true,
+    "requiere_revision": false,
+    "motivo_revision": null,
+    "comprobante_detectado": false,
+    "contenido_detectado": "ENVASE_O_PRODUCTO",
+    "confianza": "ALTA",
+    "error_analisis": null,
+    "detalle_error": null,
+    "contenido_base": "[IMAGEN] si, es esta botella",
+    "contenido_actualizado": "[IMAGEN] si, es esta botella\n[CONTEXTO DE IMAGEN · proveedor=GROQ · contenido=ENVASE_O_PRODUCTO · confianza=ALTA · revision=NO] Fotografía de una botella plástica cilíndrica transparente de salsa, sin etiqueta. Producto probable: salsa en botella. Envase: botella cilíndrica. Sin medidas visibles."
+  }
+}

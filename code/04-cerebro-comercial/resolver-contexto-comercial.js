@@ -1,13 +1,15 @@
 // ======================================================
 // NODO N8N: Resolver contexto comercial
 // ARCHIVO: code/04-cerebro-comercial/resolver-contexto-comercial.js
-// VERSION: 2.2
+// VERSION: 2.3
 // RESPONSABILIDAD:
 // - Consolidar datos del mensaje actual con contexto_comercial.cotizacion persistido (producto, material, cantidad, medidas, forma).
 // - Asumir 1000 unidades si hay medidas sin cantidad y redondear la cantidad cotizable a múltiplos de 1000 (mínimo 1000).
 // - Detectar si el mensaje modificó datos de cotización (cantidad, ancho, alto, forma) para recotizar solo cuando corresponde.
 // - Resolver la acción final: respetar DERIVAR_HUMANO y acciones informativas; forzar PEDIR_MEDIDAS o COTIZAR_P4 según datos e intención.
-// - Fijar respuesta_sugerida estándar para PEDIR_MEDIDAS y vaciarla para COTIZAR_P4.
+// - Convertir en MEDIDA_NO_PRODUCIBLE lo que iba a cotizarse (o lo que la IA ya marcó así) cuando un lado mide 1 cm o menos:
+//   nunca entra al cotizador, datos_suficientes_para_cotizar = false y respuesta fija.
+// - Fijar respuesta_sugerida estándar para PEDIR_MEDIDAS y MEDIDA_NO_PRODUCIBLE, y vaciarla para COTIZAR_P4.
 // - Construir el contexto_comercial nuevo que se persistirá.
 // - NO exigir producto para cotizar (PEDIR_PRODUCTO se reemplaza).
 // - NO escribir en PostgreSQL (lo hace "Guardar contexto comercial").
@@ -473,6 +475,39 @@ else if (
 }
 
 
+// ------------------------------------------------------
+// H. MEDIDA NO PRODUCIBLE (lado <= 1 cm)
+// ------------------------------------------------------
+//
+// Se evalúa al final porque D/E/F pueden haber convertido
+// la solicitud en COTIZAR_P4. Una derivación humana o una
+// acción informativa no se tocan.
+// ------------------------------------------------------
+
+const MENSAJE_MEDIDA_NO_PRODUCIBLE =
+  'No trabajamos etiquetas que tengan 1 cm o menos en cualquiera de sus lados. La medida mínima que podemos trabajar debe ser mayor a 1 cm. Si gusta, indíquenos una medida mayor y con gusto le cotizamos.';
+
+const medidaNoProducible =
+  anchoCm !== null &&
+  altoCm !== null &&
+  (
+    anchoCm <= 1 ||
+    altoCm <= 1
+  );
+
+if (
+  medidaNoProducible &&
+  accion !== 'DERIVAR_HUMANO' &&
+  (
+    accion === 'COTIZAR_P4' ||
+    accionIA === 'MEDIDA_NO_PRODUCIBLE'
+  )
+) {
+  accion =
+    'MEDIDA_NO_PRODUCIBLE';
+}
+
+
 // ======================================================
 // 12. RESPUESTA SUGERIDA
 // ======================================================
@@ -487,6 +522,13 @@ if (
 ) {
   respuestaSugerida =
     '¿En qué medidas necesita sus etiquetas? Indíquenos ancho y alto por favor.';
+}
+
+else if (
+  accion === 'MEDIDA_NO_PRODUCIBLE'
+) {
+  respuestaSugerida =
+    MENSAJE_MEDIDA_NO_PRODUCIBLE;
 }
 
 else if (
@@ -574,7 +616,9 @@ return [
       accion,
 
       datos_suficientes_para_cotizar:
-        datosSuficientes,
+        accion === 'MEDIDA_NO_PRODUCIBLE'
+          ? false
+          : datosSuficientes,
 
       respuesta_sugerida:
         respuestaSugerida,

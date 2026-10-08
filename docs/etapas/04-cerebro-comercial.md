@@ -74,16 +74,19 @@ Devuelve un item fijo (`status: AI_EXTRACTION_FAILED`). El cliente no recibe res
 
 Archivo: [`code/04-cerebro-comercial/normalizar-decision-ia.js`](../../code/04-cerebro-comercial/normalizar-decision-ia.js)
 
-Une la decisión validada (`$json`) con la identidad de `$('Preparar contexto IA')` y arma un contrato único (v2.1):
+Une la decisión validada (`$json`) con la identidad de `$('Preparar contexto IA')` y arma un contrato único (v2.2). No recalcula lo que la IA ya resolvió bien: solo completa lo que falta y solo **sube** prioridades.
 
+- **Derivación de la IA**: si `accion = DERIVAR_HUMANO`, `requiere_humano = true` aunque la IA lo haya dejado en `false`. Si el motivo es `NINGUNO`, se deduce de la intención (`CONSULTAR_PAGO` → `SOLICITA_DATOS_PAGO`, `REPORTAR_PAGO` → `REPORTA_PAGO`, `CONFIRMAR_PEDIDO`, `NEGOCIAR` → `NEGOCIACION`, `RECLAMO`, `SOLICITAR_LLAMADA`, `SOLICITAR_HUMANO` → `SOLICITA_HABLAR_CON_PERSONA`).
 - **Evidencia multimedia** (`media_turno` de "Preparar contexto IA"). Se aplica antes de la clasificación:
   - `comprobante_detectado` → `intencion = REPORTAR_PAGO`, `accion = DERIVAR_HUMANO`, `motivo_derivacion = ENVIA_COMPROBANTE` y respuesta "Muchas gracias. En breve verificamos la información para continuar con su pedido.". Si el cerebro ya derivó por `REPORTA_PAGO`, `ENVIA_COMPROBANTE`, reclamo o un problema de pedido, pago o entrega, se respeta su decisión.
-  - `requiere_revision_humana` (imagen ilegible o no analizada, audio, video, documento) y el cerebro **no** derivó → `DERIVAR_HUMANO` con `IMAGEN_REQUIERE_REVISION` o `ARCHIVO_NO_PROCESABLE` y un mensaje sutil. Si el cerebro ya derivó por otro motivo, gana el suyo.
+  - `requiere_revision_humana` (imagen con `revision=SI` o no analizada, audio, video, documento, entrada no soportada) y el cerebro **no** derivó, o derivó con motivo `NINGUNO`/`OTRO` → `DERIVAR_HUMANO` con `IMAGEN_REQUIERE_REVISION`, `ARCHIVO_NO_PROCESABLE` o `ENTRADA_NO_SOPORTADA` y un mensaje sutil. Si el cerebro ya derivó por un motivo concreto, gana el suyo.
   - Salida: `derivacion_por_media` (`COMPROBANTE_PAGO` / `REVISION_MEDIA` / `null`) y `media_turno`.
 
 - **Clasificación A/B/C**: la mayor entre la anterior, la de la IA y el mínimo por intención ([reglas-comerciales §9](../reglas-comerciales.md#9-clasificación-de-prospectos-abc)).
 - `etiqueta_grande` (lado corto > 10 o lado largo > 15 cm), `debe_pedir_ciudad_despues_cotizacion`, `cierre_cordial`.
-- `requiere_notificacion = requiere_humano` y `prioridad_derivacion`: ALTA para pago, comprobante, pedido, reclamo y problemas; MEDIA para el resto de derivaciones; NORMAL sin derivación.
+- `requiere_notificacion = requiere_humano` y `prioridad_derivacion`: la regla da ALTA para pago, comprobante, pedido, reclamo y problemas; MEDIA para el resto de derivaciones; NORMAL sin derivación. Si la IA trae una `prioridad_derivacion` mayor y hay derivación, se respeta la de la IA.
+
+Ejemplo: "Hola. Envíeme un número de cuenta por favor." → `CONSULTAR_PAGO` / `DERIVAR_HUMANO` / `SOLICITA_DATOS_PAGO` / `ALTA` / `requiere_humano = true` / `requiere_notificacion = true`, sin degradar nada (fixture `04-normalizar-decision-ia--consultar-pago-no-degrada`).
 - Limpia el tono de `respuesta_sugerida` (quita 😊 y aperturas como "¡Perfecto!").
 - Lanza error si `requiere_humano = true` con una acción distinta de `DERIVAR_HUMANO`.
 
@@ -97,13 +100,13 @@ Combina los datos del mensaje con `contexto_comercial.cotizacion` de `$('Prepara
 
 Construye el `contexto_comercial` nuevo: el anterior más `cotizacion` con `producto`, `material`, `cantidad_solicitada`, `cantidad_cotizable`, `cantidad_ajustada`, `cantidad_asumida`, `ancho_cm`, `alto_cm` y `forma`.
 
-⚠️ `MEDIDA_NO_PRODUCIBLE` no está entre las acciones que respeta: con medidas y una intención de cotizar se convierte en `COTIZAR_P4` (pendiente técnico 2).
+Regla H (v2.3, al final de la cadena): si un lado mide **1 cm o menos** y la acción iba a ser `COTIZAR_P4` (o la IA ya eligió `MEDIDA_NO_PRODUCIBLE`), la acción pasa a `MEDIDA_NO_PRODUCIBLE`, `datos_suficientes_para_cotizar = false` y la respuesta es la fija: "No trabajamos etiquetas que tengan 1 cm o menos en cualquiera de sus lados. La medida mínima que podemos trabajar debe ser mayor a 1 cm. Si gusta, indíquenos una medida mayor y con gusto le cotizamos.". Una derivación humana no se toca.
 
 ### Aplicar reglas comerciales determinísticas · Code
 
-Archivo: [`code/04-cerebro-comercial/aplicar-reglas-comerciales.js`](../../code/04-cerebro-comercial/aplicar-reglas-comerciales.js)
+Archivo: [`code/04-cerebro-comercial/aplicar-reglas-comerciales.js`](../../code/04-cerebro-comercial/aplicar-reglas-comerciales.js) (v2.0)
 
-Si un lado mide 1 cm o menos: `accion = RESPONDER_NO_PRODUCIBLE`, sin humano ni notificación, respuesta fija y la restricción guardada en `contexto_comercial` (`cotizacion.producible = false`, `ultima_restriccion_comercial`). Si no, devuelve el item igual con `solicitud_producible: true`.
+Solo para acciones de cotización (`COTIZAR_P4`, `MEDIDA_NO_PRODUCIBLE` o el nombre viejo `RESPONDER_NO_PRODUCIBLE`): si un lado mide 1 cm o menos, `accion = MEDIDA_NO_PRODUCIBLE` (el nombre de la salida del Switch), sin humano ni notificación, `datos_suficientes_para_cotizar = false`, respuesta fija, `solicitud_producible = false` y la restricción guardada en `contexto_comercial` (`cotizacion.producible = false`, `ultima_restriccion_comercial`). En cualquier otro caso (incluida una derivación humana con medidas viejas de 1 cm en memoria) devuelve el item igual con `solicitud_producible: true`.
 
 ### Guardar contexto comercial · Postgres Update
 
@@ -212,9 +215,7 @@ SELECT
 
 Archivo: [`code/04-cerebro-comercial/recuperar-decision-comercial.js`](../../code/04-cerebro-comercial/recuperar-decision-comercial.js)
 
-Recupera la decisión con `$('Resolver contexto comercial')` (el UPDATE solo devolvió la fila) y agrega `prospecto_actualizado: true`. Lanza error si no hay `accion`.
-
-⚠️ Lee "Resolver contexto comercial" y no "Aplicar reglas comerciales determinísticas": el cambio a `RESPONDER_NO_PRODUCIBLE` no llega al Switch (pendiente técnico 2).
+Recupera la decisión con `$('Resolver contexto comercial')` (el UPDATE solo devolvió la fila) y agrega `prospecto_actualizado: true`. Si "Aplicar reglas comerciales determinísticas" bloqueó la solicitud (`solicitud_producible = false`), aplica su salida encima (v2.3): así `MEDIDA_NO_PRODUCIBLE` llega al Switch y nunca entra al cotizador. Lanza error si no hay `accion`.
 
 ### Enrutar acción comercial · Switch
 
@@ -227,7 +228,7 @@ Modo **Rules**, una salida por acción más **Fallback**. Salidas visibles en el
 | INFORMAR_M…, INFORMAR_MI…, INFORMAR_UB…, INFORMAR_M…, INFORMAR_M…, INFORMAR_EN…, INFORMAR_DI… | `INFORMAR_MATERIAL`, `_MINIMO`, `_UBICACION`, `_METODOLOGIA`, `_METODOLOGIA_PAGO`, `_ENTREGA`, `_DISENO` | 05 Respuesta |
 | RESPONDER_… (dos salidas) | `RESPONDER_GENERAL` y otra por confirmar | 05 Respuesta |
 | REGISTRA… (dos salidas) | `REGISTRAR_ACEPTACION` y otra por confirmar | 05 Respuesta |
-| MEDIDA_NO_P… | `MEDIDA_NO_PRODUCIBLE` | por confirmar |
+| MEDIDA_NO_P… | `MEDIDA_NO_PRODUCIBLE` | 05 Respuesta ("Preparar respuesta comercial" envía la `respuesta_sugerida` fija). **No** debe ir a 07: verificar en n8n que esta salida no esté conectada al cotizador |
 | DERIVAR_HUM… | `DERIVAR_HUMANO` | 06 Derivación |
 | PEDIR_CANTID…, ENVIAR_DA…, VALIDAR_A… | ninguna: el validador no admite esas acciones | — |
 | Fallback | cualquier otra | por confirmar |
@@ -255,6 +256,6 @@ Lo que recibe cada rama (resumido, caso "Hola, necesito etiquetas de 10x5 cm"):
 
 ## Pruebas
 
-`tests/fixtures/04-*.json`: validaciones (JSON inválido, cotizar sin cantidad, medida de 1 cm, repetición, pago sin A, tono), error sin IA, normalización (clasificación que no baja, derivación de pago, turno agrupado que pide cuenta, incoherencia), decisión final (cotizar, redondeo, pedir medidas, pregunta informativa con cotización previa, turno nuevo que cambia la cantidad, medida no producible), reglas determinísticas, actualización de prospecto (diseño y conexión actual) y recuperación de la decisión. "Confirmar turno conversacional" es SQL: se prueba en n8n (ver [casos verificados](03-conversacion.md#casos-verificados)).
+`tests/fixtures/04-*.json`: validaciones (JSON inválido, cotizar sin cantidad, medida de 1 cm, repetición, pago sin A, tono), error sin IA, normalización (clasificación que no baja, derivación de pago, turno agrupado que pide cuenta, incoherencia), derivación sin motivo y pago que no se degrada, decisión final (cotizar, redondeo, pedir medidas, pregunta informativa con cotización previa, turno nuevo que cambia la cantidad, medida no producible), reglas determinísticas (medida de 1 cm, derivación que no se bloquea), actualización de prospecto (diseño y conexión actual) y recuperación de la decisión (respeta la medida no producible). "Confirmar turno conversacional" es SQL: se prueba en n8n (ver [casos verificados](03-conversacion.md#casos-verificados)).
 
 Si ninguna IA funciona ("Error ninguna IA funciono cerebro"), el turno no se confirma: sus mensajes quedan `procesado = false` y el siguiente mensaje del cliente los vuelve a incluir (dentro de los 600 s).
