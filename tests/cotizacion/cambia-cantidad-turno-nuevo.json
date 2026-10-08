@@ -1,0 +1,27 @@
+{
+  "nombre": "Cambia la cantidad en un turno posterior (memoria)",
+  "descripcion": "Caso 7: '10x5' se cotiza; 20 s después 'y serían 2000' es un turno nuevo que recotiza con las medidas guardadas en contexto_comercial (pendiente técnico 1 resuelto).",
+  "estado": "borrador",
+  "contexto_inicial": {
+    "prospecto_estado": "NUEVO",
+    "contexto_comercial": {}
+  },
+  "turnos": [
+    {
+      "cliente": "10x5",
+      "esperado": { "accion": "COTIZAR_P4", "cantidad": 1000, "ancho_cm": 10, "alto_cm": 5 }
+    },
+    {
+      "cliente": "y serían 2000",
+      "enviar_tras_ms": 20000,
+      "esperado": {
+        "mensaje_actual": "y serían 2000",
+        "accion": "COTIZAR_P4",
+        "cantidad": 2000,
+        "ancho_cm": 10,
+        "alto_cm": 5
+      },
+      "no_esperado": { "accion": "PEDIR_MEDIDAS" }
+    }
+  ]
+}

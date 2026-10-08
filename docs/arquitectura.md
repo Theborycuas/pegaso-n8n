@@ -24,7 +24,9 @@ flowchart TD
     B --> C[03 Conversación<br/>guardar mensaje, MODO_PRUEBA]
     C -->|bot no autorizado| X2((fin modo prueba))
     C -->|prospecto ya con humano| X3((fin atención humana))
-    C --> D[04 Cerebro comercial IA<br/>Groq → DeepSeek → OpenAI]
+    C -->|llegó otro mensaje durante la espera| X4((fin sin respuesta<br/>debounce))
+    C -->|turno agrupado| D[04 Cerebro comercial IA<br/>Groq → DeepSeek → OpenAI]
+    D -->|turno no confirmado| X4
     D --> S{Enrutar acción comercial}
     S -->|COTIZAR_P4| F[07 Cotización]
     S -->|DERIVAR_HUMANO| E[06 Derivación humana]
@@ -40,7 +42,8 @@ flowchart TD
 Cada nodo Code recibe un objeto JSON y devuelve otro enriquecido. Los campos que viajan por todo el flujo son:
 
 - **Identidad**: `telefono` (formato `593…`), `nombre_whatsapp`, `cliente_id`, `contacto_id`, `prospecto_id`, `conversacion_id`, `tipo_actor`.
-- **Mensaje**: `mensaje` / `mensaje_actual`, `tipo` / `tipo_mensaje`, `canal`, `mensaje_externo_id`.
+- **Mensaje**: `mensaje` (el de esta ejecución) / `mensaje_actual` (desde "Preparar contexto IA": el **turno** completo, uno o varios mensajes por línea), `tipo` / `tipo_mensaje`, `canal`, `mensaje_externo_id`.
+- **Turno**: `turno_mensaje_ids`, `turno_desde_id`, `turno_hasta_id`, `cantidad_mensajes_turno` (los arma "Resolver turno conversacional"; ver [turno conversacional](etapas/03-conversacion.md#turno-conversacional-debounce)).
 - **Prospecto**: `prospecto_estado`, `prospecto_clasificacion`, `prospecto_requiere_humano`, `prospecto_ciudad`, etc.
 - **Decisión IA**: `intencion`, `accion`, `producto`, `cantidad`, `ancho_cm`, `alto_cm`, `forma`, `requiere_humano`, `motivo_derivacion`, `clasificacion_prospecto`, `respuesta_sugerida`.
 - **`contexto_comercial`**: JSON persistido en la conversación con la cotización vigente, el handoff y restricciones. Es la "memoria" comercial entre mensajes.
@@ -87,7 +90,7 @@ Configuración detallada de cada nodo: [etapas/02-contacto-prospecto.md](etapas/
 
 ## 03 · Conversación (`code/03-conversacion/`)
 
-Busca o crea la conversación (estado `ACTIVA`), guarda el mensaje entrante, aplica `MODO_PRUEBA` y arma el contexto para la IA.
+Busca o crea la conversación (estado `ACTIVA`), guarda el mensaje entrante, aplica `MODO_PRUEBA`, espera la ventana del **turno conversacional** (3 s por defecto) y arma el contexto para la IA con todos los mensajes del turno. Solo la ejecución del último mensaje sigue (latest-wins); las demás terminan sin respuesta.
 
 Configuración detallada de cada nodo: [etapas/03-conversacion.md](etapas/03-conversacion.md).
 
@@ -107,10 +110,13 @@ Configuración detallada de cada nodo: [etapas/03-conversacion.md](etapas/03-con
 | Finalizar mensaje modo prueba | Code | `finalizar-mensaje-modo-prueba.js` |
 | ¿Requiere atención humana? | IF | — (true = fin, ya lo atiende una persona) |
 | Finalizar mensaje atención humana | Code | `finalizar-mensaje-atencion-humana.js` |
-| Recuperar historial conversación | Postgres select | — |
+| Esperar ventana de turno | Wait (`debounce_segundos`) | — **nuevo** |
+| Recuperar historial conversación | Postgres select | — (ahora después de la espera) |
+| Resolver turno conversacional | Code | `resolver-turno-conversacional.js` **nuevo** |
+| IF: ¿Procesar turno? | IF | — (`continuar_procesamiento`; false = fin sin respuesta) **nuevo** |
 | Preparar contexto IA | Code | `preparar-contexto-ia.js` |
 
-El mensaje entrante **siempre** queda guardado, aunque el bot no responda.
+El mensaje entrante **siempre** queda guardado, aunque el bot no responda. Los caminos de modo prueba y atención humana no pasan por la espera.
 
 ## 04 · Cerebro comercial (`code/04-cerebro-comercial/`)
 
@@ -141,6 +147,8 @@ flowchart LR
 | Guardar contexto comercial | Postgres update | — |
 | Preparar actualización prospecto | Code | `preparar-actualizacion-prospecto.js` |
 | Actualizar prospecto comercial | Postgres update | — |
+| Confirmar turno conversacional | Postgres execute query | — (SQL en [etapas/04](etapas/04-cerebro-comercial.md#confirmar-turno-conversacional--postgres-execute-query--nuevo)) **nuevo** |
+| ¿Turno confirmado? | IF | — (`turno_confirmado`; false = fin sin respuesta) **nuevo** |
 | Recuperar decisión comercial | Code | `recuperar-decision-comercial.js` |
 | Enrutar acción comercial | Switch (Rules, por `accion`) | — (salidas por documentar, pendiente 37) |
 
@@ -151,6 +159,7 @@ Qué hace cada paso de código:
 3. **Resolver contexto comercial**: combina los datos nuevos con la cotización guardada, aplica mínimo de 1000 y decide la acción final.
 4. **Aplicar reglas comerciales determinísticas**: bloquea medidas de 1 cm o menos.
 5. **Preparar actualización prospecto** y **Recuperar decisión comercial**: preparan el UPDATE del prospecto y recuperan la decisión para el Switch (ver pendientes técnicos 2 y 36).
+6. **Confirmar turno conversacional**: antes del Switch, marca `procesado = true` en los mensajes del turno solo si siguen siendo los últimos; si llegó otro mensaje mientras la IA pensaba, esta ejecución termina sin responder y la nueva responde a todo.
 
 Ver detalle de reglas en [reglas-comerciales.md](reglas-comerciales.md).
 
@@ -164,7 +173,7 @@ Configuración detallada de cada nodo: [etapas/05-respuesta-comercial.md](etapas
 |---|---|---|
 | Preparar respuesta comercial | Code | `preparar-respuesta-comercial.js` |
 | Guardar mensaje saliente | Postgres insert | — (también va a 08 Salida WhatsApp) |
-| Marcar mensaje entrante procesado | Postgres update | — |
+| Marcar mensaje entrante procesado | Postgres update | — **eliminar** (lo reemplaza "Confirmar turno conversacional"; pendiente 38) |
 | Actualizar actividad conversación | Postgres update | — |
 | Resolver estado prospecto | Code | `resolver-estado-prospecto.js` |
 | IF: ¿Actualizar estado prospecto? | IF | — |
@@ -263,6 +272,8 @@ Solo se envía si la ejecución vino de un webhook real de YCloud y el mensaje e
 | Cliente registrado | ¿Cliente existente? | No |
 | `MODO_PRUEBA` activo y teléfono no autorizado | Finalizar mensaje modo prueba | No (mensaje guardado) |
 | Prospecto ya marcado `requiere_humano` | Finalizar mensaje atención humana | No (mensaje guardado) |
+| Llegó otro mensaje durante la espera (o es un reenvío del webhook) | IF: ¿Procesar turno? (false) | No: responde la ejecución del último mensaje, con todo el turno |
+| Llegó otro mensaje mientras la IA pensaba | ¿Turno confirmado? (false) | No: ídem |
 | Ninguna IA responde válido | Error ninguna IA funciono (cerebro o cotización) | No (ver [pendientes-tecnicos.md](pendientes-tecnicos.md)) |
 | Respuesta comercial | Finalizar ciclo comercial | Sí |
 | Derivación humana | Finalizar derivación humana | Sí + correo interno |

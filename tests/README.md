@@ -48,6 +48,8 @@ Los fixtures de las etapas 01–08 encadenan el mismo prospecto (Ana Pérez, `59
 - Pregunta por el material: rama de respuesta comercial (05).
 - "Pásame una cuenta para pagar": rama de derivación humana (06) hasta el correo interno.
 
+Los fixtures del turno conversacional (`03-resolver-turno--*`) usan ids de mensaje propios por caso. Simulan lo que ve **cada ejecución** después de la espera: el mismo historial con distinto `Guardar mensaje entrante` decide quién responde (`--dos-mensajes-gana-ultimo` frente a `--dos-mensajes-anterior-no-reacciona`). "Preparar contexto IA" lee el historial con `$('Recuperar historial conversación')`, así que en sus fixtures las filas van en `nodos` y `input` es la salida del IF "¿Procesar turno?". La confirmación atómica ("Confirmar turno conversacional") es SQL y se prueba en n8n.
+
 Los que documentan un bug actual lo dicen en `descripcion` y citan el número de [pendientes técnicos](../docs/pendientes-tecnicos.md); al corregirlo, actualiza su `esperado`.
 
 **Cómo crear uno desde n8n**: abre una ejecución real, entra al nodo, copia el JSON de *Input* en `input` y el de los nodos que referencia en `nodos`.
@@ -72,4 +74,5 @@ Un archivo `.json` por escenario en `cerebro-comercial/` o `cotizacion/`. Cada t
 ```
 
 - `estado`: `borrador` hasta que el comportamiento esté confirmado por negocio; luego `vigente`.
+- `enviar_tras_ms` (opcional): tiempo desde el mensaje anterior. Por debajo de la ventana del turno (3000 ms) los mensajes se agrupan y solo el último responde; los casos en ráfaga se prueban con WhatsApp real, porque dos ejecuciones manuales en el editor no corren en paralelo. Sin este campo, cada mensaje se envía después de recibir la respuesta anterior.
 - `cotizacion/precios.json` lista medidas, forma y cantidad con el total esperado de `calcular-precio-detalle.js`.

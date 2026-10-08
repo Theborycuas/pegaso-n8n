@@ -1,0 +1,36 @@
+{
+  "nombre": "Acepta y pide cuenta en tres mensajes (debounce)",
+  "descripcion": "Caso 6: tras una cotización, 'Si estoy de acuerdo' / 'páseme una cuenta' / 'por favor' en ráfaga. Un solo handoff, un solo mensaje de transición y un solo correo. Probar con WhatsApp real.",
+  "estado": "borrador",
+  "contexto_inicial": {
+    "prospecto_estado": "COTIZADO",
+    "contexto_comercial": {
+      "cotizacion": { "cantidad_solicitada": 1000, "ancho_cm": 10, "alto_cm": 5, "forma": "RECTANGULAR" }
+    }
+  },
+  "turnos": [
+    {
+      "cliente": "Si estoy de acuerdo",
+      "esperado": { "resultado_turno": "DEBOUNCE_SUPERSEDED" }
+    },
+    {
+      "cliente": "páseme una cuenta",
+      "enviar_tras_ms": 1500,
+      "esperado": { "resultado_turno": "DEBOUNCE_SUPERSEDED" }
+    },
+    {
+      "cliente": "por favor",
+      "enviar_tras_ms": 1500,
+      "esperado": {
+        "mensaje_actual": "Si estoy de acuerdo\npáseme una cuenta\npor favor",
+        "accion": "DERIVAR_HUMANO",
+        "motivo_derivacion": "SOLICITA_DATOS_PAGO",
+        "clasificacion_prospecto": "A",
+        "prioridad_derivacion": "ALTA",
+        "requiere_notificacion": true,
+        "correos_enviados": 1
+      },
+      "no_esperado": { "accion": "COTIZAR_P4" }
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "archivo": "code/03-conversacion/resolver-turno-conversacional.js",
+  "descripcion": "Caso 3 · cuatro mensajes seguidos: la ejecución del cuarto arma un turno con los cuatro, en orden (las otras tres terminan como DEBOUNCE_SUPERSEDED).",
+  "input": [
+    { "id": 10, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "Hola", "mensaje_externo_id": "wamid.B10", "enviado_at": "2026-10-07T23:00:00.000Z", "procesado": false },
+    { "id": 11, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "quisiera etiquetas", "mensaje_externo_id": "wamid.B11", "enviado_at": "2026-10-07T23:00:01.500Z", "procesado": false },
+    { "id": 12, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "para mermelada", "mensaje_externo_id": "wamid.B12", "enviado_at": "2026-10-07T23:00:03.000Z", "procesado": false },
+    { "id": 13, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "de 8x4 cm", "mensaje_externo_id": "wamid.B13", "enviado_at": "2026-10-07T23:00:05.000Z", "procesado": false }
+  ],
+  "nodos": {
+    "Guardar mensaje entrante": [
+      { "id": 13, "conversacion_id": 41, "direccion": "ENTRANTE", "contenido": "de 8x4 cm", "mensaje_externo_id": "wamid.B13", "enviado_at": "2026-10-07T23:00:05.000Z", "procesado": false }
+    ],
+    "Resolver permiso automatización": [
+      { "debounce_ms": 3000, "debounce_segundos": 3, "turno_max_antiguedad_segundos": 600 }
+    ]
+  },
+  "esperado": {
+    "continuar_procesamiento": true,
+    "turno_mensaje_ids": [10, 11, 12, 13],
+    "turno_desde_id": 10,
+    "turno_hasta_id": 13,
+    "cantidad_mensajes_turno": 4,
+    "turno_texto": "Hola\nquisiera etiquetas\npara mermelada\nde 8x4 cm",
+    "ultimo_saliente_anterior_id": null
+  }
+}

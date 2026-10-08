@@ -1,13 +1,13 @@
 // ======================================================
 // NODO N8N: Resolver conversación prospecto
 // ARCHIVO: code/03-conversacion/resolver-conversacion-prospecto.js
-// VERSION: 1.0
+// VERSION: 1.1
 // RESPONSABILIDAD:
 // - Recuperar los datos unificados del prospecto desde el Merge "Unificar prospecto"
 // - Interpretar el resultado de "Buscar conversación": existe si devolvió un id numérico mayor que 0
 // - Exponer conversacion_id, conversacion_estado y los ids de cliente, contacto y prospecto de la conversación
+// - Exponer conversacion_contexto_comercial (memoria guardada por "Guardar contexto comercial") para que "Preparar conversación" la parsee
 // - NO crear la conversación (lo hace "Crear conversación prospecto" en la rama false de "¿Conversación prospecto existe?")
-// - NO exponer contexto_comercial de la conversación encontrada
 // ======================================================
 
 const entrada = $('Unificar prospecto').first().json;
@@ -59,6 +59,11 @@ return [
         conversacionExiste &&
         resultadoBusqueda.prospecto_id != null
           ? Number(resultadoBusqueda.prospecto_id)
+          : null,
+
+      conversacion_contexto_comercial:
+        conversacionExiste
+          ? resultadoBusqueda.contexto_comercial ?? null
           : null
     }
   }

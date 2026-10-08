@@ -83,9 +83,9 @@ Tabla `pegaso.mensajes`:
 | `contenido` | `{{ $json.mensaje_transicion }}` |
 | `mensaje_externo_id` | vacío |
 | `enviado_at` | `{{ $now }}` |
-| `procesado` | `false` |
+| `procesado` | `false` → cambiar a **`true`** |
 
-A diferencia de la etapa 05, aquí el saliente queda `procesado = false` y el mensaje **entrante** no se marca como procesado (pendiente técnico 39).
+Cambio en n8n: poner `procesado = true`, igual que los salientes de 05 y 07. Un saliente siempre está "procesado" (lo escribió el bot); `false` en un saliente no significa nada para el debounce (solo lee ENTRANTE), pero confunde las consultas. Los mensajes **entrantes** del turno ya quedan `procesado = true` en "Confirmar turno conversacional" (etapa 04).
 
 Salida: la fila insertada; va a la etapa 08.
 
@@ -115,7 +115,7 @@ POST a la API de Brevo; si falla (salida de error), Resend. Por documentar: URL,
 |---|---|
 | `prospectos` | `requiere_humano = true`, `ultima_accion = DERIVAR_HUMANO` |
 | `conversaciones` | `contexto_comercial.handoff`, `ultimo_mensaje_at` |
-| `mensajes` | nueva fila SALIENTE con el mensaje de transición (`procesado = false`) |
+| `mensajes` | nueva fila SALIENTE con el mensaje de transición (`procesado = false` hasta aplicar el cambio a `true`); las ENTRANTE del turno ya quedaron `true` en la etapa 04 |
 
 ## Pruebas
 

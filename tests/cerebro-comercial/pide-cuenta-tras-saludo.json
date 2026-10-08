@@ -30,6 +30,7 @@
     },
     {
       "cliente": "por favor",
+      "enviar_tras_ms": 20000,
       "esperado": {
         "flujo": "ATENCION_HUMANA",
         "respuesta_automatica": false

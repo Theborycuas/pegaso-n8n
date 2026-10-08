@@ -12,7 +12,7 @@ flowchart TD
     I -.->|false| X((fin: guardado, no enviado))
 ```
 
-El mensaje **ya está guardado** antes de llegar aquí: si YCloud falla, en la base queda como enviado (`procesado = true` en 05 y 07). La respuesta de YCloud (id del mensaje, estado) no se guarda en ningún lado (pendiente técnico 39).
+El mensaje **ya está guardado** antes de llegar aquí: si YCloud falla, en la base queda igual que uno enviado. En un SALIENTE, `procesado = true` significa "escrito por el bot", no "entregado". La respuesta de YCloud (id del mensaje, estado) no se guarda en ningún lado (pendiente técnico 39).
 
 ## Nodos
 

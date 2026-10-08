@@ -1,0 +1,13 @@
+{
+  "archivo": "code/03-conversacion/resolver-turno-conversacional.js",
+  "descripcion": "Si \"Guardar mensaje entrante\" no devolvió id (configuración rota), el nodo detiene la ejecución en lugar de responder sin control de turno.",
+  "input": [
+    { "id": 1, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "Hola", "mensaje_externo_id": "wamid.A1", "enviado_at": "2026-10-07T23:00:00.000Z", "procesado": false }
+  ],
+  "nodos": {
+    "Guardar mensaje entrante": [
+      {}
+    ]
+  },
+  "error": "no devolvió un id válido"
+}

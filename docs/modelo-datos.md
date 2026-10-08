@@ -73,11 +73,46 @@ Columnas completas según "Guardar mensaje entrante":
 | `direccion` | `ENTRANTE` | `SALIENTE` para respuestas del bot |
 | `tipo` | `TEXTO` | solo `TEXTO` se envía por WhatsApp |
 | `contenido` | texto del mensaje | |
-| `mensaje_externo_id` | wamid de WhatsApp | |
+| `mensaje_externo_id` | wamid de WhatsApp | `null` en ejecuciones con "Mensaje entrante TEST"; un valor repetido = reenvío del webhook |
 | `enviado_at` | `recibido_at` | el historial se ordena por esta columna ASC |
-| `procesado` | `false` | lo pone en `true` "Marcar mensaje entrante procesado" (solo en la etapa 05) |
+| `procesado` | `false` | ver semántica abajo |
 
-Mensajes salientes: "Guardar mensaje saliente" (05), "Guardar mensaje transición humano" (06) y "Guardar mensaje comercial" (07) guardan `direccion = SALIENTE`, `tipo = TEXTO`, `enviado_at = $now` y `mensaje_externo_id` vacío; `procesado` es `true` en 05 y 07 y `false` en 06 (pendiente técnico 39). Desde ahí van a la etapa 08, que los envía por YCloud.
+`id` es el **orden de llegada** que usa el debounce: el último ENTRANTE de la conversación (sin contar reenvíos) es el que responde.
+
+Mensajes salientes: "Guardar mensaje saliente" (05), "Guardar mensaje transición humano" (06) y "Guardar mensaje comercial" (07) guardan `direccion = SALIENTE`, `tipo = TEXTO`, `enviado_at = $now` y `mensaje_externo_id` vacío. Desde ahí van a la etapa 08, que los envía por YCloud.
+
+### Semántica de `procesado`
+
+| Dirección | `true` | `false` | Quién escribe |
+|---|---|---|---|
+| ENTRANTE | el mensaje formó parte de un **turno confirmado** (el bot ya decidió qué hacer con él) | todavía no: bloqueado por MODO_PRUEBA, en atención humana, turno superado o fallo de IA | INSERT `false` en "Guardar mensaje entrante"; `true` **solo** en "Confirmar turno conversacional" (etapa 04) |
+| SALIENTE | escrito por el bot (no implica entregado por YCloud) | — (no debería existir) | INSERT `true` en 05, 06 (tras el cambio recomendado) y 07 |
+
+Se marca al **confirmar** el turno, no al terminar la rama: así la marca es también el candado contra respuestas duplicadas. Un ENTRANTE `false` dentro de los últimos `turno_max_antiguedad_segundos` se vuelve a incluir en el siguiente turno (por eso un fallo de IA se recupera con el siguiente mensaje del cliente).
+
+### Índices recomendados
+
+```sql
+CREATE INDEX IF NOT EXISTS mensajes_conversacion_id_id_idx
+  ON pegaso.mensajes (conversacion_id, id);
+
+CREATE INDEX IF NOT EXISTS mensajes_mensaje_externo_id_idx
+  ON pegaso.mensajes (mensaje_externo_id)
+  WHERE mensaje_externo_id IS NOT NULL;
+```
+
+El primero acelera "Recuperar historial conversación" y la confirmación del turno; el segundo, la detección de reenvíos en esa misma consulta. No son obligatorios para que funcione.
+
+### Normalización inicial (opcional, una vez al desplegar)
+
+Hoy hay ENTRANTE `false` que ya fueron respondidos (06, 07) y SALIENTE `false` (06). El tope de 600 s ya los deja fuera del turno; esto solo deja los datos coherentes:
+
+```sql
+UPDATE pegaso.mensajes
+SET procesado = true
+WHERE procesado = false
+  AND (direccion = 'SALIENTE' OR enviado_at < now() - interval '10 minutes');
+```
 
 ## cotizaciones ✅
 
@@ -127,11 +162,24 @@ Columnas según "Crear diseño":
 
 ## configuracion_bot
 
-Tabla de configuración clave/valor. "Obtener configuración MODO_PRUEBA" busca `clave = 'MODO_PRUEBA'` y usa la columna `valor_json`:
+Tabla de configuración clave/valor. "Obtener configuración MODO_PRUEBA" busca por `clave` y "Resolver permiso automatización" usa la columna `valor_json` (objeto o texto JSON).
 
-```json
-{ "activo": true, "telefonos_permitidos": ["593999999999"] }
+| `clave` | `valor_json` | Si falta la fila |
+|---|---|---|
+| `MODO_PRUEBA` | `{ "activo": true, "telefonos_permitidos": ["593999999999"] }` | modo prueba activo sin teléfonos (el bot no responde) |
+| `DEBOUNCE_WHATSAPP` | `{ "debounce_ms": 3000, "turno_max_antiguedad_segundos": 600 }` | 3000 ms y 600 s |
+
+Alta de la fila del debounce (opcional; ajusta la lista de columnas si la tabla tiene otras obligatorias):
+
+```sql
+INSERT INTO pegaso.configuracion_bot (clave, valor_json)
+SELECT 'DEBOUNCE_WHATSAPP', '{"debounce_ms": 3000, "turno_max_antiguedad_segundos": 600}'
+WHERE NOT EXISTS (
+  SELECT 1 FROM pegaso.configuracion_bot WHERE clave = 'DEBOUNCE_WHATSAPP'
+);
 ```
+
+Para que se lea, "Obtener configuración MODO_PRUEBA" debe traer ambas claves (ver [etapas/03](etapas/03-conversacion.md#obtener-configuración-modo_prueba--postgres-select)).
 
 ## Estructura de `contexto_comercial`
 
@@ -157,4 +205,6 @@ JSON que se arrastra entre mensajes de la misma conversación:
 }
 ```
 
-Lo escriben: "Guardar contexto comercial" (etapa 04), "Guardar contexto handoff" (06) y "Guardar contexto post cotización" (07). Cada escritura **reemplaza** el JSON completo; hoy el contexto anterior no llega al cerebro, así que cada mensaje lo reinicia (pendiente técnico 1).
+Lo escriben: "Guardar contexto comercial" (etapa 04), "Guardar contexto handoff" (06) y "Guardar contexto post cotización" (07). Cada escritura **reemplaza** el JSON completo, pero parte del anterior: "Resolver conversación prospecto" lo lee de la fila, "Preparar contexto IA" lo entrega completo al cerebro y la etapa 04 hace `...contextoAnterior`, así que las claves se conservan entre turnos.
+
+Se lee en "Buscar conversación", **antes** de la espera del turno. Un mensaje que llega mientras el turno anterior todavía cotiza puede leer la memoria sin el resultado de esa cotización (pendiente técnico 50).

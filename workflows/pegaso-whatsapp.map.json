@@ -15,6 +15,7 @@
     "code/03-conversacion/resolver-permiso-automatizacion.js": ["Resolver permiso automatización"],
     "code/03-conversacion/finalizar-mensaje-atencion-humana.js": ["Finalizar mensaje atención humana"],
     "code/03-conversacion/finalizar-mensaje-modo-prueba.js": ["Finalizar mensaje modo prueba"],
+    "code/03-conversacion/resolver-turno-conversacional.js": ["Resolver turno conversacional"],
     "code/03-conversacion/preparar-contexto-ia.js": ["Preparar contexto IA"],
 
     "code/04-cerebro-comercial/validar-extraccion-cerebro.js": [

@@ -1,0 +1,32 @@
+{
+  "archivo": "code/03-conversacion/resolver-permiso-automatizacion.js",
+  "descripcion": "debounce_ms fuera de rango se acota a 15000 ms (la espera queda en memoria de n8n, por debajo de 65 s) y una antigüedad inválida vuelve a 600 s.",
+  "input": [
+    {
+      "clave": "MODO_PRUEBA",
+      "valor_json": {
+        "activo": false
+      }
+    },
+    {
+      "clave": "DEBOUNCE_WHATSAPP",
+      "valor_json": {
+        "debounce_ms": 60000,
+        "turno_max_antiguedad_segundos": "abc"
+      }
+    }
+  ],
+  "nodos": {
+    "Normalizar mensaje": [
+      { "telefono": "593987654321", "mensaje": "Hola", "tipo": "TEXTO" }
+    ],
+    "Preparar conversación": [
+      { "conversacion_id": 41, "prospecto_id": 16, "cliente_id": null }
+    ]
+  },
+  "esperado": {
+    "debounce_ms": 15000,
+    "debounce_segundos": 15,
+    "turno_max_antiguedad_segundos": 600
+  }
+}

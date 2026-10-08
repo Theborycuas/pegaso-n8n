@@ -1,0 +1,85 @@
+{
+  "archivo": "code/03-conversacion/preparar-contexto-ia.js",
+  "descripcion": "Caso 7 · \"y serían 2000\" 20 s después de cotizar 10x5: el turno nuevo llega con la memoria intacta (medidas, forma, producto, cantidad anterior) para que la etapa 04 recotice.",
+  "input": [
+    {
+      "continuar_procesamiento": true,
+      "turno_mensaje_ids": [42],
+      "turno_desde_id": 42,
+      "turno_hasta_id": 42,
+      "turno_texto": "y serían 2000"
+    }
+  ],
+  "nodos": {
+    "Resolver turno conversacional": [
+      {
+        "continuar_procesamiento": true,
+        "conversacion_id": 41,
+        "mensaje_id": 42,
+        "turno_mensaje_ids": [42],
+        "turno_desde_id": 42,
+        "turno_hasta_id": 42,
+        "turno_texto": "y serían 2000"
+      }
+    ],
+    "Recuperar historial conversación": [
+      { "id": 40, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "10x5", "mensaje_externo_id": "wamid.E40", "enviado_at": "2026-10-07T23:00:00.000Z", "procesado": true },
+      { "id": 41, "conversacion_id": 41, "direccion": "SALIENTE", "tipo": "TEXTO", "contenido": "Cotización: 1000 etiquetas de 10x5 cm por $36.00 + IVA.", "mensaje_externo_id": null, "enviado_at": "2026-10-07T23:00:15.000Z", "procesado": true },
+      { "id": 42, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "y serían 2000", "mensaje_externo_id": "wamid.E42", "enviado_at": "2026-10-07T23:00:20.000Z", "procesado": false }
+    ],
+    "Preparar conversación": [
+      {
+        "telefono": "593987654321",
+        "nombre_whatsapp": "Ana Pérez",
+        "mensaje": "y serían 2000",
+        "tipo": "TEXTO",
+        "canal": "WHATSAPP",
+        "mensaje_externo_id": "wamid.E42",
+        "recibido_at": "2026-10-07T23:00:20.000Z",
+        "cliente_id": null,
+        "contacto_id": null,
+        "es_cliente_registrado": false,
+        "prospecto_existe": true,
+        "prospecto_id": 16,
+        "prospecto_estado": "COTIZADO",
+        "prospecto_requiere_humano": false,
+        "conversacion_id": 41,
+        "conversacion_estado": "ACTIVA",
+        "contexto_comercial": {
+          "cotizacion": {
+            "producto": "Mermelada",
+            "material": null,
+            "cantidad_solicitada": 1000,
+            "cantidad_cotizable": 1000,
+            "ancho_cm": 10,
+            "alto_cm": 5,
+            "forma": "RECTANGULAR",
+            "producible": true
+          }
+        },
+        "tipo_actor": "PROSPECTO"
+      }
+    ]
+  },
+  "esperado": {
+    "mensaje_actual": "y serían 2000",
+    "cantidad_mensajes_turno": 1,
+    "cantidad_mensajes_historial": 2,
+    "ultimo_mensaje_saliente": "Cotización: 1000 etiquetas de 10x5 cm por $36.00 + IVA.",
+    "contexto_comercial": {
+      "cotizacion": {
+        "producto": "Mermelada",
+        "cantidad": 1000,
+        "cantidad_solicitada": 1000,
+        "ancho_cm": 10,
+        "alto_cm": 5,
+        "forma": "RECTANGULAR",
+        "producible": true
+      },
+      "prospecto": {
+        "estado": "COTIZADO",
+        "clasificacion": "B"
+      }
+    }
+  }
+}

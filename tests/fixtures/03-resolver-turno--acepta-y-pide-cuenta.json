@@ -1,0 +1,26 @@
+{
+  "archivo": "code/03-conversacion/resolver-turno-conversacional.js",
+  "descripcion": "Caso 6 · \"Si estoy de acuerdo\" / \"páseme una cuenta\" / \"por favor\" tras una cotización: un solo turno para el cerebro (ver 04-normalizar-decision-ia--turno-agrupado-datos-pago).",
+  "input": [
+    { "id": 30, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "de 10x5 cm", "mensaje_externo_id": "wamid.D30", "enviado_at": "2026-10-07T22:58:00.000Z", "procesado": true },
+    { "id": 31, "conversacion_id": 41, "direccion": "SALIENTE", "tipo": "TEXTO", "contenido": "Cotización: 1000 etiquetas de 10x5 cm por $36.00 + IVA.", "mensaje_externo_id": null, "enviado_at": "2026-10-07T22:58:20.000Z", "procesado": true },
+    { "id": 32, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "Si estoy de acuerdo", "mensaje_externo_id": "wamid.D32", "enviado_at": "2026-10-07T23:00:00.000Z", "procesado": false },
+    { "id": 33, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "páseme una cuenta", "mensaje_externo_id": "wamid.D33", "enviado_at": "2026-10-07T23:00:02.000Z", "procesado": false },
+    { "id": 34, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "por favor", "mensaje_externo_id": "wamid.D34", "enviado_at": "2026-10-07T23:00:03.000Z", "procesado": false }
+  ],
+  "nodos": {
+    "Guardar mensaje entrante": [
+      { "id": 34, "conversacion_id": 41, "direccion": "ENTRANTE", "contenido": "por favor", "mensaje_externo_id": "wamid.D34", "enviado_at": "2026-10-07T23:00:03.000Z", "procesado": false }
+    ],
+    "Resolver permiso automatización": [
+      { "debounce_ms": 3000, "debounce_segundos": 3, "turno_max_antiguedad_segundos": 600 }
+    ]
+  },
+  "esperado": {
+    "continuar_procesamiento": true,
+    "turno_mensaje_ids": [32, 33, 34],
+    "turno_desde_id": 32,
+    "turno_hasta_id": 34,
+    "turno_texto": "Si estoy de acuerdo\npáseme una cuenta\npor favor"
+  }
+}

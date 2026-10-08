@@ -1,0 +1,17 @@
+{
+  "archivo": "code/03-conversacion/resolver-turno-conversacional.js",
+  "descripcion": "Re-ejecución manual de un mensaje ya confirmado (procesado = true): no se vuelve a responder (TURNO_YA_PROCESADO).",
+  "input": [
+    { "id": 90, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "de 10x5 cm", "mensaje_externo_id": "wamid.J90", "enviado_at": "2026-10-07T23:00:00.000Z", "procesado": true }
+  ],
+  "nodos": {
+    "Guardar mensaje entrante": [
+      { "id": 90, "conversacion_id": 41, "direccion": "ENTRANTE", "contenido": "de 10x5 cm", "mensaje_externo_id": "wamid.J90", "enviado_at": "2026-10-07T23:00:00.000Z", "procesado": false }
+    ]
+  },
+  "esperado": {
+    "continuar_procesamiento": false,
+    "resultado_turno": "YA_PROCESADO",
+    "motivo_no_procesamiento": "TURNO_YA_PROCESADO"
+  }
+}

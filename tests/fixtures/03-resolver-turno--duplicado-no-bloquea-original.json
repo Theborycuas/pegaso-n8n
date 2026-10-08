@@ -1,0 +1,23 @@
+{
+  "archivo": "code/03-conversacion/resolver-turno-conversacional.js",
+  "descripcion": "Reintento del webhook: la ejecución original sigue siendo la última válida (el reenvío no cuenta como mensaje posterior) y procesa una sola vez.",
+  "input": [
+    { "id": 60, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "de 10x5 cm", "mensaje_externo_id": "wamid.G60", "enviado_at": "2026-10-07T23:00:00.000Z", "procesado": false },
+    { "id": 61, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "de 10x5 cm", "mensaje_externo_id": "wamid.G60", "enviado_at": "2026-10-07T23:00:00.000Z", "procesado": false }
+  ],
+  "nodos": {
+    "Guardar mensaje entrante": [
+      { "id": 60, "conversacion_id": 41, "direccion": "ENTRANTE", "contenido": "de 10x5 cm", "mensaje_externo_id": "wamid.G60", "enviado_at": "2026-10-07T23:00:00.000Z", "procesado": false }
+    ],
+    "Resolver permiso automatización": [
+      { "debounce_ms": 3000, "debounce_segundos": 3, "turno_max_antiguedad_segundos": 600 }
+    ]
+  },
+  "esperado": {
+    "continuar_procesamiento": true,
+    "turno_mensaje_ids": [60],
+    "turno_desde_id": 60,
+    "turno_hasta_id": 60,
+    "turno_texto": "de 10x5 cm"
+  }
+}

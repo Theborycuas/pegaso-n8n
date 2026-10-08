@@ -1,0 +1,32 @@
+{
+  "nombre": "Medida y cortesía en ráfaga (debounce)",
+  "descripcion": "Casos 2 y 4: 'de 10x5 cm' y 'porfa' con 2 s de diferencia forman un solo turno. Una sola cotización. Probar con WhatsApp real desde un teléfono autorizado en MODO_PRUEBA (dos ejecuciones manuales en el editor no corren en paralelo).",
+  "estado": "borrador",
+  "contexto_inicial": {
+    "prospecto_estado": "NUEVO",
+    "contexto_comercial": {}
+  },
+  "turnos": [
+    {
+      "cliente": "de 10x5 cm",
+      "esperado": {
+        "resultado_turno": "DEBOUNCE_SUPERSEDED",
+        "motivo_no_procesamiento": "MENSAJE_POSTERIOR_RECIBIDO"
+      }
+    },
+    {
+      "cliente": "porfa",
+      "enviar_tras_ms": 2000,
+      "esperado": {
+        "mensaje_actual": "de 10x5 cm\nporfa",
+        "accion": "COTIZAR_P4",
+        "cantidad": 1000,
+        "ancho_cm": 10,
+        "alto_cm": 5,
+        "total": 36,
+        "turno_confirmado": true,
+        "mensajes_salientes_nuevos": 1
+      }
+    }
+  ]
+}

@@ -1,15 +1,17 @@
 // ======================================================
 // NODO N8N: Preparar contexto IA
 // ARCHIVO: code/03-conversacion/preparar-contexto-ia.js
-// VERSION: 2.2
+// VERSION: 3.0
 // RESPONSABILIDAD:
 // - Construir el contexto que recibirá el cerebro comercial, tomando "Preparar conversación" como fuente de verdad
-// - Convertir las filas de "Recuperar historial conversación" en historial (direccion, contenido, tipo, enviado_at), descartando filas sin contenido
+// - Usar como mensaje_actual el turno completo de "Resolver turno conversacional" (turno_texto: uno o varios mensajes, uno por línea); si ese nodo no se ejecutó, el mensaje de "Preparar conversación"
+// - Convertir las filas de "Recuperar historial conversación" en historial (direccion, contenido, tipo, enviado_at), descartando filas sin contenido, reenvíos del mismo mensaje_externo_id y los mensajes del turno actual
 // - Extraer los mensajes SALIENTE recientes y el último saliente para control anti-repetición
 // - Resolver tipo_actor (respeta el previo; si falta: CLIENTE > PROSPECTO > CONTACTO > DESCONOCIDO)
-// - Armar contexto_comercial explícito (prospecto, ubicación, diseño, última cotización con moneda USD por defecto)
+// - Armar contexto_comercial conservando todas las claves de la memoria guardada (cotizacion.producto, cantidad_solicitada, handoff, …) y actualizando prospecto, ubicación, diseño y cotización
 // - Derivar la clasificación A/B/C del prospecto desde su estado cuando no viene informada
 // - NO llamar a la IA ni decidir la identidad del actor (la IA no la decide)
+// - NO decidir el turno ni el debounce (lo decide "Resolver turno conversacional")
 // - NO consultar PostgreSQL (si las cotizaciones no llegan por "Preparar conversación", hace falta una consulta previa)
 // ======================================================
 
@@ -129,17 +131,96 @@ function numeroONull(valor) {
   }
   
   
+  function objeto(valor) {
+    return valor &&
+      typeof valor === 'object' &&
+      !Array.isArray(valor)
+      ? valor
+      : {};
+  }
+  
+  
   // ======================================================
-  // 3. RECUPERAR HISTORIAL
+  // 3. TURNO ACTUAL
+  // ======================================================
+  //
+  // Lo decide "Resolver turno conversacional" (después de la
+  // ventana de debounce). Si no se ejecutó (ejecución manual
+  // aislada o flujo anterior), el turno es solo el mensaje
+  // de "Preparar conversación".
   // ======================================================
   
-  const itemsHistorial = $input.all();
+  let turno = {};
+  
+  try {
+    turno =
+      $('Resolver turno conversacional').first().json ?? {};
+  } catch (error) {
+    turno = {};
+  }
+  
+  const turnoMensajeIds =
+    turno.continuar_procesamiento === true &&
+    Array.isArray(turno.turno_mensaje_ids)
+      ? turno.turno_mensaje_ids
+          .map(numeroONull)
+          .filter(id => id !== null)
+      : [];
+  
+  const hayTurno =
+    turnoMensajeIds.length > 0 &&
+    textoONull(turno.turno_texto) !== null;
+  
+  
+  // ======================================================
+  // 4. RECUPERAR HISTORIAL
+  // ======================================================
+  //
+  // La entrada directa es la salida del IF "¿Procesar turno?";
+  // las filas se leen de "Recuperar historial conversación".
+  // ======================================================
+  
+  let itemsHistorial;
+  
+  try {
+    itemsHistorial =
+      $('Recuperar historial conversación').all();
+  } catch (error) {
+    itemsHistorial = $input.all();
+  }
+  
+  const idsTurno = new Set(turnoMensajeIds);
+  
+  const externosTurno = new Set(
+    itemsHistorial
+      .map(item => item.json ?? {})
+      .filter(row => idsTurno.has(numeroONull(row.id)))
+      .map(row => textoONull(row.mensaje_externo_id))
+      .filter(Boolean)
+  );
+  
+  const externosVistos = new Set();
   
   const historial = itemsHistorial
     .map(item => item.json)
     .filter(row => {
       if (!row) {
         return false;
+      }
+  
+      const externo =
+        textoONull(row.mensaje_externo_id);
+  
+      if (idsTurno.has(numeroONull(row.id))) {
+        return false;
+      }
+  
+      if (externo !== null) {
+        if (externosTurno.has(externo) || externosVistos.has(externo)) {
+          return false;
+        }
+  
+        externosVistos.add(externo);
       }
   
       const tieneContenido =
@@ -165,7 +246,7 @@ function numeroONull(valor) {
   
   
   // ======================================================
-  // 3.1. MEMORIA DE RESPUESTAS SALIENTES
+  // 4.1. MEMORIA DE RESPUESTAS SALIENTES
   // ======================================================
   //
   // Se usa para:
@@ -192,7 +273,7 @@ function numeroONull(valor) {
   
   
   // ======================================================
-  // 4. IDENTIDAD DEL ACTOR
+  // 5. IDENTIDAD DEL ACTOR
   // ======================================================
   
   const clienteId =
@@ -224,11 +305,13 @@ function numeroONull(valor) {
   
   
   // ======================================================
-  // 5. CONTEXTO COMERCIAL PREVIO
+  // 6. CONTEXTO COMERCIAL PREVIO
   // ======================================================
   //
   // Si "Preparar conversación" ya trae un objeto
-  // contexto_comercial, lo respetamos.
+  // contexto_comercial (memoria guardada), se conservan
+  // todas sus claves; los nodos de la etapa 04 hacen
+  // ...contextoAnterior y la vuelven a guardar.
   //
   // Además soportamos campos planos habituales para no
   // depender de una única forma de consulta SQL.
@@ -246,11 +329,10 @@ function numeroONull(valor) {
       : {};
   
   const cotizacionPrevia =
-    previo.cotizacion &&
-    typeof previo.cotizacion === 'object' &&
-    !Array.isArray(previo.cotizacion)
-      ? previo.cotizacion
-      : {};
+    objeto(previo.cotizacion);
+  
+  const prospectoPrevio =
+    objeto(previo.prospecto);
   
   const cotizacionId =
     numeroONull(
@@ -276,7 +358,9 @@ function numeroONull(valor) {
       primeroDefinido(
         actual.cotizacion_cantidad,
         actual.ultima_cotizacion_cantidad,
-        cotizacionPrevia.cantidad
+        cotizacionPrevia.cantidad,
+        cotizacionPrevia.cantidad_cotizable,
+        cotizacionPrevia.cantidad_solicitada
       )
     );
   
@@ -320,11 +404,40 @@ function numeroONull(valor) {
   
   
   // ======================================================
-  // 6. PROSPECTO
+  // 7. PROSPECTO
   // ======================================================
   
   const prospectoEstado =
-    textoONull(actual.prospecto_estado);
+    textoONull(
+      primeroDefinido(
+        actual.prospecto_estado,
+        prospectoPrevio.estado
+      )
+    );
+  
+  const prospectoProductoInteres =
+    textoONull(
+      primeroDefinido(
+        actual.prospecto_producto_interes,
+        prospectoPrevio.producto_interes
+      )
+    );
+  
+  const prospectoUltimaIntencion =
+    textoONull(
+      primeroDefinido(
+        actual.prospecto_ultima_intencion,
+        prospectoPrevio.ultima_intencion
+      )
+    );
+  
+  const prospectoUltimaAccion =
+    textoONull(
+      primeroDefinido(
+        actual.prospecto_ultima_accion,
+        prospectoPrevio.ultima_accion
+      )
+    );
   
   const prospectoClasificacion =
     textoONull(
@@ -362,11 +475,20 @@ function numeroONull(valor) {
   
   
   // ======================================================
-  // 7. OBJETO contexto_comercial
+  // 8. OBJETO contexto_comercial
+  // ======================================================
+  //
+  // Se parte de la memoria guardada (...previo) para no perder
+  // claves que escriben otras etapas (handoff, producto,
+  // cantidad_solicitada, producible, …).
   // ======================================================
   
   const contextoComercial = {
+    ...previo,
+  
     prospecto: {
+      ...prospectoPrevio,
+  
       id:
         prospectoId,
   
@@ -377,7 +499,7 @@ function numeroONull(valor) {
         prospectoClasificacion,
   
       producto_interes:
-        textoONull(actual.prospecto_producto_interes),
+        prospectoProductoInteres,
   
       requiere_humano:
         booleano(
@@ -386,13 +508,15 @@ function numeroONull(valor) {
         ),
   
       ultima_intencion:
-        textoONull(actual.prospecto_ultima_intencion),
+        prospectoUltimaIntencion,
   
       ultima_accion:
-        textoONull(actual.prospecto_ultima_accion)
+        prospectoUltimaAccion
     },
   
     ubicacion: {
+      ...objeto(previo.ubicacion),
+  
       ciudad:
         prospectoCiudad,
   
@@ -401,11 +525,15 @@ function numeroONull(valor) {
     },
   
     diseno: {
+      ...objeto(previo.diseno),
+  
       estado:
         prospectoDisenoEstado
     },
   
     cotizacion: {
+      ...cotizacionPrevia,
+  
       existe:
         cotizacionId !== null ||
         Boolean(cotizacionEstado),
@@ -444,7 +572,7 @@ function numeroONull(valor) {
   
   
   // ======================================================
-  // 8. SALIDA
+  // 9. SALIDA
   // ======================================================
   
   return [
@@ -521,7 +649,7 @@ function numeroONull(valor) {
           textoONull(actual.prospecto_nombre),
   
         prospecto_producto_interes:
-          textoONull(actual.prospecto_producto_interes),
+          prospectoProductoInteres,
   
         prospecto_ciudad:
           prospectoCiudad,
@@ -533,10 +661,10 @@ function numeroONull(valor) {
           prospectoDisenoEstado,
   
         prospecto_ultima_intencion:
-          textoONull(actual.prospecto_ultima_intencion),
+          prospectoUltimaIntencion,
   
         prospecto_ultima_accion:
-          textoONull(actual.prospecto_ultima_accion),
+          prospectoUltimaAccion,
   
         prospecto_requiere_humano:
           booleano(
@@ -554,7 +682,7 @@ function numeroONull(valor) {
   
   
         // ----------------------------------------------
-        // MENSAJE ACTUAL
+        // MENSAJE ACTUAL (turno completo)
         // ----------------------------------------------
   
         telefono:
@@ -564,7 +692,24 @@ function numeroONull(valor) {
           textoONull(actual.nombre_whatsapp),
   
         mensaje_actual:
+          hayTurno
+            ? turno.turno_texto
+            : actual.mensaje ?? '',
+  
+        mensaje_disparador:
           actual.mensaje ?? '',
+  
+        turno_mensaje_ids:
+          turnoMensajeIds,
+  
+        turno_desde_id:
+          hayTurno ? numeroONull(turno.turno_desde_id) : null,
+  
+        turno_hasta_id:
+          hayTurno ? numeroONull(turno.turno_hasta_id) : null,
+  
+        cantidad_mensajes_turno:
+          hayTurno ? turnoMensajeIds.length : 1,
   
         tipo_mensaje:
           textoONull(actual.tipo) ?? 'TEXTO',

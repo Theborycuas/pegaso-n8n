@@ -1,6 +1,6 @@
 {
   "nombre": "Medida y cortesía en mensajes separados",
-  "descripcion": "Con solo la medida se cotiza con el mínimo de 1000. Un 'porfa' posterior no debe recotizar. Hoy no hay debounce: cada mensaje se procesa por separado.",
+  "descripcion": "Con solo la medida se cotiza con el mínimo de 1000. Un 'porfa' enviado DESPUÉS de recibir la cotización (fuera de la ventana del turno) es un turno nuevo y no debe recotizar. Si se envía dentro de la ventana, ver medida-y-porfa-en-rafaga.json.",
   "estado": "borrador",
   "contexto_inicial": {
     "prospecto_estado": "NUEVO",
@@ -20,6 +20,7 @@
     },
     {
       "cliente": "porfa",
+      "enviar_tras_ms": 20000,
       "esperado": {
         "requiere_humano": false
       },

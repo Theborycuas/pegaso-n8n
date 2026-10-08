@@ -1,14 +1,13 @@
 # Etapa 05 · Respuesta comercial
 
-Rama de las acciones que solo requieren contestar (pedir datos, informar material, mínimo, ubicación, metodología, pago, entrega, diseño, aceptación, respuesta general). Guarda la respuesta, la envía, marca el mensaje entrante como procesado y aplica el único cambio de estado de esta rama: `NUEVO` → `EN_CONVERSACION`.
+Rama de las acciones que solo requieren contestar (pedir datos, informar material, mínimo, ubicación, metodología, pago, entrega, diseño, aceptación, respuesta general). Guarda la respuesta, la envía y aplica el único cambio de estado de esta rama: `NUEVO` → `EN_CONVERSACION`. Los mensajes entrantes del turno ya llegan marcados `procesado = true` por "Confirmar turno conversacional" (etapa 04).
 
 ```mermaid
 flowchart TD
     S{{Enrutar acción comercial}} -->|acciones de respuesta| PR[Preparar respuesta comercial]
     PR --> GS[(Guardar mensaje saliente)]
     GS --> W[Etapa 08 · Preparar envío WhatsApp]
-    GS --> MP[(Marcar mensaje entrante procesado)]
-    MP --> AA[(Actualizar actividad conversación)]
+    GS --> AA[(Actualizar actividad conversación)]
     AA --> RE[Resolver estado prospecto]
     RE --> IE{¿Actualizar estado<br/>prospecto?}
     IE -->|true| AE[(Actualizar estado prospecto)]
@@ -48,19 +47,17 @@ Tabla `pegaso.mensajes`:
 
 Se guarda **antes** de enviarse: si YCloud falla, el mensaje queda en la base como enviado. El id que devuelve YCloud no se guarda.
 
-Salida: la fila insertada; va a la etapa 08 y a "Marcar mensaje entrante procesado".
+Salida: la fila insertada; va a la etapa 08 y a "Actualizar actividad conversación".
 
-### Marcar mensaje entrante procesado · Postgres Update
+### Marcar mensaje entrante procesado · Postgres Update — ELIMINAR
 
-Tabla `pegaso.mensajes`, columna de búsqueda **`mensaje_externo_id`**:
+Cambio en n8n: **borrar este nodo** y conectar "Guardar mensaje saliente" → "Actualizar actividad conversación". Ese nodo lee todo con `$('Preparar conversación')`, así que no cambia ninguna expresión.
 
-| Columna | Valor |
-|---|---|
-| `mensaje_externo_id` (búsqueda) | `{{ $('Preparar conversación').first().json.mensaje_externo_id }}` |
-| `id`, `enviado_at` | vacíos |
-| `procesado` | `true` |
+Motivo: marcaba solo el mensaje que disparó la ejecución (no el turno completo), buscaba por `mensaje_externo_id` (en ejecuciones con "Mensaje entrante TEST" es `null`, no encontraba filas y detenía la rama: pendiente técnico 38) y era el único escritor de `procesado` en una sola rama (pendiente 39). Ahora lo marca "Confirmar turno conversacional" para las tres ramas.
 
-⚠️ En pruebas con "Mensaje entrante TEST" el `mensaje_externo_id` es `null`, el UPDATE no encuentra filas y la rama puede detenerse aquí (pendiente técnico 38).
+Configuración que tenía (por si hay que restaurarlo): tabla `pegaso.mensajes`, búsqueda por `mensaje_externo_id` = `{{ $('Preparar conversación').first().json.mensaje_externo_id }}`, `procesado = true`.
+
+Si se deja, no rompe el debounce: vuelve a poner `true` en un mensaje que ya lo tiene.
 
 ### Actualizar actividad conversación · Postgres Update
 
@@ -114,7 +111,7 @@ Marcador de fin (`message: 'LLEGO AL FINAL.'`).
 
 | Tabla | Cambio |
 |---|---|
-| `mensajes` | nueva fila SALIENTE `procesado = true`; la ENTRANTE pasa a `procesado = true` |
+| `mensajes` | nueva fila SALIENTE `procesado = true` (las ENTRANTE del turno ya quedaron `true` en la etapa 04) |
 | `conversaciones` | `ultimo_mensaje_at` |
 | `prospectos` | `estado = EN_CONVERSACION` si era `NUEVO` |
 

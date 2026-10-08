@@ -40,7 +40,7 @@ flowchart TD
 2. **Marcar prospecto requiere humano** (Postgres): `prospectos.requiere_humano = true` y `ultima_accion = DERIVAR_HUMANO`; el `estado` no cambia. Desde aquí el bot deja de responder a este prospecto (IF "¿Requiere atención humana?" de la etapa 03).
 3. **Preparar contexto handoff** (`preparar-contexto-handoff.js`): escribe `contexto_comercial.handoff` con `activo`, `motivo`, `intencion`, `clasificacion`, `prioridad`, `requiere_notificacion`, `mensaje_cliente`, `iniciado_at`.
 4. **Preparar mensaje transición humano** (`preparar-mensaje-transicion-humano.js`): elige el texto para el cliente según el motivo.
-5. **Guardar mensaje transición humano** (Postgres, `procesado = false`) y envío por WhatsApp. El mensaje entrante que provocó el handoff queda `procesado = false`.
+5. **Guardar mensaje transición humano** (Postgres; `procesado` debe pasar de `false` a `true`, ver [etapas/06](etapas/06-derivacion-humana.md)) y envío por WhatsApp. Los mensajes entrantes del turno que provocó el handoff ya quedaron `procesado = true` en "Confirmar turno conversacional" (etapa 04). Si el cliente escribe varias partes ("Si estoy de acuerdo" / "páseme una cuenta" / "por favor"), hay un solo handoff y un solo correo: el turno se agrupa antes del cerebro.
 6. **Finalizar derivación humana** (`finalizar-derivacion-humana.js`): sale de "Preparar mensaje transición humano" en paralelo al guardado y arma el contrato final limpio.
 7. **Peparar notificacion humano** (`preparar-notificacion-humano.js`): arma el correo interno (asunto, texto y HTML). Lo envía **Brevo**; si Brevo falla, **Resend**.
 

@@ -19,7 +19,10 @@ flowchart TD
     A --> GC[(Guardar contexto comercial)]
     GC --> PA[Preparar actualización prospecto]
     PA --> AP[(Actualizar prospecto comercial)]
-    AP --> RD[Recuperar decisión comercial]
+    AP --> CT[(Confirmar turno conversacional)]
+    CT --> IT{¿Turno confirmado?}
+    IT -->|false| FIN([fin sin respuesta:<br/>llegó un mensaje posterior])
+    IT -->|true| RD[Recuperar decisión comercial]
     RD --> S{{Enrutar acción comercial}}
     S -->|COTIZAR| E07[Etapa 07 · Cotización]
     S -->|DERIVAR_HUMANO| E06[Etapa 06 · Derivación humana]
@@ -107,7 +110,7 @@ Tabla `pegaso.conversaciones`, *Map Each Column Manually*, columna de búsqueda 
 | `ultimo_mensaje_at` | `{{ $('Preparar conversación').first().json.recibido_at }}` |
 | `contexto_comercial` | `{{ JSON.stringify($json.contexto_comercial) }}` |
 
-Confirma que `conversaciones.contexto_comercial` existe. Como el contexto que entra a la IA llega reconstruido y sin la cotización guardada (pendiente técnico 1), este UPDATE **reemplaza** la memoria anterior en cada mensaje.
+Confirma que `conversaciones.contexto_comercial` existe. El UPDATE reemplaza el JSON completo, pero como "Preparar contexto IA" entrega la memoria anterior completa y "Resolver contexto comercial" / "Aplicar reglas" hacen `...contextoAnterior`, la memoria se conserva entre turnos (pendiente técnico 1, resuelto).
 
 Salida: la fila de `conversaciones`.
 
@@ -136,6 +139,69 @@ Tabla `pegaso.prospectos`, columna de búsqueda `id`:
 | `actualizado_at` | `{{ $json.prospecto_actualizado_at }}` |
 
 Salida: la fila de `prospectos`. "Resolver estado prospecto" (etapa 05) la lee con `$('Actualizar prospecto comercial')`.
+
+### Confirmar turno conversacional · Postgres Execute Query — NUEVO
+
+Segundo control del [turno conversacional](03-conversacion.md#turno-conversacional-debounce): es el **punto de no retorno**. Antes de él nada es visible para el cliente; después vienen el Switch, la respuesta, la cotización o el correo al asesor.
+
+| Campo | Valor |
+|---|---|
+| NOMBRE | `Confirmar turno conversacional` |
+| TIPO | **Postgres** · Operation **Execute Query** · credencial *Postgres account 2* |
+| ENTRADA | fila de "Actualizar prospecto comercial" (no se usa) |
+| CONFIGURACIÓN | *Query*: el SQL de abajo · *Options → Query Parameters*: la expresión de abajo |
+| EXPRESIONES | `{{ [ $('Resolver turno conversacional').first().json.conversacion_id, $('Resolver turno conversacional').first().json.turno_desde_id, $('Resolver turno conversacional').first().json.turno_hasta_id ] }}` |
+| CONEXIÓN DESDE | Actualizar prospecto comercial (reemplaza su conexión a "Recuperar decisión comercial") |
+| CONEXIÓN HACIA | ¿Turno confirmado? |
+
+```sql
+WITH ultimo AS (
+  SELECT COALESCE(MAX(m.id), 0) AS ultimo_entrante_id
+  FROM pegaso.mensajes m
+  WHERE m.conversacion_id = $1::bigint
+    AND m.direccion = 'ENTRANTE'
+    AND NOT EXISTS (
+      SELECT 1
+      FROM pegaso.mensajes d
+      WHERE d.mensaje_externo_id = m.mensaje_externo_id
+        AND d.id < m.id
+    )
+),
+confirmados AS (
+  UPDATE pegaso.mensajes m
+  SET procesado = true
+  FROM ultimo u
+  WHERE u.ultimo_entrante_id = $3::bigint
+    AND m.conversacion_id = $1::bigint
+    AND m.direccion = 'ENTRANTE'
+    AND m.procesado = false
+    AND m.id BETWEEN $2::bigint AND $3::bigint
+  RETURNING m.id
+)
+SELECT
+  (SELECT ultimo_entrante_id FROM ultimo) = $3::bigint AS turno_confirmado,
+  (SELECT ultimo_entrante_id FROM ultimo) AS ultimo_entrante_id,
+  (SELECT COUNT(*) FROM confirmados)::int AS mensajes_confirmados;
+```
+
+- `ultimo` replica la regla del Code: último ENTRANTE sin contar reenvíos del mismo `mensaje_externo_id` (los `null` nunca son duplicados).
+- Si este turno sigue siendo el último, marca `procesado = true` en todos los ENTRANTE pendientes del rango (incluye reenvíos del webhook de esos mensajes) y devuelve `turno_confirmado = true`. Si llegó otro mensaje, no toca nada y devuelve `false`.
+- Es una sola sentencia: la comprobación y la marca no pueden intercalarse con otra confirmación.
+- Siempre devuelve exactamente una fila.
+
+### ¿Turno confirmado? · IF — NUEVO
+
+| Campo | Valor |
+|---|---|
+| NOMBRE | `¿Turno confirmado?` |
+| TIPO | **If** |
+| ENTRADA | fila de "Confirmar turno conversacional" |
+| CONFIGURACIÓN | una condición *Boolean* → **is true** |
+| EXPRESIONES | `{{ $json.turno_confirmado }}` |
+| CONEXIÓN DESDE | Confirmar turno conversacional |
+| CONEXIÓN HACIA | `true` → Recuperar decisión comercial · `false` → **sin conexión** (final válido: la ejecución del mensaje posterior responderá a todo) |
+
+"Recuperar decisión comercial" ignora `$input` (lee `$('Resolver contexto comercial')`), así que intercalar estos dos nodos no cambia ninguna expresión.
 
 ### Recuperar decisión comercial · Code
 
@@ -184,4 +250,6 @@ Lo que recibe cada rama (resumido, caso "Hola, necesito etiquetas de 10x5 cm"):
 
 ## Pruebas
 
-`tests/fixtures/04-*.json`: validaciones (JSON inválido, cotizar sin cantidad, medida de 1 cm, repetición, pago sin A, tono), error sin IA, normalización (clasificación que no baja, derivación de pago, incoherencia), decisión final (cotizar, redondeo, pedir medidas, pregunta informativa con cotización previa, medida no producible), reglas determinísticas, actualización de prospecto (diseño y conexión actual) y recuperación de la decisión.
+`tests/fixtures/04-*.json`: validaciones (JSON inválido, cotizar sin cantidad, medida de 1 cm, repetición, pago sin A, tono), error sin IA, normalización (clasificación que no baja, derivación de pago, turno agrupado que pide cuenta, incoherencia), decisión final (cotizar, redondeo, pedir medidas, pregunta informativa con cotización previa, turno nuevo que cambia la cantidad, medida no producible), reglas determinísticas, actualización de prospecto (diseño y conexión actual) y recuperación de la decisión. "Confirmar turno conversacional" es SQL: se prueba en n8n (ver [casos verificados](03-conversacion.md#casos-verificados)).
+
+Si ninguna IA funciona ("Error ninguna IA funciono cerebro"), el turno no se confirma: sus mensajes quedan `procesado = false` y el siguiente mensaje del cliente los vuelve a incluir (dentro de los 600 s).

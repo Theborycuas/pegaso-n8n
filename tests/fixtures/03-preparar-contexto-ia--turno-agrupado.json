@@ -1,0 +1,72 @@
+{
+  "archivo": "code/03-conversacion/preparar-contexto-ia.js",
+  "descripcion": "Casos 2 y 4 · el cerebro recibe el turno completo (\"de 10x5 cm\\nporfa\") como mensaje_actual; los mensajes del turno y su reenvío del webhook no se repiten en el historial. La entrada directa es la salida del IF \"¿Procesar turno?\".",
+  "input": [
+    {
+      "continuar_procesamiento": true,
+      "conversacion_id": 41,
+      "mensaje_id": 4,
+      "turno_mensaje_ids": [3, 4],
+      "turno_desde_id": 3,
+      "turno_hasta_id": 4,
+      "turno_texto": "de 10x5 cm\nporfa"
+    }
+  ],
+  "nodos": {
+    "Resolver turno conversacional": [
+      {
+        "continuar_procesamiento": true,
+        "conversacion_id": 41,
+        "mensaje_id": 4,
+        "turno_mensaje_ids": [3, 4],
+        "turno_desde_id": 3,
+        "turno_hasta_id": 4,
+        "turno_texto": "de 10x5 cm\nporfa"
+      }
+    ],
+    "Recuperar historial conversación": [
+      { "id": 1, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "Hola", "mensaje_externo_id": "wamid.A1", "enviado_at": "2026-10-07T22:50:00.000Z", "procesado": true },
+      { "id": 2, "conversacion_id": 41, "direccion": "SALIENTE", "tipo": "TEXTO", "contenido": "¿En qué medidas necesita sus etiquetas?", "mensaje_externo_id": null, "enviado_at": "2026-10-07T22:50:05.000Z", "procesado": true },
+      { "id": 3, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "de 10x5 cm", "mensaje_externo_id": "wamid.A3", "enviado_at": "2026-10-07T23:00:00.000Z", "procesado": false },
+      { "id": 4, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "porfa", "mensaje_externo_id": "wamid.A4", "enviado_at": "2026-10-07T23:00:02.000Z", "procesado": false },
+      { "id": 5, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "de 10x5 cm", "mensaje_externo_id": "wamid.A3", "enviado_at": "2026-10-07T23:00:00.000Z", "procesado": false }
+    ],
+    "Preparar conversación": [
+      {
+        "telefono": "593987654321",
+        "nombre_whatsapp": "Ana Pérez",
+        "mensaje": "porfa",
+        "tipo": "TEXTO",
+        "canal": "WHATSAPP",
+        "mensaje_externo_id": "wamid.A4",
+        "recibido_at": "2026-10-07T23:00:02.000Z",
+        "cliente_id": null,
+        "contacto_id": null,
+        "es_cliente_registrado": false,
+        "prospecto_existe": true,
+        "prospecto_id": 16,
+        "prospecto_estado": "NUEVO",
+        "prospecto_requiere_humano": false,
+        "conversacion_id": 41,
+        "conversacion_estado": "ACTIVA",
+        "contexto_comercial": {},
+        "tipo_actor": "PROSPECTO"
+      }
+    ]
+  },
+  "esperado": {
+    "conversacion_id": 41,
+    "mensaje_actual": "de 10x5 cm\nporfa",
+    "mensaje_disparador": "porfa",
+    "turno_mensaje_ids": [3, 4],
+    "turno_desde_id": 3,
+    "turno_hasta_id": 4,
+    "cantidad_mensajes_turno": 2,
+    "cantidad_mensajes_historial": 2,
+    "ultimo_mensaje_saliente": "¿En qué medidas necesita sus etiquetas?",
+    "historial": [
+      { "direccion": "ENTRANTE", "contenido": "Hola", "tipo": "TEXTO", "enviado_at": "2026-10-07T22:50:00.000Z" },
+      { "direccion": "SALIENTE", "contenido": "¿En qué medidas necesita sus etiquetas?", "tipo": "TEXTO", "enviado_at": "2026-10-07T22:50:05.000Z" }
+    ]
+  }
+}

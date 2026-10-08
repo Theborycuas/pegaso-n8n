@@ -317,7 +317,7 @@ Tabla `pegaso.mensajes`:
 | `enviado_at` | `{{ $now }}` |
 | `procesado` | `true` |
 
-Va a la etapa 08 y a "Actualizar actividad conversación cotización". En esta rama el mensaje **entrante no se marca procesado** (pendiente técnico 39).
+Va a la etapa 08 y a "Actualizar actividad conversación cotización". Los mensajes **entrantes** del turno ya llegan `procesado = true`: los marcó "Confirmar turno conversacional" (etapa 04) antes del Switch.
 
 ### Actualizar actividad conversación cotización · Postgres Update
 
@@ -404,7 +404,7 @@ No escribe en la base.
 | `cotizaciones` | nueva fila (cliente 1) con `subtotal`, `iva`, `total` | nueva fila sin totales (huérfana) |
 | `disenos` | nuevos diseños si no existían (cliente 1) | igual |
 | `cotizacion_detalles` | una fila por detalle con precio | nada |
-| `mensajes` | SALIENTE `procesado = true`; la ENTRANTE queda `false` | igual (con `cliente_id = 1`) |
+| `mensajes` | SALIENTE `procesado = true` (las ENTRANTE del turno ya quedaron `true` en la etapa 04) | igual (con `cliente_id = 1`) |
 | `conversaciones` | `ultimo_mensaje_at` (dos veces) y `contexto_comercial.cotizacion` | `ultimo_mensaje_at` y el intento fallido en el contexto |
 | `prospectos` | `estado = COTIZADO`, `ultima_intencion`, `ultima_accion` | igual (pendiente 5) |
 

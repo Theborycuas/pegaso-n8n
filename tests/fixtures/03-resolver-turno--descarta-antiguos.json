@@ -1,0 +1,22 @@
+{
+  "archivo": "code/03-conversacion/resolver-turno-conversacional.js",
+  "descripcion": "Mensaje sin procesar de ayer (bloqueado por MODO_PRUEBA o anterior al despliegue): supera turno_max_antiguedad_segundos y no entra al turno; queda en el historial como contexto.",
+  "input": [
+    { "id": 80, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "precio de etiquetas?", "mensaje_externo_id": "wamid.I80", "enviado_at": "2026-10-06T18:00:00.000Z", "procesado": false },
+    { "id": 81, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "Buenas tardes, necesito 5000 de 8x4", "mensaje_externo_id": "wamid.I81", "enviado_at": "2026-10-07T23:00:00.000Z", "procesado": false }
+  ],
+  "nodos": {
+    "Guardar mensaje entrante": [
+      { "id": 81, "conversacion_id": 41, "direccion": "ENTRANTE", "contenido": "Buenas tardes, necesito 5000 de 8x4", "mensaje_externo_id": "wamid.I81", "enviado_at": "2026-10-07T23:00:00.000Z", "procesado": false }
+    ],
+    "Resolver permiso automatización": [
+      { "debounce_ms": 3000, "debounce_segundos": 3, "turno_max_antiguedad_segundos": 600 }
+    ]
+  },
+  "esperado": {
+    "continuar_procesamiento": true,
+    "turno_mensaje_ids": [81],
+    "turno_texto": "Buenas tardes, necesito 5000 de 8x4",
+    "mensajes_descartados_por_antiguedad": 1
+  }
+}

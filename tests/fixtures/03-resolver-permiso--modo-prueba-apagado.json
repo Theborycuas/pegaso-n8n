@@ -1,6 +1,6 @@
 {
   "archivo": "code/03-conversacion/resolver-permiso-automatizacion.js",
-  "descripcion": "MODO_PRUEBA desactivado: el bot responde a todos.",
+  "descripcion": "MODO_PRUEBA desactivado: el bot responde a todos. Sin fila DEBOUNCE_WHATSAPP la ventana del turno usa los valores por defecto (3000 ms, 600 s).",
   "input": [
     {
       "clave": "MODO_PRUEBA",
@@ -60,6 +60,10 @@
   },
   "esperado": {
     "modo_prueba": false,
-    "puede_responder_bot": true
+    "puede_responder_bot": true,
+    "debounce_ms": 3000,
+    "debounce_segundos": 3,
+    "turno_max_antiguedad_segundos": 600,
+    "debounce_configurado": false
   }
 }

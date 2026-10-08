@@ -1,0 +1,23 @@
+{
+  "archivo": "code/03-conversacion/resolver-turno-conversacional.js",
+  "descripcion": "Caso 5 · \"Como es la metodología\" + \"de trabajo?\": una sola pregunta en dos mensajes, una sola respuesta.",
+  "input": [
+    { "id": 20, "conversacion_id": 41, "direccion": "SALIENTE", "tipo": "TEXTO", "contenido": "Con gusto, ¿en qué le puedo ayudar?", "mensaje_externo_id": null, "enviado_at": "2026-10-07T22:59:00.000Z", "procesado": true },
+    { "id": 21, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "Como es la metodología", "mensaje_externo_id": "wamid.C21", "enviado_at": "2026-10-07T23:00:00.000Z", "procesado": false },
+    { "id": 22, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "de trabajo?", "mensaje_externo_id": "wamid.C22", "enviado_at": "2026-10-07T23:00:01.000Z", "procesado": false }
+  ],
+  "nodos": {
+    "Guardar mensaje entrante": [
+      { "id": 22, "conversacion_id": 41, "direccion": "ENTRANTE", "contenido": "de trabajo?", "mensaje_externo_id": "wamid.C22", "enviado_at": "2026-10-07T23:00:01.000Z", "procesado": false }
+    ],
+    "Resolver permiso automatización": [
+      { "debounce_ms": 3000, "debounce_segundos": 3, "turno_max_antiguedad_segundos": 600 }
+    ]
+  },
+  "esperado": {
+    "continuar_procesamiento": true,
+    "turno_mensaje_ids": [21, 22],
+    "turno_texto": "Como es la metodología\nde trabajo?",
+    "ultimo_saliente_anterior_id": 20
+  }
+}

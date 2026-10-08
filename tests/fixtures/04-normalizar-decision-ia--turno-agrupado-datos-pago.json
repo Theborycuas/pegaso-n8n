@@ -1,0 +1,78 @@
+{
+  "archivo": "code/04-cerebro-comercial/normalizar-decision-ia.js",
+  "descripcion": "Caso 6 · turno agrupado \"Si estoy de acuerdo\\npáseme una cuenta\\npor favor\": una sola decisión DERIVAR_HUMANO / SOLICITA_DATOS_PAGO → clasificación A, prioridad ALTA, notificación; mensaje_actual conserva el turno completo para el correo al asesor.",
+  "input": [
+    {
+      "intencion": "CONSULTAR_PAGO",
+      "accion": "DERIVAR_HUMANO",
+      "producto": null,
+      "material": null,
+      "cantidad": null,
+      "ancho_cm": null,
+      "alto_cm": null,
+      "forma": "NO_ESPECIFICADA",
+      "ciudad_detectada": null,
+      "provincia_detectada": null,
+      "datos_suficientes_para_cotizar": false,
+      "requiere_humano": true,
+      "motivo_derivacion": "SOLICITA_DATOS_PAGO",
+      "requiere_notificacion": true,
+      "clasificacion_prospecto": "A",
+      "respuesta_sugerida": "En breve le pasamos los datos para el pago.",
+      "valid": true,
+      "validation_reason": null
+    }
+  ],
+  "nodos": {
+    "Preparar contexto IA": [
+      {
+        "conversacion_id": 41,
+        "conversacion_estado": "ACTIVA",
+        "cliente_id": null,
+        "contacto_id": null,
+        "es_cliente_registrado": false,
+        "prospecto_existe": true,
+        "prospecto_id": 16,
+        "prospecto_estado": "COTIZADO",
+        "prospecto_clasificacion": "B",
+        "prospecto_nombre": "Ana Pérez",
+        "prospecto_ciudad": null,
+        "prospecto_provincia": null,
+        "prospecto_requiere_humano": false,
+        "tipo_actor": "PROSPECTO",
+        "telefono": "593987654321",
+        "nombre_whatsapp": "Ana Pérez",
+        "mensaje_actual": "Si estoy de acuerdo\npáseme una cuenta\npor favor",
+        "mensaje_disparador": "por favor",
+        "turno_mensaje_ids": [32, 33, 34],
+        "cantidad_mensajes_turno": 3,
+        "tipo_mensaje": "TEXTO",
+        "canal": "WHATSAPP",
+        "contexto_comercial": {
+          "prospecto": { "id": 16, "estado": "COTIZADO", "clasificacion": "B", "requiere_humano": false },
+          "ubicacion": { "ciudad": null, "provincia": null },
+          "diseno": { "estado": null },
+          "cotizacion": { "existe": true, "id": 7, "cantidad": 1000, "ancho_cm": 10, "alto_cm": 5, "forma": "RECTANGULAR", "moneda": "USD" }
+        },
+        "historial": [
+          { "direccion": "ENTRANTE", "contenido": "de 10x5 cm", "tipo": "TEXTO", "enviado_at": "2026-10-07T22:58:00.000Z" },
+          { "direccion": "SALIENTE", "contenido": "Cotización: 1000 etiquetas de 10x5 cm por $36.00 + IVA.", "tipo": "TEXTO", "enviado_at": "2026-10-07T22:58:20.000Z" }
+        ],
+        "cantidad_mensajes_historial": 2,
+        "ultimo_mensaje_saliente": "Cotización: 1000 etiquetas de 10x5 cm por $36.00 + IVA.",
+        "mensajes_salientes_recientes": [
+          "Cotización: 1000 etiquetas de 10x5 cm por $36.00 + IVA."
+        ]
+      }
+    ]
+  },
+  "esperado": {
+    "accion": "DERIVAR_HUMANO",
+    "requiere_humano": true,
+    "motivo_derivacion": "SOLICITA_DATOS_PAGO",
+    "clasificacion_prospecto": "A",
+    "prioridad_derivacion": "ALTA",
+    "requiere_notificacion": true,
+    "mensaje_actual": "Si estoy de acuerdo\npáseme una cuenta\npor favor"
+  }
+}

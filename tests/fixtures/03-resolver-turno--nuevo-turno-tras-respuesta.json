@@ -1,0 +1,23 @@
+{
+  "archivo": "code/03-conversacion/resolver-turno-conversacional.js",
+  "descripcion": "Caso 7 · \"10x5\" ya cotizado y \"y serían 2000\" 20 s después: turno nuevo solo con el segundo mensaje (el primero quedó confirmado y antes del SALIENTE). La memoria aporta las medidas (ver 03-preparar-contexto-ia--nuevo-turno-con-memoria).",
+  "input": [
+    { "id": 40, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "10x5", "mensaje_externo_id": "wamid.E40", "enviado_at": "2026-10-07T23:00:00.000Z", "procesado": true },
+    { "id": 41, "conversacion_id": 41, "direccion": "SALIENTE", "tipo": "TEXTO", "contenido": "Cotización: 1000 etiquetas de 10x5 cm por $36.00 + IVA.", "mensaje_externo_id": null, "enviado_at": "2026-10-07T23:00:15.000Z", "procesado": true },
+    { "id": 42, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "y serían 2000", "mensaje_externo_id": "wamid.E42", "enviado_at": "2026-10-07T23:00:20.000Z", "procesado": false }
+  ],
+  "nodos": {
+    "Guardar mensaje entrante": [
+      { "id": 42, "conversacion_id": 41, "direccion": "ENTRANTE", "contenido": "y serían 2000", "mensaje_externo_id": "wamid.E42", "enviado_at": "2026-10-07T23:00:20.000Z", "procesado": false }
+    ],
+    "Resolver permiso automatización": [
+      { "debounce_ms": 3000, "debounce_segundos": 3, "turno_max_antiguedad_segundos": 600 }
+    ]
+  },
+  "esperado": {
+    "continuar_procesamiento": true,
+    "turno_mensaje_ids": [42],
+    "turno_texto": "y serían 2000",
+    "ultimo_saliente_anterior_id": 41
+  }
+}

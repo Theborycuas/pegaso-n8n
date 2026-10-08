@@ -1,0 +1,23 @@
+{
+  "archivo": "code/03-conversacion/resolver-turno-conversacional.js",
+  "descripcion": "Mensaje que llega mientras el turno anterior (ya confirmado, procesado = true) todavía cotiza: el turno nuevo no repite el mensaje confirmado aunque su SALIENTE aún no exista, y un SALIENTE guardado después de este mensaje no vacía el turno.",
+  "input": [
+    { "id": 50, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "de 10x5 cm", "mensaje_externo_id": "wamid.F50", "enviado_at": "2026-10-07T23:00:00.000Z", "procesado": true },
+    { "id": 51, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "y en 2000 cuánto sería", "mensaje_externo_id": "wamid.F51", "enviado_at": "2026-10-07T23:00:08.000Z", "procesado": false },
+    { "id": 52, "conversacion_id": 41, "direccion": "SALIENTE", "tipo": "TEXTO", "contenido": "Cotización: 1000 etiquetas de 10x5 cm por $36.00 + IVA.", "mensaje_externo_id": null, "enviado_at": "2026-10-07T23:00:10.000Z", "procesado": true }
+  ],
+  "nodos": {
+    "Guardar mensaje entrante": [
+      { "id": 51, "conversacion_id": 41, "direccion": "ENTRANTE", "contenido": "y en 2000 cuánto sería", "mensaje_externo_id": "wamid.F51", "enviado_at": "2026-10-07T23:00:08.000Z", "procesado": false }
+    ],
+    "Resolver permiso automatización": [
+      { "debounce_ms": 3000, "debounce_segundos": 3, "turno_max_antiguedad_segundos": 600 }
+    ]
+  },
+  "esperado": {
+    "continuar_procesamiento": true,
+    "turno_mensaje_ids": [51],
+    "turno_texto": "y en 2000 cuánto sería",
+    "ultimo_saliente_anterior_id": null
+  }
+}

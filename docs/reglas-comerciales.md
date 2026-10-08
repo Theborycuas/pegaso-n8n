@@ -12,6 +12,7 @@ Reglas de negocio que aplica hoy el bot, con el archivo donde vive cada una. Cua
 | Prospecto con `requiere_humano = true` | No responde; ya lo atiende una persona | IF "¿Requiere atención humana?" |
 | Mensaje que no es texto (imagen, audio, documento…) | No responde | `01-entrada/preparar-entrada-whatsapp.js` |
 | `MODO_PRUEBA` activo | Solo responde a `telefonos_permitidos` | `03-conversacion/resolver-permiso-automatizacion.js` |
+| Varios mensajes seguidos | Responde **una sola vez**, después del último, a todos juntos | `03-conversacion/resolver-turno-conversacional.js` + "Confirmar turno conversacional" |
 
 ### MODO_PRUEBA
 
@@ -24,6 +25,22 @@ Configuración en PostgreSQL (`pegaso.configuracion_bot`, clave `MODO_PRUEBA`, c
 - Los teléfonos se comparan **solo con dígitos y exactos**: guárdalos con prefijo `593`, sin `0` inicial ni `+`.
 - Si no hay fila de configuración, se asume `activo: true` sin teléfonos (bloquea a todos).
 - ⚠️ Si `valor_json` existe pero no trae `activo`, el bot queda **abierto** para todos.
+
+### Turno conversacional (debounce)
+
+El cliente suele escribir en partes ("de 10x5 cm" + "porfa"). El bot no responde a cada parte: espera y responde una vez al **turno** completo.
+
+| Regla | Valor | Dónde |
+|---|---|---|
+| Espera tras cada mensaje | 3 s (`DEBOUNCE_WHATSAPP.debounce_ms`, 0–15 s) | Wait "Esperar ventana de turno" |
+| Quién responde | solo la ejecución del **último** mensaje entrante (mayor `mensajes.id`); las anteriores terminan sin respuesta (`MENSAJE_POSTERIOR_RECIBIDO`) | `resolver-turno-conversacional.js` |
+| Qué entra al turno | mensajes entrantes no confirmados (`procesado = false`) posteriores a la última respuesta del bot, con hasta 10 min de antigüedad (`turno_max_antiguedad_segundos`) | `resolver-turno-conversacional.js` |
+| Cómo llega a la IA | un solo `mensaje_actual`, un mensaje por línea en orden | `preparar-contexto-ia.js` |
+| Mensaje que llega mientras la IA piensa | la ejecución anterior no responde; la nueva responde a todo | "Confirmar turno conversacional" |
+| Reenvío del webhook (mismo wamid) | se ignora | `resolver-turno-conversacional.js` |
+| Tope de duración del turno | ninguno: si el cliente sigue escribiendo, el bot sigue esperando | — |
+
+La IA **no** decide el turno: solo recibe el texto agrupado. Un mensaje 20 s después de la respuesta es un turno nuevo, que conserva la memoria (`contexto_comercial`) del anterior: "y serían 2000" recotiza con las medidas ya dadas.
 
 ## 2. Cantidad mínima
 

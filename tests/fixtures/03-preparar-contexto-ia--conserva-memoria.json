@@ -1,6 +1,6 @@
 {
   "archivo": "code/03-conversacion/preparar-contexto-ia.js",
-  "descripcion": "Aunque llegue el contexto guardado (pendiente técnico 1), este nodo lo reconstruye: conserva medidas, pero pierde la cantidad (se guardó como cantidad_solicitada y aquí se lee cantidad), el producto y la clave handoff. Ver la salida completa con run-node.",
+  "descripcion": "Memoria guardada (pendiente técnico 1 resuelto): conserva producto, cantidad_solicitada y la clave handoff; cotizacion.cantidad cae a cantidad_cotizable. Sin \"Resolver turno conversacional\" el turno es el mensaje de Preparar conversación.",
   "input": [
     {
       "id": 1,
@@ -80,13 +80,31 @@
     ]
   },
   "esperado": {
+    "mensaje_actual": "Hola, necesito etiquetas de 10x5 cm",
+    "cantidad_mensajes_turno": 1,
+    "cantidad_mensajes_historial": 3,
     "contexto_comercial": {
       "cotizacion": {
         "existe": true,
         "id": 7,
+        "estado": "COTIZADA",
+        "producto": "Mermelada",
+        "cantidad": 5000,
+        "cantidad_solicitada": 5000,
+        "cantidad_cotizable": 5000,
         "ancho_cm": 10,
         "alto_cm": 5,
-        "cantidad": null
+        "forma": "RECTANGULAR",
+        "moneda": "USD"
+      },
+      "handoff": {
+        "activo": true,
+        "motivo": "SOLICITA_DATOS_PAGO"
+      },
+      "prospecto": {
+        "id": 16,
+        "estado": "NUEVO",
+        "clasificacion": "C"
       }
     }
   }

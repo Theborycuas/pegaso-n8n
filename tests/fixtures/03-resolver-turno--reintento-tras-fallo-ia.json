@@ -1,0 +1,22 @@
+{
+  "archivo": "code/03-conversacion/resolver-turno-conversacional.js",
+  "descripcion": "El turno anterior falló en la IA (sin confirmar, procesado = false, sin SALIENTE): el siguiente mensaje lo reabsorbe dentro de la ventana de antigüedad.",
+  "input": [
+    { "id": 70, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "de 10x5 cm", "mensaje_externo_id": "wamid.H70", "enviado_at": "2026-10-07T23:00:00.000Z", "procesado": false },
+    { "id": 71, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "hola?", "mensaje_externo_id": "wamid.H71", "enviado_at": "2026-10-07T23:03:00.000Z", "procesado": false }
+  ],
+  "nodos": {
+    "Guardar mensaje entrante": [
+      { "id": 71, "conversacion_id": 41, "direccion": "ENTRANTE", "contenido": "hola?", "mensaje_externo_id": "wamid.H71", "enviado_at": "2026-10-07T23:03:00.000Z", "procesado": false }
+    ],
+    "Resolver permiso automatización": [
+      { "debounce_ms": 3000, "debounce_segundos": 3, "turno_max_antiguedad_segundos": 600 }
+    ]
+  },
+  "esperado": {
+    "continuar_procesamiento": true,
+    "turno_mensaje_ids": [70, 71],
+    "turno_texto": "de 10x5 cm\nhola?",
+    "mensajes_descartados_por_antiguedad": 0
+  }
+}

@@ -82,6 +82,9 @@ El mensaje actual solo reemplaza un dato anterior cuando lo modifica explícitam
 
 Nunca borres información válida porque el cliente no la repite.
 
+El MENSAJE ACTUAL puede contener varios mensajes consecutivos del cliente, uno por línea y en orden (el cliente escribió en partes antes de recibir respuesta).
+Interprétalos como un solo mensaje y responde una sola vez a todo su contenido.
+
 
 ==================================================
 4. FLUJO COMERCIAL GENERAL

@@ -1,6 +1,6 @@
 {
   "archivo": "code/03-conversacion/resolver-conversacion-prospecto.js",
-  "descripcion": "Conversación existente. contexto_comercial de la fila NO se propaga (pendiente técnico 1).",
+  "descripcion": "Conversación existente: propaga contexto_comercial de la fila como conversacion_contexto_comercial (pendiente técnico 1 resuelto).",
   "input": [
     {
       "id": 40,
@@ -50,6 +50,12 @@
     "conversacion_existe": true,
     "conversacion_id": 40,
     "conversacion_estado": "ACTIVA",
-    "conversacion_prospecto_id": 16
+    "conversacion_prospecto_id": 16,
+    "conversacion_contexto_comercial": {
+      "cotizacion": {
+        "cotizacion_id": 10,
+        "total": 36
+      }
+    }
   }
 }

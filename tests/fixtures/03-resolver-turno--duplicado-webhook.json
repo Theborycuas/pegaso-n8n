@@ -1,0 +1,23 @@
+{
+  "archivo": "code/03-conversacion/resolver-turno-conversacional.js",
+  "descripcion": "Reintento del webhook: segunda fila con el mismo mensaje_externo_id. La ejecución del reenvío no procesa (MENSAJE_DUPLICADO).",
+  "input": [
+    { "id": 60, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "de 10x5 cm", "mensaje_externo_id": "wamid.G60", "enviado_at": "2026-10-07T23:00:00.000Z", "procesado": false },
+    { "id": 61, "conversacion_id": 41, "direccion": "ENTRANTE", "tipo": "TEXTO", "contenido": "de 10x5 cm", "mensaje_externo_id": "wamid.G60", "enviado_at": "2026-10-07T23:00:00.000Z", "procesado": false }
+  ],
+  "nodos": {
+    "Guardar mensaje entrante": [
+      { "id": 61, "conversacion_id": 41, "direccion": "ENTRANTE", "contenido": "de 10x5 cm", "mensaje_externo_id": "wamid.G60", "enviado_at": "2026-10-07T23:00:00.000Z", "procesado": false }
+    ],
+    "Resolver permiso automatización": [
+      { "debounce_ms": 3000, "debounce_segundos": 3, "turno_max_antiguedad_segundos": 600 }
+    ]
+  },
+  "esperado": {
+    "continuar_procesamiento": false,
+    "resultado_turno": "DUPLICADO",
+    "motivo_no_procesamiento": "MENSAJE_DUPLICADO",
+    "mensaje_externo_id": "wamid.G60",
+    "ultimo_entrante_id": 60
+  }
+}
