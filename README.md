@@ -8,12 +8,11 @@ n8n guarda todo el workflow como un único JSON, con el código de cada nodo emb
 
 | Documento | Para qué |
 |---|---|
-| [docs/arquitectura.md](docs/arquitectura.md) | Recorrido completo del mensaje, etapas y qué archivo implementa cada nodo |
-| [docs/etapas/](docs/etapas/) | Configuración exacta de cada nodo por etapa (Postgres, IF, Merge, Code). Hoy: 01 a 08 (todas) |
-| [docs/reglas-comerciales.md](docs/reglas-comerciales.md) | Mínimos, medidas, catálogo, fórmula de precio, clasificación A/B/C, acciones |
-| [docs/flujo-handoff.md](docs/flujo-handoff.md) | Derivación a humano, mensajes de transición y correos internos |
-| [docs/modelo-datos.md](docs/modelo-datos.md) | Tablas PostgreSQL y estructura de `contexto_comercial` |
-| [docs/pendientes-tecnicos.md](docs/pendientes-tecnicos.md) | Bugs e inconsistencias conocidos, por prioridad |
+| [docs/ARQUITECTURA-PEGASO-N8N.md](docs/ARQUITECTURA-PEGASO-N8N.md) | Estado actual del repo: archivos, scripts, sincronización con n8n, concurrencia, encoding, seguridad y Git |
+| [docs/GUIA-USO-PEGASO-N8N.md](docs/GUIA-USO-PEGASO-N8N.md) | Runbook: flujo diario, cómo cambiar nodos y qué hacer ante errores de pull/push |
+| [docs/REGLAS-PARA-CURSOR.md](docs/REGLAS-PARA-CURSOR.md) | Reglas obligatorias para agentes de IA que trabajen en el repo |
+
+> Las secciones siguientes de este README (Estructura, Encabezado, Flujo de trabajo, Reglas) describen una estructura anterior (`npm run …`, `code/01-entrada/`, `tests/`, `pegaso-whatsapp.map.json`) que ya no existe. La referencia vigente son los tres documentos de arriba.
 
 ## Estructura
 
