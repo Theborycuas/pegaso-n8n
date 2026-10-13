@@ -1,0 +1,562 @@
+{
+  "workflowId": "09OF22FOxihypeeh",
+  "workflowName": "SISTEMA AUTOMATIZADO PEGASO",
+  "workflowUpdatedAt": "2026-10-13T16:28:08.664Z",
+  "extractedAt": "2026-10-13T16:39:00.286Z",
+  "workflowNodeCount": 182,
+  "codeNodeCount": 69,
+  "nodes": [
+    {
+      "nodeId": "e581adfb-04f8-4998-a994-c6d425bd395c",
+      "nodeName": "Calcular precio detalle",
+      "fileName": "calcular-precio-detalle.js",
+      "relativeFile": "code/_extraidos/calcular-precio-detalle.js",
+      "typeVersion": 2,
+      "lines": 1465
+    },
+    {
+      "nodeId": "2478267a-3ded-4aa1-9dbd-8e4e62a6a390",
+      "nodeName": "Calcular resumen cotizaci├│n",
+      "fileName": "calcular-resumen-cotizaci-n.js",
+      "relativeFile": "code/_extraidos/calcular-resumen-cotizaci-n.js",
+      "typeVersion": 2,
+      "lines": 348
+    },
+    {
+      "nodeId": "0378efe8-3c60-41ab-8db0-9cd1e64aae23",
+      "nodeName": "Validar extracci├│n Groq",
+      "fileName": "validar-extracci-n-groq.js",
+      "relativeFile": "code/_extraidos/validar-extracci-n-groq.js",
+      "typeVersion": 2,
+      "lines": 842
+    },
+    {
+      "nodeId": "7bebd33a-2a0c-400a-aeaf-388110be4d9d",
+      "nodeName": "Validar extracci├│n DeepSeek",
+      "fileName": "validar-extracci-n-deepseek.js",
+      "relativeFile": "code/_extraidos/validar-extracci-n-deepseek.js",
+      "typeVersion": 2,
+      "lines": 842
+    },
+    {
+      "nodeId": "37bffb2b-33a0-46ca-8bd1-3538a453b6fe",
+      "nodeName": "Validar extracci├│n OpenApi",
+      "fileName": "validar-extracci-n-openapi.js",
+      "relativeFile": "code/_extraidos/validar-extracci-n-openapi.js",
+      "typeVersion": 2,
+      "lines": 842
+    },
+    {
+      "nodeId": "b389417d-a3d7-4b2e-8819-255e7ba4a429",
+      "nodeName": "Aplicar m├¡nimo de impresi├│n",
+      "fileName": "aplicar-m-nimo-de-impresi-n.js",
+      "relativeFile": "code/_extraidos/aplicar-m-nimo-de-impresi-n.js",
+      "typeVersion": 2,
+      "lines": 172
+    },
+    {
+      "nodeId": "62b676d9-ed78-4fbf-b802-86fde41a92b0",
+      "nodeName": "Error ninguna IA funciono",
+      "fileName": "error-ninguna-ia-funciono.js",
+      "relativeFile": "code/_extraidos/error-ninguna-ia-funciono.js",
+      "typeVersion": 2,
+      "lines": 15
+    },
+    {
+      "nodeId": "41dca488-3afd-4edd-8c4f-12ed45e91ce7",
+      "nodeName": "Preparar datos cotizaci├│n",
+      "fileName": "preparar-datos-cotizaci-n.js",
+      "relativeFile": "code/_extraidos/preparar-datos-cotizaci-n.js",
+      "typeVersion": 2,
+      "lines": 257
+    },
+    {
+      "nodeId": "dd0638d2-f68d-491c-967c-e30a16fbdfa7",
+      "nodeName": "EXPANDIR DETALLES",
+      "fileName": "expandir-detalles.js",
+      "relativeFile": "code/_extraidos/expandir-detalles.js",
+      "typeVersion": 2,
+      "lines": 314
+    },
+    {
+      "nodeId": "72a84bd2-0212-4ffa-9a0c-45cdfed144a4",
+      "nodeName": "Recuperar detalles calculados",
+      "fileName": "recuperar-detalles-calculados.js",
+      "relativeFile": "code/_extraidos/recuperar-detalles-calculados.js",
+      "typeVersion": 2,
+      "lines": 33
+    },
+    {
+      "nodeId": "ec5fcae1-77b3-4f73-9643-6493270fee74",
+      "nodeName": "Resolver cat├ílogo Pegaso",
+      "fileName": "resolver-cat-ilogo-pegaso.js",
+      "relativeFile": "code/_extraidos/resolver-cat-ilogo-pegaso.js",
+      "typeVersion": 2,
+      "lines": 248
+    },
+    {
+      "nodeId": "5502cb70-bd10-44a5-856b-1048721f2a3e",
+      "nodeName": "Resolver dise├▒o",
+      "fileName": "resolver-dise-o.js",
+      "relativeFile": "code/_extraidos/resolver-dise-o.js",
+      "typeVersion": 2,
+      "lines": 68
+    },
+    {
+      "nodeId": "cb76a964-18e8-4183-8da5-2782485b1b81",
+      "nodeName": "Preparar dise├▒o creado",
+      "fileName": "preparar-dise-o-creado.js",
+      "relativeFile": "code/_extraidos/preparar-dise-o-creado.js",
+      "typeVersion": 2,
+      "lines": 38
+    },
+    {
+      "nodeId": "86f8c1b8-0cff-4a95-bf03-92995e8f842b",
+      "nodeName": "Normalizar mensaje",
+      "fileName": "normalizar-mensaje.js",
+      "relativeFile": "code/_extraidos/normalizar-mensaje.js",
+      "typeVersion": 2,
+      "lines": 324
+    },
+    {
+      "nodeId": "c548c8da-59ad-4278-bc97-c570261239ff",
+      "nodeName": "Resolver contacto",
+      "fileName": "resolver-contacto.js",
+      "relativeFile": "code/_extraidos/resolver-contacto.js",
+      "typeVersion": 2,
+      "lines": 49
+    },
+    {
+      "nodeId": "d5e02846-ddb3-4498-a909-fdf6258237fb",
+      "nodeName": "Preparar conversaci├│n",
+      "fileName": "preparar-conversaci-n.js",
+      "relativeFile": "code/_extraidos/preparar-conversaci-n.js",
+      "typeVersion": 2,
+      "lines": 289
+    },
+    {
+      "nodeId": "0c46fe20-0143-4c5a-8050-f4795b50e8a2",
+      "nodeName": "Preparar contexto IA",
+      "fileName": "preparar-contexto-ia.js",
+      "relativeFile": "code/_extraidos/preparar-contexto-ia.js",
+      "typeVersion": 2,
+      "lines": 1896
+    },
+    {
+      "nodeId": "f207ef1c-d7ff-4fae-9910-486f2ba24c0a",
+      "nodeName": "Validar extracci├│n Cerebro comercial",
+      "fileName": "validar-extracci-n-cerebro-comercial.js",
+      "relativeFile": "code/_extraidos/validar-extracci-n-cerebro-comercial.js",
+      "typeVersion": 2,
+      "lines": 1137
+    },
+    {
+      "nodeId": "033b7f46-8a18-4244-9c65-75047b2d6aac",
+      "nodeName": "Validar extracci├│n DeepSeek1",
+      "fileName": "validar-extracci-n-deepseek1.js",
+      "relativeFile": "code/_extraidos/validar-extracci-n-deepseek1.js",
+      "typeVersion": 2,
+      "lines": 1137
+    },
+    {
+      "nodeId": "e79de69f-646a-4449-81a4-725be9a4a6ec",
+      "nodeName": "Validar extracci├│n OpenApi1",
+      "fileName": "validar-extracci-n-openapi1.js",
+      "relativeFile": "code/_extraidos/validar-extracci-n-openapi1.js",
+      "typeVersion": 2,
+      "lines": 1137
+    },
+    {
+      "nodeId": "6de38fe8-617d-48d0-ad20-5c56b0c06047",
+      "nodeName": "Error ninguna IA funciono cerebro",
+      "fileName": "error-ninguna-ia-funciono-cerebro.js",
+      "relativeFile": "code/_extraidos/error-ninguna-ia-funciono-cerebro.js",
+      "typeVersion": 2,
+      "lines": 15
+    },
+    {
+      "nodeId": "29fac3bc-5564-446a-95d0-fc1f3263459c",
+      "nodeName": "Normalizar decisi├│n IA",
+      "fileName": "normalizar-decisi-n-ia.js",
+      "relativeFile": "code/_extraidos/normalizar-decisi-n-ia.js",
+      "typeVersion": 2,
+      "lines": 878
+    },
+    {
+      "nodeId": "29a9ba73-a457-44ed-88e2-71ffd76be125",
+      "nodeName": "Preparar respuesta comercial",
+      "fileName": "preparar-respuesta-comercial.js",
+      "relativeFile": "code/_extraidos/preparar-respuesta-comercial.js",
+      "typeVersion": 2,
+      "lines": 121
+    },
+    {
+      "nodeId": "1be58b3b-42bc-4ad5-ab46-871491a80742",
+      "nodeName": "Resolver prospecto",
+      "fileName": "resolver-prospecto.js",
+      "relativeFile": "code/_extraidos/resolver-prospecto.js",
+      "typeVersion": 2,
+      "lines": 90
+    },
+    {
+      "nodeId": "fabd3a19-94d6-4831-80d1-7efdf926fabd",
+      "nodeName": "Preparar prospecto creado",
+      "fileName": "preparar-prospecto-creado.js",
+      "relativeFile": "code/_extraidos/preparar-prospecto-creado.js",
+      "typeVersion": 2,
+      "lines": 99
+    },
+    {
+      "nodeId": "747d2f8b-66aa-487d-87c6-3458c649a4e6",
+      "nodeName": "Resolver conversaci├│n prospecto",
+      "fileName": "resolver-conversaci-n-prospecto.js",
+      "relativeFile": "code/_extraidos/resolver-conversaci-n-prospecto.js",
+      "typeVersion": 2,
+      "lines": 70
+    },
+    {
+      "nodeId": "6b096918-3e74-4e49-8182-cfc44a11ca45",
+      "nodeName": "Preparar conversaci├│n creada",
+      "fileName": "preparar-conversaci-n-creada.js",
+      "relativeFile": "code/_extraidos/preparar-conversaci-n-creada.js",
+      "typeVersion": 2,
+      "lines": 43
+    },
+    {
+      "nodeId": "862e8f48-a08f-4ff8-ad24-797075d126d3",
+      "nodeName": "Preparar actualizaci├│n prospecto",
+      "fileName": "preparar-actualizaci-n-prospecto.js",
+      "relativeFile": "code/_extraidos/preparar-actualizaci-n-prospecto.js",
+      "typeVersion": 2,
+      "lines": 168
+    },
+    {
+      "nodeId": "5c895f4e-16ee-4834-8f4d-ce7c3228f92f",
+      "nodeName": "Recuperar decisi├│n comercial",
+      "fileName": "recuperar-decisi-n-comercial.js",
+      "relativeFile": "code/_extraidos/recuperar-decisi-n-comercial.js",
+      "typeVersion": 2,
+      "lines": 71
+    },
+    {
+      "nodeId": "8468cb38-73be-4760-a530-68cd6114f898",
+      "nodeName": "Resolver estado prospecto",
+      "fileName": "resolver-estado-prospecto.js",
+      "relativeFile": "code/_extraidos/resolver-estado-prospecto.js",
+      "typeVersion": 2,
+      "lines": 208
+    },
+    {
+      "nodeId": "bb0cdcce-1f5d-4f2f-ab29-3528dda20787",
+      "nodeName": "Finalizar ciclo comercial",
+      "fileName": "finalizar-ciclo-comercial.js",
+      "relativeFile": "code/_extraidos/finalizar-ciclo-comercial.js",
+      "typeVersion": 2,
+      "lines": 10
+    },
+    {
+      "nodeId": "2453472a-9d65-46d2-9a67-b788aac2fd36",
+      "nodeName": "Resolver contexto comercial",
+      "fileName": "resolver-contexto-comercial.js",
+      "relativeFile": "code/_extraidos/resolver-contexto-comercial.js",
+      "typeVersion": 2,
+      "lines": 698
+    },
+    {
+      "nodeId": "49b907ef-f963-4ccc-b7bb-db921afc5898",
+      "nodeName": "Preparar contexto post cotizaci├│n",
+      "fileName": "preparar-contexto-post-cotizaci-n.js",
+      "relativeFile": "code/_extraidos/preparar-contexto-post-cotizaci-n.js",
+      "typeVersion": 2,
+      "lines": 664
+    },
+    {
+      "nodeId": "2b93b87f-f0d9-4ed5-bebc-e200226e2531",
+      "nodeName": "Resolver estado post cotizaci├│n",
+      "fileName": "resolver-estado-post-cotizaci-n.js",
+      "relativeFile": "code/_extraidos/resolver-estado-post-cotizaci-n.js",
+      "typeVersion": 2,
+      "lines": 46
+    },
+    {
+      "nodeId": "662c9948-ec8d-4c43-a087-33905eba5a6a",
+      "nodeName": "Finalizar cotizaci├│n comercial",
+      "fileName": "finalizar-cotizaci-n-comercial.js",
+      "relativeFile": "code/_extraidos/finalizar-cotizaci-n-comercial.js",
+      "typeVersion": 2,
+      "lines": 410
+    },
+    {
+      "nodeId": "f85439cb-8b0f-4f83-9171-7cb72c198bc6",
+      "nodeName": "Preparar derivaci├│n humana",
+      "fileName": "preparar-derivaci-n-humana.js",
+      "relativeFile": "code/_extraidos/preparar-derivaci-n-humana.js",
+      "typeVersion": 2,
+      "lines": 699
+    },
+    {
+      "nodeId": "9d8686d5-90a3-4d2e-8655-738d092f1167",
+      "nodeName": "Preparar contexto handoff",
+      "fileName": "preparar-contexto-handoff.js",
+      "relativeFile": "code/_extraidos/preparar-contexto-handoff.js",
+      "typeVersion": 2,
+      "lines": 253
+    },
+    {
+      "nodeId": "3e267a32-bf79-4b10-bb07-443b04b97cf9",
+      "nodeName": "Preparar mensaje transici├│n humano",
+      "fileName": "preparar-mensaje-transici-n-humano.js",
+      "relativeFile": "code/_extraidos/preparar-mensaje-transici-n-humano.js",
+      "typeVersion": 2,
+      "lines": 361
+    },
+    {
+      "nodeId": "ebb48494-a503-4619-8523-aecbae62a80b",
+      "nodeName": "Finalizar derivaci├│n humana",
+      "fileName": "finalizar-derivaci-n-humana.js",
+      "relativeFile": "code/_extraidos/finalizar-derivaci-n-humana.js",
+      "typeVersion": 2,
+      "lines": 349
+    },
+    {
+      "nodeId": "39de2c44-ec67-4f28-9cb1-c469f60993f4",
+      "nodeName": "Finalizar mensaje atenci├│n humana",
+      "fileName": "finalizar-mensaje-atenci-n-humana.js",
+      "relativeFile": "code/_extraidos/finalizar-mensaje-atenci-n-humana.js",
+      "typeVersion": 2,
+      "lines": 27
+    },
+    {
+      "nodeId": "d469d4b2-4981-4c5e-a39a-458726f2f643",
+      "nodeName": "EXECUTOR MOMENTANEP",
+      "fileName": "executor-momentanep.js",
+      "relativeFile": "code/_extraidos/executor-momentanep.js",
+      "typeVersion": 2,
+      "lines": 11
+    },
+    {
+      "nodeId": "d7e0930c-eaa2-4f71-b884-b8dc44bf1436",
+      "nodeName": "Resolver permiso automatizaci├│n",
+      "fileName": "resolver-permiso-automatizaci-n.js",
+      "relativeFile": "code/_extraidos/resolver-permiso-automatizaci-n.js",
+      "typeVersion": 2,
+      "lines": 296
+    },
+    {
+      "nodeId": "ed6f0062-e4e1-4c97-9f71-33f3d08e1732",
+      "nodeName": "Finalizar mensaje modo prueba",
+      "fileName": "finalizar-mensaje-modo-prueba.js",
+      "relativeFile": "code/_extraidos/finalizar-mensaje-modo-prueba.js",
+      "typeVersion": 2,
+      "lines": 64
+    },
+    {
+      "nodeId": "8d427a27-6eda-44e2-b437-1b84be55165c",
+      "nodeName": "Validar verificaci├│n Meta",
+      "fileName": "validar-verificaci-n-meta.js",
+      "relativeFile": "code/_extraidos/validar-verificaci-n-meta.js",
+      "typeVersion": 2,
+      "lines": 53
+    },
+    {
+      "nodeId": "8621b5ed-b2d2-4a6d-8e22-083f9e858035",
+      "nodeName": "Normalizar evento WhatsApp",
+      "fileName": "normalizar-evento-whatsapp.js",
+      "relativeFile": "code/_extraidos/normalizar-evento-whatsapp.js",
+      "typeVersion": 2,
+      "lines": 1141
+    },
+    {
+      "nodeId": "a8c7e996-96eb-40f1-9c73-921195df970d",
+      "nodeName": "Preparar entrada WhatsApp",
+      "fileName": "preparar-entrada-whatsapp.js",
+      "relativeFile": "code/_extraidos/preparar-entrada-whatsapp.js",
+      "typeVersion": 2,
+      "lines": 720
+    },
+    {
+      "nodeId": "aabdc11d-b55e-467d-b32d-50c9d5bf8c4e",
+      "nodeName": "Preparar env├¡o WhatsApp",
+      "fileName": "preparar-env-o-whatsapp.js",
+      "relativeFile": "code/_extraidos/preparar-env-o-whatsapp.js",
+      "typeVersion": 2,
+      "lines": 897
+    },
+    {
+      "nodeId": "bc2e3649-a530-43b4-be61-72665ab148cf",
+      "nodeName": "Peparar notificacion humano",
+      "fileName": "peparar-notificacion-humano.js",
+      "relativeFile": "code/_extraidos/peparar-notificacion-humano.js",
+      "typeVersion": 2,
+      "lines": 488
+    },
+    {
+      "nodeId": "c6bc9d87-8c34-4847-9cf5-a89b113c1381",
+      "nodeName": "Validar producibilidad P4",
+      "fileName": "validar-producibilidad-p4.js",
+      "relativeFile": "code/_extraidos/validar-producibilidad-p4.js",
+      "typeVersion": 2,
+      "lines": 371
+    },
+    {
+      "nodeId": "d3492907-cbc9-488a-ba85-5890f849566e",
+      "nodeName": "Construir mensaje no producible",
+      "fileName": "construir-mensaje-no-producible.js",
+      "relativeFile": "code/_extraidos/construir-mensaje-no-producible.js",
+      "typeVersion": 2,
+      "lines": 144
+    },
+    {
+      "nodeId": "68a0eb70-195a-4a1b-bb2d-833a7cb45967",
+      "nodeName": "Preparar mensaje cotizaci├│n",
+      "fileName": "preparar-mensaje-cotizaci-n.js",
+      "relativeFile": "code/_extraidos/preparar-mensaje-cotizaci-n.js",
+      "typeVersion": 2,
+      "lines": 781
+    },
+    {
+      "nodeId": "d942cfd8-ee3a-4f2b-8e50-4778b26e5bdb",
+      "nodeName": "Construir mensaje comercial",
+      "fileName": "construir-mensaje-comercial.js",
+      "relativeFile": "code/_extraidos/construir-mensaje-comercial.js",
+      "typeVersion": 2,
+      "lines": 331
+    },
+    {
+      "nodeId": "268786b8-303c-47fd-9cb3-e79bf3d18a4b",
+      "nodeName": "Aplicar reglas comerciales determin├¡sticas",
+      "fileName": "aplicar-reglas-comerciales-determin-sticas.js",
+      "relativeFile": "code/_extraidos/aplicar-reglas-comerciales-determin-sticas.js",
+      "typeVersion": 2,
+      "lines": 416
+    },
+    {
+      "nodeId": "6739d53a-956f-4bd6-8074-1a01e706192b",
+      "nodeName": "Resolver turno conversacional",
+      "fileName": "resolver-turno-conversacional.js",
+      "relativeFile": "code/_extraidos/resolver-turno-conversacional.js",
+      "typeVersion": 2,
+      "lines": 796
+    },
+    {
+      "nodeId": "d465be4f-6506-4e95-9a8e-ae6fd0ee84a9",
+      "nodeName": "Preparar media del turno",
+      "fileName": "preparar-media-del-turno.js",
+      "relativeFile": "code/_extraidos/preparar-media-del-turno.js",
+      "typeVersion": 2,
+      "lines": 207
+    },
+    {
+      "nodeId": "e357151c-1616-49f0-9f2b-b5c86ffe8a1a",
+      "nodeName": "Validar an├ílisis imagen Groq",
+      "fileName": "validar-an-ilisis-imagen-groq.js",
+      "relativeFile": "code/_extraidos/validar-an-ilisis-imagen-groq.js",
+      "typeVersion": 2,
+      "lines": 1219
+    },
+    {
+      "nodeId": "771b9b13-a594-4d57-aab3-a7ec3526b9e2",
+      "nodeName": "Validar an├ílisis imagen DeepSeek",
+      "fileName": "validar-an-ilisis-imagen-deepseek.js",
+      "relativeFile": "code/_extraidos/validar-an-ilisis-imagen-deepseek.js",
+      "typeVersion": 2,
+      "lines": 1219
+    },
+    {
+      "nodeId": "cac07c7b-5251-40d5-a127-6c972b3113c7",
+      "nodeName": "Analizar imagen OpenAI",
+      "fileName": "analizar-imagen-openai.js",
+      "relativeFile": "code/_extraidos/analizar-imagen-openai.js",
+      "typeVersion": 2,
+      "lines": 1219
+    },
+    {
+      "nodeId": "397a709e-9177-4c15-b89a-6bf1f4266e81",
+      "nodeName": "Preparar derivaci├│n imagen fallida",
+      "fileName": "preparar-derivaci-n-imagen-fallida.js",
+      "relativeFile": "code/_extraidos/preparar-derivaci-n-imagen-fallida.js",
+      "typeVersion": 2,
+      "lines": 571
+    },
+    {
+      "nodeId": "b3f929c7-f9a4-4f39-9508-11d8b1d0c96f",
+      "nodeName": "Preparar entrada no soportada",
+      "fileName": "preparar-entrada-no-soportada.js",
+      "relativeFile": "code/_extraidos/preparar-entrada-no-soportada.js",
+      "typeVersion": 2,
+      "lines": 166
+    },
+    {
+      "nodeId": "c8e51c4f-be8a-45ae-af4f-dc91560f43f9",
+      "nodeName": "Preparar handoff entrada no soportada",
+      "fileName": "preparar-handoff-entrada-no-soportada.js",
+      "relativeFile": "code/_extraidos/preparar-handoff-entrada-no-soportada.js",
+      "typeVersion": 2,
+      "lines": 764
+    },
+    {
+      "nodeId": "104f0e23-49ef-4273-927d-4d9b5e3b88a0",
+      "nodeName": "Preparar audio del turno",
+      "fileName": "preparar-audio-del-turno.js",
+      "relativeFile": "code/_extraidos/preparar-audio-del-turno.js",
+      "typeVersion": 2,
+      "lines": 633
+    },
+    {
+      "nodeId": "57653d69-a094-474e-9506-fb4ed1811c62",
+      "nodeName": "Validar transcripci├│n audio",
+      "fileName": "validar-transcripci-n-audio.js",
+      "relativeFile": "code/_extraidos/validar-transcripci-n-audio.js",
+      "typeVersion": 2,
+      "lines": 1034
+    },
+    {
+      "nodeId": "c000b9bb-0e60-4658-8a26-02ad12460aaa",
+      "nodeName": "Aplicar transcripciones al turno",
+      "fileName": "aplicar-transcripciones-al-turno.js",
+      "relativeFile": "code/_extraidos/aplicar-transcripciones-al-turno.js",
+      "typeVersion": 2,
+      "lines": 684
+    },
+    {
+      "nodeId": "9e363e80-b236-4e0c-b00b-ef83537ef152",
+      "nodeName": "Preparar fallback Deepgram",
+      "fileName": "preparar-fallback-deepgram.js",
+      "relativeFile": "code/_extraidos/preparar-fallback-deepgram.js",
+      "typeVersion": 2,
+      "lines": 219
+    },
+    {
+      "nodeId": "3e759bba-a9cd-4c0c-a70c-48f8618607c5",
+      "nodeName": "Validar transcripci├│n audio Deepgram",
+      "fileName": "validar-transcripci-n-audio-deepgram.js",
+      "relativeFile": "code/_extraidos/validar-transcripci-n-audio-deepgram.js",
+      "typeVersion": 2,
+      "lines": 1034
+    },
+    {
+      "nodeId": "71aaa80a-fccc-4aad-9506-70ea92468bea",
+      "nodeName": "Procesar comando BOT",
+      "fileName": "procesar-comando-bot.js",
+      "relativeFile": "code/_extraidos/procesar-comando-bot.js",
+      "typeVersion": 2,
+      "lines": 183
+    },
+    {
+      "nodeId": "f7e4c5f2-8a86-458b-b4d0-6e6d79b97bb9",
+      "nodeName": "Normalizar intervenci├│n humana",
+      "fileName": "normalizar-intervenci-n-humana.js",
+      "relativeFile": "code/_extraidos/normalizar-intervenci-n-humana.js",
+      "typeVersion": 2,
+      "lines": 242
+    },
+    {
+      "nodeId": "9f4cda82-ef34-4917-9737-2f20f2d934ca",
+      "nodeName": "Preparar mensaje humano saliente",
+      "fileName": "preparar-mensaje-humano-saliente.js",
+      "relativeFile": "code/_extraidos/preparar-mensaje-humano-saliente.js",
+      "typeVersion": 2,
+      "lines": 78
+    }
+  ]
+}

@@ -1,10 +1,26 @@
-node_modules/
+# ======================================================
+# PEGASO N8N
+# ======================================================
+
+# Snapshots y backups
+snapshots/
+
+# Secretos
 .env
 .env.*
+*.secret
 
-# Nunca versionar credenciales exportadas de n8n
+# Credenciales
 credentials/
-*.credentials.json
 
-.DS_Store
+# Dependencias
+node_modules/
+
+# Builds temporales
+build/
+*.tmp
+*.bak
+
+# Windows / macOS
 Thumbs.db
+.DS_Store
