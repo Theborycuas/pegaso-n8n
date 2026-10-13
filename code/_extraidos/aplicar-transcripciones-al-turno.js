@@ -27,14 +27,14 @@
 // - Recibir todas las transcripciones validadas del turno.
 // - Recuperar el turno original desde
 //   "Resolver turno conversacional".
-// - Asociar cada transcripci├│n por mensaje_id.
+// - Asociar cada transcripción por mensaje_id.
 // - Sustituir el marcador [MEDIA_PENDIENTE] del AUDIO
-//   por su transcripci├│n.
-// - Eliminar URLs / metadatos t├®cnicos antes de enviar
+//   por su transcripción.
+// - Eliminar URLs / metadatos técnicos antes de enviar
 //   contenido al cerebro comercial.
-// - Mantener el orden cronol├│gico de los mensajes.
+// - Mantener el orden cronológico de los mensajes.
 // - Generar UN SOLO ITEM para "Preparar contexto IA".
-// - Informar si alg├║n audio fall├│.
+// - Informar si algún audio falló.
 //
 // IMPORTANTE:
 //
@@ -295,8 +295,8 @@ const mensajesActualizados =
 
         contenido:
           `${base}\n` +
-          '[TRANSCRIPCION DE AUDIO ┬À revision=SI ┬À motivo=AUDIO_SIN_RESULTADO] ' +
-          'Este audio no pudo procesarse autom├íticamente.',
+          '[TRANSCRIPCION DE AUDIO · revision=SI · motivo=AUDIO_SIN_RESULTADO] ' +
+          'Este audio no pudo procesarse automáticamente.',
 
         audio_transcrito:
           false,
@@ -330,7 +330,7 @@ const mensajesActualizados =
 
         contenido:
           `${base}\n` +
-          '[TRANSCRIPCION DE AUDIO ┬À revision=SI ┬À motivo=TRANSCRIPCION_DUPLICADA] ' +
+          '[TRANSCRIPCION DE AUDIO · revision=SI · motivo=TRANSCRIPCION_DUPLICADA] ' +
           'Se recibieron varias transcripciones para el mismo audio.',
 
         audio_transcrito:
@@ -356,7 +356,7 @@ const mensajesActualizados =
 
 
     // ==================================================
-    // 5.3 TRANSCRIPCI├ôN FALLIDA
+    // 5.3 TRANSCRIPCIÓN FALLIDA
     // ==================================================
 
     if (
@@ -416,8 +416,8 @@ const mensajesActualizados =
 
         contenido:
           `${base}\n` +
-          `[TRANSCRIPCION DE AUDIO ┬À revision=SI ┬À motivo=${motivo}] ` +
-          'No fue posible transcribir autom├íticamente este audio.',
+          `[TRANSCRIPCION DE AUDIO · revision=SI · motivo=${motivo}] ` +
+          'No fue posible transcribir automáticamente este audio.',
 
         audio_transcrito:
           false,
@@ -435,7 +435,7 @@ const mensajesActualizados =
 
 
     // ==================================================
-    // 5.4 TRANSCRIPCI├ôN CORRECTA
+    // 5.4 TRANSCRIPCIÓN CORRECTA
     // ==================================================
 
     transcripcionesValidas++;
@@ -483,7 +483,7 @@ const mensajesActualizados =
 
       contenido:
         `${base}\n` +
-        `[TRANSCRIPCION DE AUDIO ┬À proveedor=${textoONull(resultado.proveedor_transcripcion) ?? 'GROQ'}] ` +
+        `[TRANSCRIPCION DE AUDIO · proveedor=${textoONull(resultado.proveedor_transcripcion) ?? 'GROQ'}] ` +
         textoTranscrito,
 
       audio_transcrito:
@@ -514,12 +514,12 @@ const mensajesActualizados =
 // Ejemplo:
 //
 // [AUDIO]
-// [TRANSCRIPCION DE AUDIO ┬À proveedor=GROQ] Hola...
+// [TRANSCRIPCION DE AUDIO · proveedor=GROQ] Hola...
 //
 // quiero 1000 etiquetas
 //
 // [AUDIO]
-// [TRANSCRIPCION DE AUDIO ┬À proveedor=GROQ] de 10x5...
+// [TRANSCRIPCION DE AUDIO · proveedor=GROQ] de 10x5...
 //
 // ======================================================
 
@@ -569,7 +569,7 @@ try {
 
 
 // ======================================================
-// 9. SALIDA ├ÜNICA
+// 9. SALIDA ÚNICA
 // ======================================================
 //
 // SIEMPRE devolvemos UN SOLO ITEM.
@@ -577,12 +577,12 @@ try {
 // Esto es deliberado.
 //
 // Tres audios:
-//   Ôåô
+//   ↓
 // tres transcripciones
-//   Ôåô
+//   ↓
 // UN turno enriquecido
-//   Ôåô
-// UNA decisi├│n comercial
+//   ↓
+// UNA decisión comercial
 //
 // ======================================================
 

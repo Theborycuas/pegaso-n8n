@@ -19,7 +19,7 @@
 // ======================================================
 // RESOLVER PROSPECTO
 // ======================================================
-// Determina si el tel├®fono/canal ya pertenece a un
+// Determina si el teléfono/canal ya pertenece a un
 // prospecto existente.
 //
 // Conserva siempre los datos originales del mensaje.
@@ -32,7 +32,7 @@ const resultadoBusqueda =
   $input.first()?.json ?? {};
 
 // ======================================================
-// ┬┐EL SELECT ENCONTR├ô UN PROSPECTO?
+// ¿EL SELECT ENCONTRÓ UN PROSPECTO?
 // ======================================================
 
 const prospectoExiste =

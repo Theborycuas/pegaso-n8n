@@ -22,13 +22,13 @@
 //
 // El mensaje YA fue guardado.
 //
-// Este n├║mero no tiene autorizaci├│n para ser atendido
-// autom├íticamente mientras MODO_PRUEBA est├® activo.
+// Este número no tiene autorización para ser atendido
+// automáticamente mientras MODO_PRUEBA esté activo.
 //
 // No llamar IA.
 // No cotizar.
 // No responder WhatsApp.
-// No modificar la conversaci├│n comercial.
+// No modificar la conversación comercial.
 // ======================================================
 
 const input =

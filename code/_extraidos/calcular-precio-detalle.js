@@ -18,26 +18,47 @@
 
 // ======================================================
 // CALCULAR PRECIO DETALLE
-// PEGASO ADHESIVOS - V2.5
+// PEGASO ADHESIVOS - V2.6
 // ======================================================
 //
-// FUENTE ├ÜNICA DE VERDAD PARA REGLAS DE PRECIO.
+// FUENTE ÚNICA DE VERDAD PARA REGLAS DE PRECIO.
 //
 // Mantiene compatibilidad con:
 // - cotizacion_detalles
-// - Calcular resumen cotizaci├│n
+// - Calcular resumen cotización
 // - Recuperar detalles calculados
 // - Construir mensaje comercial
 //
 // ======================================================
 //
-// REGLAS V2.5:
+// ORDEN REAL DEL CALCULO (V2.6):
 //
-// 1. MEDIDA M├ìNIMA
-//    Ninguna dimensi├│n puede ser < 2 cm.
+//   1. Validar medida minima (ningun lado < 2 cm).
+//   2. Precio fijo (banda pequena $18 / 4x4 $20).
+//      Si aplica, se saltan los pasos 3 a 5.
+//   3. Dimensiones de calculo: +1/+1 si es 5x5 exacto.
+//   4. Dimensiones de calculo: +1/+1 por forma especial.
+//   5. Factor:
+//      5a. factor del rango de cantidad (1000-2000 / 3000-5000);
+//      5b. tamano grande: si ancho_calc x alto_calc x factor
+//          del rango > $130 por 1000 -> factor 0.67
+//          (solo si es menor que el del rango).
+//   6. precio_1000 = ancho_calc x alto_calc x factor
+//      (o precio fijo).
+//   7. total = precio_1000 x cantidad / 1000 - descuento.
+//   8. Redondeo comercial: Math.ceil(total).
+//   9. Precio minimo absoluto por detalle: max(total, $18).
+//  10. Unitario, subtotal e IVA se derivan del total final.
+//
+// ======================================================
+//
+// REGLAS V2.6:
+//
+// 1. MEDIDA MÍNIMA
+//    Ninguna dimensión puede ser < 2 cm.
 //    Es decir, 1 cm o menos no se produce.
 //
-// 2. BANDA FIJA PEQUE├æA $18 / 1000
+// 2. BANDA FIJA PEQUEÑA $18 / 1000
 //    Cualquier medida donde:
 //      ancho >= 2 y ancho < 4
 //      alto  >= 2 y alto  < 4
@@ -60,23 +81,32 @@
 //    4x4 cm -> $20 / 1000.
 //
 // 4. 5x5 cm
-//    Para c├ílculo se aumenta:
+//    Para cálculo se aumenta:
 //    +1 cm ancho
 //    +1 cm alto
 //
-// 5. PRECIO GENERAL
-//    Factor = 0.72
+// 5. RANGOS DE CANTIDAD (reemplazan al factor general 0.72)
+//    1000 - 2000 -> factor 0.75
+//    3000 - 5000 -> factor 0.67
+//    6000 o mas  -> NO se cotiza automaticamente.
+//                   "Resolver contexto comercial" deriva
+//                   a humano antes de llegar aqui; si
+//                   aun asi llega, este nodo lanza error.
 //
-// 6. TAMA├æO GRANDE
-//    Si ancho >= 10 Y alto >= 10:
-//    factor = 0.67
-//
-// 7. VOLUMEN
-//    Si cantidad >= 10.000:
-//    factor = 0.50
+//    1000 y 2000 comparten precio por 1000: la mejora
+//    empieza en 3000 (mejora_precio_desde_cantidad).
 //
 //    IMPORTANTE:
 //    No modifica precios fijos.
+//
+// 6. TAMANO GRANDE
+//    Es grande la etiqueta cuyo precio por 1000 calculado
+//    con el factor del rango supera $130.
+//    (10x10 = $75 -> mediana).
+//    factor = 0.67 si es menor que el del rango.
+//
+// 7. VOLUMEN >= 10.000 (factor 0.50)
+//    Retirado: desde 6000 la cantidad va a humano.
 //
 // 8. FORMAS ESPECIALES
 //    circular / redondeada / troquelada
@@ -89,6 +119,11 @@
 // 9. REDONDEO
 //    Precio comercial final:
 //    Math.ceil(...)
+//
+// 10. PRECIO MINIMO ABSOLUTO POR DETALLE
+//    Despues del redondeo:
+//    total = max(total, $18)
+//    No altera medidas, cantidad, factor ni precio_1000.
 //
 // ======================================================
 
@@ -103,10 +138,10 @@ const detallesOriginales =
 
 
 // ======================================================
-// 1. POL├ìTICA CENTRAL DE PRECIOS PEGASO
+// 1. POLÍTICA CENTRAL DE PRECIOS PEGASO
 // ======================================================
 //
-// ESTA ES LA SECCI├ôN QUE DEBEMOS EDITAR EN EL FUTURO
+// ESTA ES LA SECCIÓN QUE DEBEMOS EDITAR EN EL FUTURO
 // CUANDO CAMBIEN PRECIOS O REGLAS.
 //
 // ======================================================
@@ -115,7 +150,7 @@ const REGLAS_PRECIO = {
 
 
   // --------------------------------------------------
-  // Restricci├│n m├¡nima
+  // Restricción mínima
   // --------------------------------------------------
 
   MEDIDA_MINIMA_PERMITIDA_CM:
@@ -123,7 +158,7 @@ const REGLAS_PRECIO = {
 
 
   // --------------------------------------------------
-  // Banda fija peque├▒a
+  // Banda fija pequeña
   // --------------------------------------------------
   //
   // Desde 2 cm inclusive
@@ -166,41 +201,54 @@ const REGLAS_PRECIO = {
 
 
   // --------------------------------------------------
-  // Factores
+  // Rangos de cantidad
+  // --------------------------------------------------
+  //
+  // Ordenados de menor a mayor. Las cantidades ya
+  // llegan en multiplos de 1000 (minimo 1000).
+  // Por encima del ultimo "hasta" no hay precio
+  // automatico: corresponde DERIVAR_HUMANO.
+  //
   // --------------------------------------------------
 
-  FACTOR_GENERAL:
-    0.72,
+  RANGOS_CANTIDAD: [
+    {
+      codigo: 'RANGO_1000_2000',
+      desde: 1000,
+      hasta: 2000,
+      factor: 0.75
+    },
+    {
+      codigo: 'RANGO_3000_5000',
+      desde: 3000,
+      hasta: 5000,
+      factor: 0.67
+    }
+  ],
+
+
+  // --------------------------------------------------
+  // Tamano grande
+  // --------------------------------------------------
+  //
+  // Grande = precio por 1000 calculado con el factor
+  // del rango mayor a este limite.
+  //
+  // --------------------------------------------------
+
+  LIMITE_PRECIO_1000_TAMANO_GRANDE:
+    130,
 
   FACTOR_TAMANO_GRANDE:
     0.67,
 
-  FACTOR_VOLUMEN:
-    0.50,
-
 
   // --------------------------------------------------
-  // Volumen
+  // Precio minimo absoluto por detalle
   // --------------------------------------------------
 
-  CANTIDAD_VOLUMEN:
-    10000,
-
-
-  // --------------------------------------------------
-  // Tama├▒o grande
-  // --------------------------------------------------
-  //
-  // "10x10 en adelante":
-  // ambas dimensiones deben ser >= 10.
-  //
-  // --------------------------------------------------
-
-  LIMITE_GRANDE_ANCHO_CM:
-    10,
-
-  LIMITE_GRANDE_ALTO_CM:
-    10,
+  PRECIO_MINIMO_DETALLE:
+    18,
 
 
   // --------------------------------------------------
@@ -430,7 +478,7 @@ function esMedidaCuadradaExacta(
 
 
 // ======================================================
-// 7. VALIDAR MEDIDA M├ìNIMA
+// 7. VALIDAR MEDIDA MÍNIMA
 // ======================================================
 //
 // Pegaso NO produce etiquetas:
@@ -463,7 +511,7 @@ function validarMedidaMinima(
 
 
 // ======================================================
-// 8. BANDA FIJA PEQUE├æA
+// 8. BANDA FIJA PEQUEÑA
 // ======================================================
 //
 // Regla comercial:
@@ -475,7 +523,7 @@ function validarMedidaMinima(
 // Precio:
 //   $18 / 1000
 //
-// Ejemplos v├ílidos:
+// Ejemplos válidos:
 //   2x2
 //   2x3
 //   3x2
@@ -522,7 +570,7 @@ function resolverPrecioFijo(
 
 
   // --------------------------------------------------
-  // Banda peque├▒a 2 <= lado < 4
+  // Banda pequeña 2 <= lado < 4
   // --------------------------------------------------
 
   if (
@@ -614,21 +662,27 @@ function esEtiqueta5x5(
 
 
 // ======================================================
-// 11. TAMA├æO GRANDE
+// 11. RANGO DE CANTIDAD
+// ======================================================
+//
+// Devuelve null si la cantidad supera el ultimo rango
+// (6000 o mas): no existe precio automatico.
+//
 // ======================================================
 
-function esEtiquetaGrande(
-  ancho,
-  alto
+function resolverRangoCantidad(
+  cantidad
 ) {
 
   return (
-    ancho >=
-      REGLAS_PRECIO
-        .LIMITE_GRANDE_ANCHO_CM &&
-    alto >=
-      REGLAS_PRECIO
-        .LIMITE_GRANDE_ALTO_CM
+    REGLAS_PRECIO
+      .RANGOS_CANTIDAD
+      .find(
+        rango =>
+          cantidad <=
+          rango.hasta
+      ) ??
+    null
   );
 
 }
@@ -638,54 +692,60 @@ function esEtiquetaGrande(
 // 12. RESOLVER FACTOR
 // ======================================================
 //
-// Prioridad para precios NO fijos:
+// Solo para precios NO fijos:
 //
-// 1. Volumen >= 10.000
-// 2. Tama├▒o >= 10x10
-// 3. General
+// 1. Factor del rango de cantidad.
+// 2. Tamano grande (precio por 1000 con el factor del
+//    rango > $130): factor 0.67 si es menor.
+//
+// Usa las dimensiones de calculo (ya incluyen +1 cm
+// por 5x5 o forma especial).
 //
 // ======================================================
 
 function resolverFactor(
   cantidad,
-  anchoOriginal,
-  altoOriginal
+  anchoCalculado,
+  altoCalculado
 ) {
 
+  const rango =
+    resolverRangoCantidad(
+      cantidad
+    );
 
-  // --------------------------------------------------
-  // Volumen
-  // --------------------------------------------------
 
-  if (
-    cantidad >=
-    REGLAS_PRECIO
-      .CANTIDAD_VOLUMEN
-  ) {
+  if (!rango) {
 
-    return {
+    const rangos =
+      REGLAS_PRECIO
+        .RANGOS_CANTIDAD;
 
-      factor:
-        REGLAS_PRECIO
-          .FACTOR_VOLUMEN,
-
-      regla:
-        'VOLUMEN_10000'
-
-    };
+    throw new Error(
+      `Cantidad ${cantidad}: supera ${rangos[rangos.length - 1].hasta} ` +
+      `etiquetas y no tiene precio automatico. ` +
+      `Debe resolverse con DERIVAR_HUMANO antes de cotizar.`
+    );
 
   }
 
 
-  // --------------------------------------------------
-  // Tama├▒o 10x10 o mayor
-  // --------------------------------------------------
+  const precio1000Rango =
+    anchoCalculado *
+    altoCalculado *
+    rango.factor;
+
+
+  const tamanoGrande =
+    precio1000Rango >
+    REGLAS_PRECIO
+      .LIMITE_PRECIO_1000_TAMANO_GRANDE;
+
 
   if (
-    esEtiquetaGrande(
-      anchoOriginal,
-      altoOriginal
-    )
+    tamanoGrande &&
+    REGLAS_PRECIO.FACTOR_TAMANO_GRANDE <
+    rango.factor
   ) {
 
     return {
@@ -695,27 +755,84 @@ function resolverFactor(
           .FACTOR_TAMANO_GRANDE,
 
       regla:
-        'TAMANO_10X10_O_MAYOR'
+        'TAMANO_GRANDE_MAYOR_130',
+
+      rango,
+
+      precio1000Rango,
+
+      tamanoGrande
 
     };
 
   }
 
 
-  // --------------------------------------------------
-  // General
-  // --------------------------------------------------
-
   return {
 
     factor:
-      REGLAS_PRECIO
-        .FACTOR_GENERAL,
+      rango.factor,
 
     regla:
-      'GENERAL'
+      rango.codigo,
+
+    rango,
+
+    precio1000Rango,
+
+    tamanoGrande
 
   };
+
+}
+
+
+// ======================================================
+// 12.1 MEJORA EN EL SIGUIENTE RANGO
+// ======================================================
+//
+// Devuelve la cantidad desde la que el precio por 1000
+// realmente baja para estas dimensiones, o null.
+//
+// ======================================================
+
+function resolverMejoraSiguienteRango(
+  rangoActual,
+  factorActual,
+  anchoCalculado,
+  altoCalculado
+) {
+
+  const rangos =
+    REGLAS_PRECIO
+      .RANGOS_CANTIDAD;
+
+  const indice =
+    rangos.indexOf(
+      rangoActual
+    );
+
+  const siguiente =
+    rangos[indice + 1];
+
+
+  if (!siguiente) {
+    return null;
+  }
+
+
+  const factorSiguiente =
+    resolverFactor(
+      siguiente.desde,
+      anchoCalculado,
+      altoCalculado
+    ).factor;
+
+
+  return factorSiguiente <
+    factorActual
+    ? siguiente.desde
+    : null;
 
 }
 
@@ -780,7 +897,7 @@ return items.map(
     ) {
 
       throw new Error(
-        `Detalle ${index}: el INSERT no devolvi├│ un id v├ílido de cotizacion_detalles.`
+        `Detalle ${index}: el INSERT no devolvió un id válido de cotizacion_detalles.`
       );
 
     }
@@ -792,7 +909,7 @@ return items.map(
     ) {
 
       throw new Error(
-        `Detalle ${index}: cotizacion_id no es v├ílido.`
+        `Detalle ${index}: cotizacion_id no es válido.`
       );
 
     }
@@ -849,7 +966,7 @@ return items.map(
     ) {
 
       throw new Error(
-        `Detalle ${id}: cantidad inv├ílida.`
+        `Detalle ${id}: cantidad inválida.`
       );
 
     }
@@ -863,7 +980,7 @@ return items.map(
     ) {
 
       throw new Error(
-        `Detalle ${id}: ancho_cm inv├ílido.`
+        `Detalle ${id}: ancho_cm inválido.`
       );
 
     }
@@ -877,14 +994,14 @@ return items.map(
     ) {
 
       throw new Error(
-        `Detalle ${id}: alto_cm inv├ílido.`
+        `Detalle ${id}: alto_cm inválido.`
       );
 
     }
 
 
     // ==================================================
-    // RESTRICCI├ôN T├ëCNICA
+    // RESTRICCIÓN TÉCNICA
     // ==================================================
 
     const medidaPermitida =
@@ -907,7 +1024,29 @@ return items.map(
 
 
     // ==================================================
-    // IDS CAT├üLOGO
+    // LIMITE DE COTIZACION AUTOMATICA
+    // ==================================================
+    //
+    // Aplica tambien a precios fijos.
+    //
+    // ==================================================
+
+    if (
+      !resolverRangoCantidad(
+        cantidad
+      )
+    ) {
+
+      throw new Error(
+        `Detalle ${id}: ${cantidad} etiquetas no tienen precio automatico ` +
+        `(6000 o mas). Debe resolverse con DERIVAR_HUMANO antes de cotizar.`
+      );
+
+    }
+
+
+    // ==================================================
+    // IDS CATÁLOGO
     // ==================================================
 
     const productoId =
@@ -947,7 +1086,7 @@ return items.map(
 
 
     // ==================================================
-    // INFORMACI├ôN COMERCIAL
+    // INFORMACIÓN COMERCIAL
     // ==================================================
 
     const producto =
@@ -1007,7 +1146,7 @@ return items.map(
 
 
     // ==================================================
-    // DIMENSIONES DE C├üLCULO
+    // DIMENSIONES DE CÁLCULO
     // ==================================================
 
     let anchoCalculado =
@@ -1086,6 +1225,12 @@ return items.map(
     let reglaPrecio =
       null;
 
+    let factorResuelto =
+      null;
+
+    let mejoraPrecioDesdeCantidad =
+      null;
+
 
     if (
       precioFijoAplicado
@@ -1096,11 +1241,11 @@ return items.map(
 
     } else {
 
-      const factorResuelto =
+      factorResuelto =
         resolverFactor(
           cantidad,
-          ancho,
-          alto
+          anchoCalculado,
+          altoCalculado
         );
 
       factor =
@@ -1108,6 +1253,14 @@ return items.map(
 
       reglaPrecio =
         factorResuelto.regla;
+
+      mejoraPrecioDesdeCantidad =
+        resolverMejoraSiguienteRango(
+          factorResuelto.rango,
+          factor,
+          anchoCalculado,
+          altoCalculado
+        );
 
     }
 
@@ -1183,9 +1336,31 @@ return items.map(
     // REDONDEO COMERCIAL
     // ==================================================
 
-    const total =
+    const totalRedondeado =
       Math.ceil(
         precioDespuesDescuento
+      );
+
+
+    // ==================================================
+    // PRECIO MINIMO ABSOLUTO DEL DETALLE
+    // ==================================================
+    //
+    // Ultimo paso economico: no altera factores,
+    // medidas, cantidad ni precio_1000.
+    //
+    // ==================================================
+
+    const precioMinimoAplicado =
+      totalRedondeado <
+      REGLAS_PRECIO
+        .PRECIO_MINIMO_DETALLE;
+
+    const total =
+      Math.max(
+        totalRedondeado,
+        REGLAS_PRECIO
+          .PRECIO_MINIMO_DETALLE
       );
 
 
@@ -1222,7 +1397,7 @@ return items.map(
 
 
     // ==================================================
-    // COTIZACI├ôN MANUAL
+    // COTIZACIÓN MANUAL
     // ==================================================
 
     const requiereCotizacionManual =
@@ -1258,7 +1433,7 @@ return items.map(
 
 
         // ----------------------------------------------
-        // Cat├ílogo
+        // Catálogo
         // ----------------------------------------------
 
         producto_id:
@@ -1310,7 +1485,7 @@ return items.map(
 
 
         // ----------------------------------------------
-        // Restricci├│n t├®cnica
+        // Restricción técnica
         // ----------------------------------------------
 
         medida_permitida:
@@ -1332,7 +1507,7 @@ return items.map(
 
 
         // ----------------------------------------------
-        // Dimensiones usadas para c├ílculo
+        // Dimensiones usadas para cálculo
         // ----------------------------------------------
 
         ancho_calculado_cm:
@@ -1391,7 +1566,44 @@ return items.map(
 
 
         // ----------------------------------------------
-        // Auditor├¡a antes de redondeo
+        // Rango de cantidad / tamano grande
+        // ----------------------------------------------
+
+        rango_cantidad:
+          factorResuelto?.rango.codigo ??
+          null,
+
+        rango_cantidad_desde:
+          factorResuelto?.rango.desde ??
+          null,
+
+        rango_cantidad_hasta:
+          factorResuelto?.rango.hasta ??
+          null,
+
+        factor_rango:
+          factorResuelto?.rango.factor ??
+          null,
+
+        precio_1000_rango:
+          factorResuelto
+            ? Number(
+                factorResuelto
+                  .precio1000Rango
+                  .toFixed(6)
+              )
+            : null,
+
+        tamano_grande:
+          factorResuelto?.tamanoGrande ??
+          false,
+
+        mejora_precio_desde_cantidad:
+          mejoraPrecioDesdeCantidad,
+
+
+        // ----------------------------------------------
+        // Auditoría antes de redondeo
         // ----------------------------------------------
 
         precio_1000_calculado:
@@ -1411,6 +1623,19 @@ return items.map(
             precioDespuesDescuento
               .toFixed(6)
           ),
+
+        precio_total_antes_minimo:
+          Number(
+            totalRedondeado
+              .toFixed(2)
+          ),
+
+        precio_minimo_detalle:
+          REGLAS_PRECIO
+            .PRECIO_MINIMO_DETALLE,
+
+        precio_minimo_aplicado:
+          precioMinimoAplicado,
 
 
         // ----------------------------------------------

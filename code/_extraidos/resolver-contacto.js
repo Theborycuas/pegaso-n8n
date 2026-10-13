@@ -40,7 +40,7 @@ return [
       mensaje_externo_id: entrada.mensaje_externo_id,
       recibido_at: entrada.recibido_at,
 
-      // Resoluci├│n
+      // Resolución
       contacto_existe: contactoExiste,
 
       contacto_id:

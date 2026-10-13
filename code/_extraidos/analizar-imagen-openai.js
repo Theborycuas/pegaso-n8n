@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// NODO N8N: VALIDAR AN├üLISIS IMAGEN GROQ
+// NODO N8N: VALIDAR ANÁLISIS IMAGEN GROQ
 // PEGASO ADHESIVOS
 // ARCHIVO: code/03-conversacion/validar-analisis-imagen.js
 // VERSION: 2.1
@@ -26,25 +26,25 @@
 // RESPONSABILIDAD:
 //
 // - Recibir la salida de "Analizar imagen Groq Basic LLM".
-// - Validar que el an├ílisis visual cumpla el contrato.
+// - Validar que el análisis visual cumpla el contrato.
 // - Recuperar el mensaje original desde "Preparar media del turno".
 // - NO necesita recibir nuevamente el binario.
 // - NO analiza la imagen.
-// - NO decide la acci├│n comercial.
+// - NO decide la acción comercial.
 // - NO deriva directamente a humano.
 // - Si Groq falla, devuelve analisis_valido = false para
-//   permitir que el IF env├¡e el flujo a DeepSeek.
-// - Extraer y normalizar medidas escritas expl├¡citamente en la imagen
+//   permitir que el IF envíe el flujo a DeepSeek.
+// - Extraer y normalizar medidas escritas explícitamente en la imagen
 //   sin estimarlas ni alterar el resto del contrato visual.
 //
 // IMPORTANTE:
 //
-// Esta misma l├│gica puede reutilizarse despu├®s para:
+// Esta misma lógica puede reutilizarse después para:
 //
-//   Validar an├ílisis imagen DeepSeek
-//   Validar an├ílisis imagen OpenAI
+//   Validar análisis imagen DeepSeek
+//   Validar análisis imagen OpenAI
 //
-// cambiando ├║nicamente PROVEEDOR_ANALISIS.
+// cambiando únicamente PROVEEDOR_ANALISIS.
 //
 // ======================================================
 
@@ -260,13 +260,13 @@ function obtenerNodo(
 //
 // o directamente como objeto.
 //
-// Tambi├®n puede llegar:
+// También puede llegar:
 //
 // {
 //   error: ...
 // }
 //
-// si el nodo est├í configurado con Continue On Fail.
+// si el nodo está configurado con Continue On Fail.
 //
 // ======================================================
 
@@ -288,7 +288,7 @@ function leerSalidaIA(
 
 
   // --------------------------------------------------
-  // Error expl├¡cito del nodo
+  // Error explícito del nodo
   // --------------------------------------------------
 
   if (json.error) {
@@ -427,7 +427,7 @@ function validarContrato(
   ) {
 
     return (
-      'contenido_detectado inv├ílido'
+      'contenido_detectado inválido'
     );
 
   }
@@ -440,7 +440,7 @@ function validarContrato(
   ) {
 
     return (
-      'confianza inv├ílida'
+      'confianza inválida'
     );
 
   }
@@ -453,7 +453,7 @@ function validarContrato(
   ) {
 
     return (
-      'motivo_revision inv├ílido'
+      'motivo_revision inválido'
     );
 
   }
@@ -514,7 +514,7 @@ function validarContrato(
   ) {
 
     return (
-      'resumen_para_cerebro vac├¡o'
+      'resumen_para_cerebro vacío'
     );
 
   }
@@ -528,7 +528,7 @@ function validarContrato(
 // 5. RECUPERAR CONTEXTO ORIGINAL
 // ======================================================
 //
-// El nodo LLM puede devolver ├║nicamente:
+// El nodo LLM puede devolver únicamente:
 //
 // {
 //   output: {...}
@@ -636,15 +636,15 @@ const resultados =
 
 
       // ==================================================
-      // 7. AN├üLISIS INV├üLIDO
+      // 7. ANÁLISIS INVÁLIDO
       // ==================================================
       //
-      // Aqu├¡ NO derivamos humano todav├¡a.
+      // Aquí NO derivamos humano todavía.
       //
-      // Groq inv├ílido
-      //    Ôåô
+      // Groq inválido
+      //    ↓
       // IF false
-      //    Ôåô
+      //    ↓
       // DeepSeek
       //
       // ==================================================
@@ -693,7 +693,7 @@ const resultados =
 
 
             // ------------------------------------------
-            // DETECCI├ôN
+            // DETECCIÓN
             // ------------------------------------------
 
             comprobante_detectado:
@@ -730,9 +730,9 @@ const resultados =
             contenido_actualizado:
               (
                 `${contenidoBase}\n` +
-                `[CONTEXTO DE IMAGEN ┬À proveedor=${PROVEEDOR_ANALISIS} ┬À ` +
-                'revision=SI ┬À motivo=ANALISIS_NO_DISPONIBLE] ' +
-                'El an├ílisis autom├ítico de esta imagen no estuvo disponible.'
+                `[CONTEXTO DE IMAGEN · proveedor=${PROVEEDOR_ANALISIS} · ` +
+                'revision=SI · motivo=ANALISIS_NO_DISPONIBLE] ' +
+                'El análisis automático de esta imagen no estuvo disponible.'
               )
 
           }
@@ -742,7 +742,7 @@ const resultados =
 
 
       // ==================================================
-      // 8. AN├üLISIS V├üLIDO
+      // 8. ANÁLISIS VÁLIDO
       // ==================================================
 
       const datos =
@@ -764,10 +764,10 @@ const resultados =
       // Compatibilidad:
       // - Si el schema nuevo trae medidas_detectadas, se respeta.
       // - Si un fallback antiguo solo trae medidas_visibles, se infiere.
-      // - Si existen ancho/alto/di├ímetro expl├¡citos, tambi├®n cuenta como
+      // - Si existen ancho/alto/diámetro explícitos, también cuenta como
       //   medida detectada.
       //
-      // Nunca se calculan medidas desde proporciones de la fotograf├¡a.
+      // Nunca se calculan medidas desde proporciones de la fotografía.
       // ==================================================
 
       const anchoCm =
@@ -812,11 +812,11 @@ const resultados =
             ? `alto ${altoCm} cm`
             : null,
           diametroCm !== null
-            ? `di├ímetro ${diametroCm} cm`
+            ? `diámetro ${diametroCm} cm`
             : null
         ]
           .filter(Boolean)
-          .join(' ┬À ');
+          .join(' · ');
 
       const medidasVisibles =
         medidasDetectadas
@@ -831,7 +831,7 @@ const resultados =
 
 
       // ==================================================
-      // 9. NORMALIZAR AN├üLISIS
+      // 9. NORMALIZAR ANÁLISIS
       // ==================================================
 
       const analisis = {
@@ -947,7 +947,7 @@ const resultados =
 
 
       // ==================================================
-      // 10. DETERMINAR REVISI├ôN HUMANA
+      // 10. DETERMINAR REVISIÓN HUMANA
       // ======================================================
 
       let motivoRevision =
@@ -1024,7 +1024,7 @@ const resultados =
           Boolean
         )
         .join(
-          ' ┬À '
+          ' · '
         );
 
 
@@ -1089,7 +1089,7 @@ const resultados =
                   ? `alto=${analisis.alto_cm} cm`
                   : null,
                 analisis.diametro_cm !== null
-                  ? `di├ímetro=${analisis.diametro_cm} cm`
+                  ? `diámetro=${analisis.diametro_cm} cm`
                   : null,
                 analisis.medidas_visibles
                   ? `texto="${quitarCorchetes(
@@ -1098,7 +1098,7 @@ const resultados =
                   : null
               ]
                 .filter(Boolean)
-                .join(' ┬À ') +
+                .join(' · ') +
               '.'
             )
           : CONTENIDOS_ETIQUETA.includes(
@@ -1148,7 +1148,7 @@ const resultados =
 
 
           // ------------------------------------------
-          // DETECCI├ôN
+          // DETECCIÓN
           // ------------------------------------------
 
           comprobante_detectado:
@@ -1208,7 +1208,7 @@ const resultados =
 
 
           // ------------------------------------------
-          // AN├üLISIS NORMALIZADO
+          // ANÁLISIS NORMALIZADO
           // ------------------------------------------
 
           analisis,

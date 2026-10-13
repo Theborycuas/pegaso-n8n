@@ -25,20 +25,20 @@
 // RESPONSABILIDAD:
 //
 // - Construir el contexto final para el cerebro comercial.
-// - Mantener "Preparar conversaci├│n" como fuente de verdad
+// - Mantener "Preparar conversación" como fuente de verdad
 //   para identidad y memoria comercial persistida.
 // - Usar prioritariamente el turno ENRIQUECIDO recibido por
-//   la entrada del nodo (audio transcrito, im├ígenes, etc.).
+//   la entrada del nodo (audio transcrito, imágenes, etc.).
 // - Usar "Resolver turno conversacional" como fallback.
-// - Incorporar an├ílisis de imagen v├ílido desde Groq,
+// - Incorporar análisis de imagen válido desde Groq,
 //   DeepSeek u OpenAI.
-// - Propagar medidas escritas detectadas en im├ígenes de forma
-//   estructurada (ancho/alto/di├ímetro) sin romper el contexto actual.
+// - Propagar medidas escritas detectadas en imágenes de forma
+//   estructurada (ancho/alto/diámetro) sin romper el contexto actual.
 // - Incorporar transcripciones de audio ya aplicadas al turno.
 // - NO entregar links de multimedia al cerebro.
 // - Limitar el historial libre a una ventana reciente.
-// - Limitar el n├║mero m├íximo de mensajes hist├│ricos.
-// - Detectar si empieza una nueva sesi├│n por inactividad.
+// - Limitar el número máximo de mensajes históricos.
+// - Detectar si empieza una nueva sesión por inactividad.
 // - Conservar contexto_comercial estructurado aunque el
 //   historial libre haya expirado.
 // - NO llamar a IA.
@@ -48,7 +48,7 @@
 
 
 // ======================================================
-// 0. CONFIGURACI├ôN
+// 0. CONFIGURACIÓN
 // ======================================================
 
 const VENTANA_HISTORIAL_HORAS = 24;
@@ -208,12 +208,12 @@ let actual = {};
 
 try {
   actual =
-    $('Preparar conversaci├│n')
+    $('Preparar conversación')
       .first()
       .json ?? {};
 } catch (error) {
   throw new Error(
-    'Preparar contexto IA: no se pudo recuperar "Preparar conversaci├│n".'
+    'Preparar contexto IA: no se pudo recuperar "Preparar conversación".'
   );
 }
 
@@ -232,7 +232,7 @@ try {
 //
 // 2. Resolver turno conversacional.
 //
-// As├¡ NO perdemos las transcripciones que acabamos de
+// Así NO perdemos las transcripciones que acabamos de
 // aplicar al turno.
 //
 // ======================================================
@@ -306,13 +306,13 @@ const PREFIJO_PENDIENTE =
 
 
 const LINEA_IMAGEN_NO_ANALIZADA =
-  '[CONTEXTO DE IMAGEN ┬À revision=SI ┬À motivo=IMAGEN_NO_ANALIZADA] ' +
-  'La imagen no pudo revisarse autom├íticamente.';
+  '[CONTEXTO DE IMAGEN · revision=SI · motivo=IMAGEN_NO_ANALIZADA] ' +
+  'La imagen no pudo revisarse automáticamente.';
 
 
 const LINEA_AUDIO_NO_TRANSCRITO =
-  '[TRANSCRIPCION DE AUDIO ┬À revision=SI ┬À motivo=AUDIO_NO_TRANSCRITO] ' +
-  'El audio no pudo transcribirse autom├íticamente.';
+  '[TRANSCRIPCION DE AUDIO · revision=SI · motivo=AUDIO_NO_TRANSCRITO] ' +
+  'El audio no pudo transcribirse automáticamente.';
 
 
 function quitarPendientes(
@@ -356,8 +356,8 @@ function quitarPendientes(
       }
 
       return [
-        `[ARCHIVO NO PROCESABLE ┬À tipo=${tipoNormalizado || 'DESCONOCIDO'}] ` +
-        'El archivo no pudo procesarse autom├íticamente.'
+        `[ARCHIVO NO PROCESABLE · tipo=${tipoNormalizado || 'DESCONOCIDO'}] ` +
+        'El archivo no pudo procesarse automáticamente.'
       ];
     })
     .join('\n')
@@ -377,7 +377,7 @@ function atributosCabecera(linea) {
 
   return Object.fromEntries(
     cabecera[1]
-      .split('┬À')
+      .split('·')
       .map(parte =>
         parte
           .trim()
@@ -395,21 +395,21 @@ function atributosCabecera(linea) {
 
 
 // ======================================================
-// 4.1 RECUPERAR AN├üLISIS DE IM├üGENES
+// 4.1 RECUPERAR ANÁLISIS DE IMÁGENES
 // ======================================================
 //
-// Tomamos an├ílisis v├ílidos de cualquier proveedor.
+// Tomamos análisis válidos de cualquier proveedor.
 //
 // La prioridad natural es:
 //
 // Groq
-//   Ôåô fallback
+//   ↓ fallback
 // DeepSeek
-//   Ôåô fallback
+//   ↓ fallback
 // OpenAI
 //
-// Como cada mensaje_id deber├¡a terminar v├ílido en un solo
-// proveedor, almacenamos solo an├ílisis_valido=true.
+// Como cada mensaje_id debería terminar válido en un solo
+// proveedor, almacenamos solo análisis_valido=true.
 //
 // ======================================================
 
@@ -426,16 +426,16 @@ function obtenerItemsNodo(nombre) {
 
 const analisisImagenes = [
   ...obtenerItemsNodo(
-    'Validar an├ílisis imagen Groq'
+    'Validar análisis imagen Groq'
   ),
   ...obtenerItemsNodo(
-    'Validar an├ílisis imagen DeepSeek'
+    'Validar análisis imagen DeepSeek'
   ),
   ...obtenerItemsNodo(
     'Analizar imagen OpenAI'
   ),
   ...obtenerItemsNodo(
-    'Validar an├ílisis imagen OpenAI'
+    'Validar análisis imagen OpenAI'
   )
 ];
 
@@ -471,8 +471,8 @@ for (const analisis of analisisImagenes) {
     continue;
   }
 
-  // Primero que llega v├ílido gana.
-  // Normalmente ser├í Groq.
+  // Primero que llega válido gana.
+  // Normalmente será Groq.
   if (
     !contenidoAnalizado.has(
       mensajeId
@@ -800,8 +800,8 @@ for (const m of mensajesTurno) {
 }
 
 
-// Si "Aplicar transcripciones al turno" ya resolvi├│
-// expl├¡citamente el estado, lo respetamos.
+// Si "Aplicar transcripciones al turno" ya resolvió
+// explícitamente el estado, lo respetamos.
 
 if (
   turno.requiere_revision_audio === true
@@ -875,7 +875,7 @@ let itemsHistorial = [];
 
 try {
   itemsHistorial =
-    $('Recuperar historial conversaci├│n')
+    $('Recuperar historial conversación')
       .all();
 } catch (error) {
   itemsHistorial =
@@ -919,9 +919,9 @@ const externosVistos =
 // 5.1 REFERENCIA TEMPORAL DEL TURNO
 // ======================================================
 //
-// Preferimos la fecha del ├║ltimo mensaje del turno.
+// Preferimos la fecha del último mensaje del turno.
 // Si no existe, usamos recibido_at.
-// ├Ültimo fallback: ahora.
+// Último fallback: ahora.
 //
 // ======================================================
 
@@ -1085,10 +1085,10 @@ let historialCandidato =
 
 
 // ======================================================
-// 5.3 L├ìMITE DE MENSAJES
+// 5.3 LÍMITE DE MENSAJES
 // ======================================================
 //
-// Conservamos los M├üS RECIENTES.
+// Conservamos los MÁS RECIENTES.
 //
 // ======================================================
 
@@ -1171,10 +1171,10 @@ const historial =
 
 
 // ======================================================
-// 6. DETECTAR SESI├ôN NUEVA POR INACTIVIDAD
+// 6. DETECTAR SESIÓN NUEVA POR INACTIVIDAD
 // ======================================================
 //
-// Si NO hay historial dentro de las ├║ltimas 24 horas,
+// Si NO hay historial dentro de las últimas 24 horas,
 // consideramos que este es un nuevo episodio
 // conversacional.
 //
@@ -1284,17 +1284,17 @@ tipoActor =
 // ======================================================
 //
 // La memoria comercial estructurada NO se elimina aunque
-// la sesi├│n conversacional sea nueva.
+// la sesión conversacional sea nueva.
 //
-// As├¡ evitamos perder:
+// Así evitamos perder:
 //
 // - cotizaciones reales
 // - estado del prospecto
 // - ciudad conocida
-// - producto de inter├®s
+// - producto de interés
 // - handoff
 //
-// Pero el cerebro ya NO ver├í 100 mensajes antiguos.
+// Pero el cerebro ya NO verá 100 mensajes antiguos.
 //
 // ======================================================
 
@@ -1322,7 +1322,7 @@ const prospectoPrevio =
 
 
 // ======================================================
-// 9.1 COTIZACI├ôN
+// 9.1 COTIZACIÓN
 // ======================================================
 
 const cotizacionId =
@@ -1490,7 +1490,7 @@ const contextoComercial = {
 
 
   // --------------------------------------------------
-  // METADATO DE SESI├ôN
+  // METADATO DE SESIÓN
   // --------------------------------------------------
 
   sesion: {
@@ -1544,7 +1544,7 @@ const contextoComercial = {
 
 
   // --------------------------------------------------
-  // UBICACI├ôN
+  // UBICACIÓN
   // --------------------------------------------------
 
   ubicacion: {
@@ -1562,7 +1562,7 @@ const contextoComercial = {
 
 
   // --------------------------------------------------
-  // DISE├æO
+  // DISEÑO
   // --------------------------------------------------
 
   diseno: {
@@ -1577,7 +1577,7 @@ const contextoComercial = {
 
 
   // --------------------------------------------------
-  // COTIZACI├ôN
+  // COTIZACIÓN
   // --------------------------------------------------
 
   cotizacion: {
@@ -1634,7 +1634,7 @@ return [
     json: {
 
       // ==================================================
-      // CONVERSACI├ôN
+      // CONVERSACIÓN
       // ==================================================
 
       conversacion_id:
@@ -1901,7 +1901,7 @@ return [
 
 
       // ==================================================
-      // CONTROL ANTI-REPETICI├ôN
+      // CONTROL ANTI-REPETICIÓN
       // ==================================================
 
       ultimo_mensaje_saliente:

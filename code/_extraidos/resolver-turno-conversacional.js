@@ -21,15 +21,15 @@
 // ARCHIVO: code/03-conversacion/resolver-turno-conversacional.js
 // VERSION: 1.1
 // RESPONSABILIDAD:
-// - Tras "Esperar ventana de turno", decidir si esta ejecuci├│n sigue siendo la del ├║ltimo mensaje ENTRANTE de la conversaci├│n (latest-wins por mensajes.id)
-// - Ignorar reenv├¡os del mismo mensaje_externo_id (reintentos del webhook): solo cuenta la primera fila
-// - Si lleg├│ un mensaje posterior: continuar_procesamiento = false, resultado DEBOUNCE_SUPERSEDED, motivo MENSAJE_POSTERIOR_RECIBIDO (final v├ílido, sin error)
-// - Si es la ├║ltima: armar el turno con los ENTRANTE con procesado = false posteriores al ├║ltimo SALIENTE anterior y no m├ís antiguos que turno_max_antiguedad_segundos
-// - Entregar turno_texto (un mensaje por l├¡nea, en orden), los ids y el rango turno_desde_id / turno_hasta_id para "Preparar contexto IA" y "Confirmar turno conversacional"
-// - Conservar identidad de conversaci├│n/prospecto/contacto durante toda la rama
-// - Lanzar error solo si falta el id de "Guardar mensaje entrante" o esa fila no aparece en el historial (configuraci├│n rota)
-// - NO escribir en PostgreSQL (la confirmaci├│n at├│mica la hace "Confirmar turno conversacional")
-// - NO llamar a la IA ni decidir la acci├│n comercial
+// - Tras "Esperar ventana de turno", decidir si esta ejecución sigue siendo la del último mensaje ENTRANTE de la conversación (latest-wins por mensajes.id)
+// - Ignorar reenvíos del mismo mensaje_externo_id (reintentos del webhook): solo cuenta la primera fila
+// - Si llegó un mensaje posterior: continuar_procesamiento = false, resultado DEBOUNCE_SUPERSEDED, motivo MENSAJE_POSTERIOR_RECIBIDO (final válido, sin error)
+// - Si es la última: armar el turno con los ENTRANTE con procesado = false posteriores al último SALIENTE anterior y no más antiguos que turno_max_antiguedad_segundos
+// - Entregar turno_texto (un mensaje por línea, en orden), los ids y el rango turno_desde_id / turno_hasta_id para "Preparar contexto IA" y "Confirmar turno conversacional"
+// - Conservar identidad de conversación/prospecto/contacto durante toda la rama
+// - Lanzar error solo si falta el id de "Guardar mensaje entrante" o esa fila no aparece en el historial (configuración rota)
+// - NO escribir en PostgreSQL (la confirmación atómica la hace "Confirmar turno conversacional")
+// - NO llamar a la IA ni decidir la acción comercial
 // ======================================================
 
 const TURNO_MAX_ANTIGUEDAD_SEGUNDOS_DEFECTO = 600;
@@ -106,7 +106,7 @@ function fechaMs(valor) {
 
 
 // ======================================================
-// 2. MENSAJE DE ESTA EJECUCI├ôN
+// 2. MENSAJE DE ESTA EJECUCIÓN
 // ======================================================
 
 const guardado =
@@ -122,7 +122,7 @@ if (
   miId <= 0
 ) {
   throw new Error(
-    'Resolver turno conversacional: "Guardar mensaje entrante" no devolvi├│ un id v├ílido.'
+    'Resolver turno conversacional: "Guardar mensaje entrante" no devolvió un id válido.'
   );
 }
 
@@ -139,8 +139,8 @@ if (
 //
 // Prioridad:
 // 1. Guardar mensaje entrante
-// 2. Unificar conversaci├│n
-// 3. Preparar conversaci├│n
+// 2. Unificar conversación
+// 3. Preparar conversación
 // 4. Unificar prospecto
 // 5. Resolver prospecto
 //
@@ -153,14 +153,14 @@ let resolverProspecto = {};
 
 try {
   unificarConversacion =
-    $('Unificar conversaci├│n').first().json ?? {};
+    $('Unificar conversación').first().json ?? {};
 } catch (error) {
   unificarConversacion = {};
 }
 
 try {
   prepararConversacion =
-    $('Preparar conversaci├│n').first().json ?? {};
+    $('Preparar conversación').first().json ?? {};
 } catch (error) {
   prepararConversacion = {};
 }
@@ -285,14 +285,14 @@ const nombreWhatsapp =
 
 
 // ======================================================
-// 4. CONFIGURACI├ôN
+// 4. CONFIGURACIÓN
 // ======================================================
 
 let config = {};
 
 try {
   config =
-    $('Resolver permiso automatizaci├│n').first().json ?? {};
+    $('Resolver permiso automatización').first().json ?? {};
 } catch (error) {
   config = {};
 }
@@ -305,12 +305,12 @@ const turnoMaxAntiguedadSegundos =
 
 
 // ======================================================
-// 5. MENSAJES DE LA CONVERSACI├ôN
+// 5. MENSAJES DE LA CONVERSACIÓN
 // ======================================================
 //
 // El input principal de este nodo son las filas devueltas por:
 //
-// Recuperar historial conversaci├│n
+// Recuperar historial conversación
 //
 // ======================================================
 
@@ -349,7 +349,7 @@ const miFila =
 
 if (!miFila) {
   throw new Error(
-    `Resolver turno conversacional: el mensaje ${miId} no aparece en "Recuperar historial conversaci├│n".`
+    `Resolver turno conversacional: el mensaje ${miId} no aparece en "Recuperar historial conversación".`
   );
 }
 
@@ -373,16 +373,16 @@ const conversacionId =
 
 
 // ======================================================
-// 6. VALIDACI├ôN M├ìNIMA DE IDENTIDAD
+// 6. VALIDACIÓN MÍNIMA DE IDENTIDAD
 // ======================================================
 //
 // conversacion_id es indispensable.
 //
 // prospecto_id se conserva siempre que exista.
 //
-// No lanzamos error aqu├¡ por prospecto_id porque:
+// No lanzamos error aquí por prospecto_id porque:
 // - el debounce puede ser reutilizable
-// - la derivaci├│n humana s├¡ puede exigirlo despu├®s
+// - la derivación humana sí puede exigirlo después
 //
 // ======================================================
 
@@ -397,7 +397,7 @@ if (
 
 
 // ======================================================
-// 7. ENTRANTES V├üLIDOS
+// 7. ENTRANTES VÁLIDOS
 // ======================================================
 //
 // Eliminamos duplicados por mensaje_externo_id.
@@ -583,12 +583,12 @@ if (
 // 10. ARMAR EL TURNO
 // ======================================================
 //
-// Turno = ENTRANTE v├ílidos que cumplen:
+// Turno = ENTRANTE válidos que cumplen:
 //
 // - id <= este mensaje
-// - id > ├║ltimo SALIENTE anterior a este mensaje
+// - id > último SALIENTE anterior a este mensaje
 // - procesado = false
-// - no m├ís antiguos que turno_max_antiguedad_segundos
+// - no más antiguos que turno_max_antiguedad_segundos
 //
 // ======================================================
 

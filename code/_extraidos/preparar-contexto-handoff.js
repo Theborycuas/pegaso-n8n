@@ -28,8 +28,8 @@
 // Ese nodo PostgreSQL devuelve principalmente la fila
 // de prospectos.
 //
-// Por ello RECUPERAMOS expl├¡citamente el contrato creado
-// por "Preparar derivaci├│n humana".
+// Por ello RECUPERAMOS explícitamente el contrato creado
+// por "Preparar derivación humana".
 //
 // ======================================================
 
@@ -51,7 +51,7 @@ let handoff = {};
 try {
 
   handoff =
-    $('Preparar derivaci├│n humana')
+    $('Preparar derivación humana')
       .first()
       .json ?? {};
 

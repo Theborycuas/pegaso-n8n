@@ -25,7 +25,7 @@ const conversacion =
   $input.first()?.json ?? {};
 
 const evento =
-  $('Normalizar intervenci├│n humana')
+  $('Normalizar intervención humana')
     .first()
     .json ?? {};
 
@@ -40,7 +40,7 @@ if (
   conversacionId <= 0
 ) {
   throw new Error(
-    'MENSAJE HUMANO: conversacion_id inv├ílido.'
+    'MENSAJE HUMANO: conversacion_id inválido.'
   );
 }
 

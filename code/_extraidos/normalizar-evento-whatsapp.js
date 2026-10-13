@@ -160,8 +160,8 @@ const esYCloudInbound =
 // No corresponde al webhook inbound del cliente.
 //
 // Ejemplo:
-// from = n├║mero Pegaso
-// to   = n├║mero cliente
+// from = número Pegaso
+// to   = número cliente
 //
 // ------------------------------------------------------
 
@@ -339,7 +339,7 @@ if (esYCloudInbound) {
 
 
   // ----------------------------------------------------
-  // CLASIFICACI├ôN
+  // CLASIFICACIÓN
   // ----------------------------------------------------
 
   direccion =
@@ -367,7 +367,7 @@ if (esYCloudInbound) {
     null;
 
 
-  // YCloud no entrega aqu├¡ Meta phone_number_id.
+  // YCloud no entrega aquí Meta phone_number_id.
   phoneNumberId =
     null;
 
@@ -532,7 +532,7 @@ else if (esYCloudEchoHumano) {
   // ----------------------------------------------------
   //
   // Conservamos estos valores para no romper nodos que
-  // esperan la estructura hist├│rica.
+  // esperan la estructura histórica.
   //
   // ----------------------------------------------------
 
@@ -544,7 +544,7 @@ else if (esYCloudEchoHumano) {
 
 
   // ----------------------------------------------------
-  // CLASIFICACI├ôN
+  // CLASIFICACIÓN
   // ----------------------------------------------------
 
   direccion =
@@ -660,7 +660,7 @@ else if (esYCloudEchoHumano) {
   // MULTIMEDIA
   // ----------------------------------------------------
   //
-  // Dejamos soporte tambi├®n para que una persona de
+  // Dejamos soporte también para que una persona de
   // Pegaso pueda enviar imagen/documento/video/etc.
   //
   // ----------------------------------------------------
@@ -692,9 +692,9 @@ else if (esYCloudEchoHumano) {
   // PROCESABLE
   // ----------------------------------------------------
   //
-  // S├¡ es un evento conversacional v├ílido.
+  // Sí es un evento conversacional válido.
   //
-  // El IF "┬┐Mensaje humano de Pegaso?" debe interceptarlo
+  // El IF "¿Mensaje humano de Pegaso?" debe interceptarlo
   // ANTES del flujo normal del prospecto.
   //
   // ----------------------------------------------------
@@ -761,7 +761,7 @@ else if (esMeta) {
 
 
   // ----------------------------------------------------
-  // CLASIFICACI├ôN
+  // CLASIFICACIÓN
   // ----------------------------------------------------
 
   direccion =
@@ -983,7 +983,7 @@ else if (esMeta) {
 //
 // whatsapp.message.updated
 //
-// No debe confundirse con intervenci├│n humana.
+// No debe confundirse con intervención humana.
 //
 // ======================================================
 
@@ -1046,7 +1046,7 @@ return [
 
 
         // ==============================================
-        // DIRECCI├ôN / ACTOR
+        // DIRECCIÓN / ACTOR
         // ==============================================
 
         direccion,

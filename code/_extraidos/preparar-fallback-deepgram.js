@@ -22,8 +22,8 @@
 // VERSION: 1.0
 // ======================================================
 //
-// Se ejecuta cuando la transcripci├│n primaria con Groq
-// no fue v├ílida.
+// Se ejecuta cuando la transcripción primaria con Groq
+// no fue válida.
 //
 // RESPONSABILIDAD:
 //
@@ -112,7 +112,7 @@ const resultados = fallidos.map((item, indice) => {
   // --------------------------------------------------
   // Buscar preferentemente por mensaje_id.
   // Si no existe, por media_id.
-  // ├Ültimo fallback: posici├│n.
+  // Último fallback: posición.
   // --------------------------------------------------
 
   let original =

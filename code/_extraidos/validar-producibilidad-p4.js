@@ -23,11 +23,11 @@
 //
 // OBJETIVO:
 //
-// Validar restricciones f├¡sicas/comerciales ANTES de:
+// Validar restricciones físicas/comerciales ANTES de:
 //
 // - INSERT cotizacion_detalles
-// - c├ílculo de precios
-// - persistencia de una cotizaci├│n inv├ílida
+// - cálculo de precios
+// - persistencia de una cotización inválida
 //
 // IMPORTANTE:
 //
@@ -42,7 +42,7 @@
 // No se producen etiquetas que tengan 1 cm o menos
 // en cualquiera de sus lados.
 //
-// Ejemplos NO v├ílidos:
+// Ejemplos NO válidos:
 //
 // 1x1
 // 1x5
@@ -50,7 +50,7 @@
 // 0.5x10
 // 10x0.8
 //
-// Ejemplos v├ílidos:
+// Ejemplos válidos:
 //
 // 2x2
 // 2x5
@@ -66,7 +66,7 @@ const items =
 
 
 // ======================================================
-// 1. VALIDACI├ôN GENERAL
+// 1. VALIDACIÓN GENERAL
 // ======================================================
 
 if (
@@ -126,7 +126,7 @@ function medidaTexto(valor) {
 
 
 // ======================================================
-// 3. REGLAS DE PRODUCCI├ôN
+// 3. REGLAS DE PRODUCCIÓN
 // ======================================================
 
 const MEDIDA_MINIMA_CM = 2;
@@ -184,7 +184,7 @@ items.forEach(
 
 
     // --------------------------------------------------
-    // Medidas f├¡sicamente no producibles
+    // Medidas físicamente no producibles
     // --------------------------------------------------
 
     if (
@@ -212,7 +212,7 @@ items.forEach(
 
 
 // ======================================================
-// 5. SI EXISTE ALG├ÜN DETALLE INV├üLIDO
+// 5. SI EXISTE ALGÚN DETALLE INVÁLIDO
 // ======================================================
 
 if (
@@ -248,10 +248,10 @@ if (
       `no es posible de producir.\n\n` +
 
       `No trabajamos etiquetas que tengan 1 cm o menos ` +
-      `en cualquiera de sus lados. La medida m├¡nima que ` +
+      `en cualquiera de sus lados. La medida mínima que ` +
       `podemos producir es de 2 cm.\n\n` +
 
-      `Ind├¡quenos otra medida y con gusto le cotizamos.`;
+      `Indíquenos otra medida y con gusto le cotizamos.`;
 
   }
 
@@ -264,7 +264,7 @@ if (
 
     mensaje =
       `No pudimos determinar correctamente las medidas de la etiqueta. ` +
-      `Ind├¡quenos ancho y alto en cent├¡metros por favor.`;
+      `Indíquenos ancho y alto en centímetros por favor.`;
 
   }
 
@@ -285,7 +285,7 @@ if (
 
 
         // ============================================
-        // VALIDACI├ôN
+        // VALIDACIÓN
         // ============================================
 
         cotizacion_producible:
@@ -316,7 +316,7 @@ if (
 
 
         // ============================================
-        // CONTRATO COMPATIBLE CON MENSAJER├ìA
+        // CONTRATO COMPATIBLE CON MENSAJERÍA
         // ============================================
 
         mensaje_comercial:
@@ -331,7 +331,7 @@ if (
 
 
         // ============================================
-        // DIAGN├ôSTICO
+        // DIAGNÓSTICO
         // ============================================
 
         validacion_produccion_at:
@@ -349,7 +349,7 @@ if (
 // ======================================================
 //
 // Conservamos cada item porque posteriormente el flujo
-// puede contener varios detalles de cotizaci├│n.
+// puede contener varios detalles de cotización.
 //
 // ======================================================
 

@@ -21,11 +21,11 @@
 // ARCHIVO: code/03-conversacion/preparar-media-turno.js
 // VERSION: 1.0
 // RESPONSABILIDAD:
-// - Tras "IF: ┬┐Procesar turno?" (true), buscar en el turno las im├ígenes todav├¡a sin analizar (tipo IMAGEN con l├¡nea "[MEDIA_PENDIENTE] {json}")
-// - Revalidar cada una: MIME JPEG/PNG/WebP y enlace https://api.ycloud.com/v2/whatsapp/media/download/ (anti-SSRF); m├íximo MAX_IMAGENES_POR_TURNO
+// - Tras "IF: ¿Procesar turno?" (true), buscar en el turno las imágenes todavía sin analizar (tipo IMAGEN con línea "[MEDIA_PENDIENTE] {json}")
+// - Revalidar cada una: MIME JPEG/PNG/WebP y enlace https://api.ycloud.com/v2/whatsapp/media/download/ (anti-SSRF); máximo MAX_IMAGENES_POR_TURNO
 // - Emitir un item por imagen a analizar (analizar_imagen = true) con mensaje_id, enlace, MIME, caption y el contexto comercial breve para la IA visual
 // - Si no hay ninguna: un solo item con analizar_imagen = false (el IF siguiente va directo a "Preparar contexto IA")
-// - Las im├ígenes que no pasan la validaci├│n o exceden el m├íximo quedan pendientes: "Preparar contexto IA" las marca para revisi├│n humana
+// - Las imágenes que no pasan la validación o exceden el máximo quedan pendientes: "Preparar contexto IA" las marca para revisión humana
 // - NO descargar, NO llamar a la IA, NO escribir en PostgreSQL
 // ======================================================
 
@@ -60,7 +60,7 @@ function lineas(contenido) {
 }
 
 function esLineaDeSistema(linea) {
-  return /^\[(MEDIA_PENDIENTE|CONTEXTO DE IMAGEN|ARCHIVO NO PROCESABLE)[\]\s┬À]/.test(linea.trim());
+  return /^\[(MEDIA_PENDIENTE|CONTEXTO DE IMAGEN|ARCHIVO NO PROCESABLE)[\]\s·]/.test(linea.trim());
 }
 
 function leerPendiente(contenido) {
@@ -109,8 +109,8 @@ const turnoMensajes = Array.isArray(turno.turno_mensajes)
 // 3. CONTEXTO PARA LA IA VISUAL
 // ======================================================
 //
-// Lo que el cliente escribi├│ en el turno (texto y captions, sin
-// l├¡neas de sistema) y lo poco de la memoria comercial que ayuda a
+// Lo que el cliente escribió en el turno (texto y captions, sin
+// líneas de sistema) y lo poco de la memoria comercial que ayuda a
 // interpretar la imagen. Nunca el enlace.
 // ======================================================
 
@@ -127,7 +127,7 @@ const textoTurnoCliente = turnoMensajes
 let conversacion = {};
 
 try {
-  conversacion = $('Preparar conversaci├│n').first().json ?? {};
+  conversacion = $('Preparar conversación').first().json ?? {};
 } catch (error) {
   conversacion = {};
 }
@@ -142,7 +142,7 @@ const cotizacionPrevia = memoria.cotizacion ?? {};
 
 const contextoComercialBreve = [
   textoONull(conversacion.prospecto_producto_interes ?? memoria.prospecto?.producto_interes)
-    ? `Producto de inter├®s: ${textoONull(conversacion.prospecto_producto_interes ?? memoria.prospecto?.producto_interes)}.`
+    ? `Producto de interés: ${textoONull(conversacion.prospecto_producto_interes ?? memoria.prospecto?.producto_interes)}.`
     : null,
   cotizacionPrevia.ancho_cm && cotizacionPrevia.alto_cm
     ? `Ya conversamos de etiquetas de ${cotizacionPrevia.ancho_cm}x${cotizacionPrevia.alto_cm} cm.`
@@ -153,7 +153,7 @@ const contextoComercialBreve = [
 
 
 // ======================================================
-// 4. IM├üGENES A ANALIZAR
+// 4. IMÁGENES A ANALIZAR
 // ======================================================
 
 const candidatas = [];
@@ -219,7 +219,7 @@ return candidatas.map((imagen, indice) => ({
     indice_imagen: indice,
     conversacion_id: turno.conversacion_id ?? null,
     ...imagen,
-    texto_turno_cliente: textoTurnoCliente || '(el cliente no escribi├│ texto)',
+    texto_turno_cliente: textoTurnoCliente || '(el cliente no escribió texto)',
     contexto_comercial_breve: contextoComercialBreve
   }
 }));

@@ -19,23 +19,23 @@
 // ======================================================
 // CONSTRUIR MENSAJE COMERCIAL
 // PEGASO ADHESIVOS - V1.1
-// CONTRATO FINAL COM├ÜN
+// CONTRATO FINAL COMÚN
 // ======================================================
 //
 // Objetivo:
 //
-// Ser el ├ÜNICO punto de salida de respuestas comerciales.
+// Ser el ÚNICO punto de salida de respuestas comerciales.
 //
 // Puede recibir:
 //
-// 1. "Preparar mensaje cotizaci├│n"
+// 1. "Preparar mensaje cotización"
 // 2. "Construir mensaje no producible"
 //
 // Este nodo NO:
 //
 // - calcula precios
 // - decide cierres comerciales
-// - consulta detalles de cotizaci├│n
+// - consulta detalles de cotización
 // - depende de nodos exclusivos de una rama
 // - llama a IA
 //
@@ -123,11 +123,11 @@ if (!mensajeComercial) {
 // 3. RECUPERAR IDENTIDAD COMERCIAL
 // ======================================================
 //
-// Las ramas deber├¡an conservar estos datos.
+// Las ramas deberían conservar estos datos.
 //
 // Como respaldo recuperamos:
 //
-// "Recuperar decisi├│n comercial"
+// "Recuperar decisión comercial"
 //
 // ======================================================
 
@@ -136,7 +136,7 @@ let decision = {};
 try {
 
   decision =
-    $('Recuperar decisi├│n comercial')
+    $('Recuperar decisión comercial')
       .first()
       .json ?? {};
 
@@ -189,7 +189,7 @@ const mensajeVariacionPrecio =
 
 
 // ======================================================
-// 6. COLECCI├ôN DE MENSAJES
+// 6. COLECCIÓN DE MENSAJES
 // ======================================================
 
 let mensajesComerciales =
@@ -207,7 +207,7 @@ let mensajesComerciales =
 
 
 // ------------------------------------------------------
-// Si la rama no entreg├│ colecci├│n,
+// Si la rama no entregó colección,
 // utilizamos el mensaje principal.
 // ------------------------------------------------------
 
@@ -261,7 +261,7 @@ const tipoRespuesta =
 
 
 // ======================================================
-// 8. SALIDA COM├ÜN
+// 8. SALIDA COMÚN
 // ======================================================
 
 return [
@@ -271,7 +271,7 @@ return [
       // ----------------------------------------------
       // Conservamos TODO lo recibido.
       //
-      // Esto incluye tambi├®n los nuevos campos:
+      // Esto incluye también los nuevos campos:
       //
       // cierre_cotizacion
       // cotizaciones_recientes_detectadas
@@ -321,7 +321,7 @@ return [
 
 
       // ----------------------------------------------
-      // Colecci├│n de mensajes
+      // Colección de mensajes
       // ----------------------------------------------
 
       mensajes_comerciales:

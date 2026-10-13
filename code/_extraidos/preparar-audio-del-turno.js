@@ -22,11 +22,11 @@
 // VERSION: 1.0
 // RESPONSABILIDAD:
 // - Tras resolver el turno conversacional, buscar audios
-//   pendientes de transcripci├│n.
+//   pendientes de transcripción.
 // - Leer el descriptor [MEDIA_PENDIENTE] persistido en
 //   mensajes.contenido.
 // - Revalidar MIME y enlace YCloud.
-// - Emitir un item por audio v├ílido.
+// - Emitir un item por audio válido.
 // - Limitar la cantidad de audios procesados por turno.
 // - Conservar identidad y contexto del turno.
 // - NO descargar audio.
@@ -37,7 +37,7 @@
 
 
 // ======================================================
-// 0. CONFIGURACI├ôN
+// 0. CONFIGURACIÓN
 // ======================================================
 
 const MAX_AUDIOS_POR_TURNO = 3;
@@ -53,8 +53,8 @@ const PREFIJO_PENDIENTE =
 // WhatsApp/YCloud normalmente entrega notas de voz como:
 // audio/ogg; codecs=opus
 //
-// En Preparar entrada WhatsApp el MIME deber├¡a llegar
-// normalizado sin par├ímetros:
+// En Preparar entrada WhatsApp el MIME debería llegar
+// normalizado sin parámetros:
 // audio/ogg
 // ======================================================
 
@@ -224,14 +224,14 @@ function textoAudioDe(contenido) {
 // IMPORTANTE:
 //
 // No dependemos del item que llega inmediatamente
-// desde la rama de im├ígenes.
+// desde la rama de imágenes.
 //
 // Leemos directamente el contrato original de:
 //
 // Resolver turno conversacional
 //
 // De esta forma audio funciona:
-// - haya im├ígenes o no
+// - haya imágenes o no
 // - haya pasado por Groq visual
 // - haya pasado por DeepSeek visual
 // - haya pasado por OpenAI visual
@@ -402,7 +402,7 @@ for (
 
 
   // --------------------------------------------------
-  // L├¡mite por turno
+  // Límite por turno
   // --------------------------------------------------
 
   if (
@@ -460,9 +460,9 @@ for (
 //
 // Emitimos SIEMPRE un item.
 //
-// As├¡ el IF:
+// Así el IF:
 //
-// ┬┐Hay audios por transcribir?
+// ¿Hay audios por transcribir?
 //
 // puede evaluar:
 //

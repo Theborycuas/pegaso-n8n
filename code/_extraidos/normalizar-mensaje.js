@@ -25,7 +25,7 @@
 // RESPONSABILIDAD:
 //
 // - Unificar entrada real de WhatsApp y entrada TEST.
-// - Normalizar tel├®fono, nombre, mensaje, tipo y canal.
+// - Normalizar teléfono, nombre, mensaje, tipo y canal.
 // - CONSERVAR metadatos multimedia provenientes de
 //   "Preparar entrada WhatsApp".
 // - Compatible con:
@@ -167,7 +167,7 @@ return items.map((item) => {
 
 
   // ==================================================
-  // TEL├ëFONO
+  // TELÉFONO
   // ==================================================
 
   const telefono =

@@ -23,8 +23,8 @@
 // Resolver exclusivamente el estado COMERCIAL del prospecto.
 //
 // IMPORTANTE:
-// El input inmediato viene de "Actualizar actividad conversaci├│n"
-// y su campo `estado` corresponde a la CONVERSACI├ôN ("ACTIVA").
+// El input inmediato viene de "Actualizar actividad conversación"
+// y su campo `estado` corresponde a la CONVERSACIÓN ("ACTIVA").
 //
 // Por eso NO utilizamos $json.estado como estado del prospecto.
 // Recuperamos el estado comercial desde los nodos anteriores.
@@ -33,14 +33,14 @@
 const data = $input.first().json;
 
 // ======================================================
-// 1. RECUPERAR DECISI├ôN COMERCIAL PREVIA
+// 1. RECUPERAR DECISIÓN COMERCIAL PREVIA
 // ======================================================
 
 let decision = {};
 
 try {
   decision =
-    $('Recuperar decisi├│n comercial').first().json ?? {};
+    $('Recuperar decisión comercial').first().json ?? {};
 } catch (e) {
   decision = {};
 }
@@ -50,7 +50,7 @@ try {
 // ======================================================
 //
 // Este nodo contiene el registro real de pegaso.prospectos
-// despu├®s de "Actualizar prospecto comercial".
+// después de "Actualizar prospecto comercial".
 //
 
 let prospectoActualizado = {};
@@ -119,9 +119,9 @@ if (prospectoId === null) {
 // PRIORIDAD:
 //
 // 1. Registro devuelto por UPDATE de prospectos
-// 2. Decisi├│n recuperada
+// 2. Decisión recuperada
 //
-// JAM├üS usar data.estado, porque pertenece a conversaciones.
+// JAMÁS usar data.estado, porque pertenece a conversaciones.
 //
 
 const estadoActualRaw =
@@ -133,7 +133,7 @@ const estadoActual =
   estadoActualRaw.toUpperCase();
 
 // ======================================================
-// 6. CAT├üLOGO DE ESTADOS
+// 6. CATÁLOGO DE ESTADOS
 // ======================================================
 //
 // Por ahora:
@@ -144,7 +144,7 @@ const estadoActual =
 // PEDIDO_CONFIRMADO
 // REQUIERE_HUMANO
 //
-// M├ís adelante podremos ampliar el ciclo comercial.
+// Más adelante podremos ampliar el ciclo comercial.
 // ======================================================
 
 const ESTADOS_VALIDOS = [
@@ -157,17 +157,17 @@ const ESTADOS_VALIDOS = [
 
 if (!ESTADOS_VALIDOS.includes(estadoActual)) {
   throw new Error(
-    `Estado comercial de prospecto inv├ílido: ${estadoActual}`
+    `Estado comercial de prospecto inválido: ${estadoActual}`
   );
 }
 
 // ======================================================
-// 7. RESOLVER TRANSICI├ôN
+// 7. RESOLVER TRANSICIÓN
 // ======================================================
 //
 // Este nodo SOLO realiza:
 //
-// NUEVO ÔåÆ EN_CONVERSACION
+// NUEVO → EN_CONVERSACION
 //
 // No debe:
 // - marcar COTIZADO
@@ -206,7 +206,7 @@ return [
       prospecto_estado:
         estadoActual,
 
-      // Datos espec├¡ficos para el siguiente UPDATE
+      // Datos específicos para el siguiente UPDATE
       prospecto_id_estado_update:
         prospectoId,
 

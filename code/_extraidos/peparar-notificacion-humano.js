@@ -21,12 +21,12 @@
 // ARCHIVO: code/06-derivacion-humana/preparar-notificacion-humano.js
 // VERSION: 2.1
 // RESPONSABILIDAD:
-// - Construir una notificaci├│n INTERNA para Pegaso cuando una conversaci├│n requiere intervenci├│n humana
-// - Clasificar la alerta en una categor├¡a (INTERESADO_PAGO, PAGO_REPORTADO, SOLICITA_CONTACTO, ARCHIVO_REQUIERE_REVISION, NEGOCIACION, RECLAMO, REVISION_GENERAL)
-// - Ajustar la prioridad de la alerta seg├║n la categor├¡a
-// - Generar asunto, texto plano y HTML del email con datos del prospecto y su ├║ltimo mensaje
+// - Construir una notificación INTERNA para Pegaso cuando una conversación requiere intervención humana
+// - Clasificar la alerta en una categoría (INTERESADO_PAGO, PAGO_REPORTADO, SOLICITA_CONTACTO, ARCHIVO_REQUIERE_REVISION, NEGOCIACION, RECLAMO, REVISION_GENERAL)
+// - Ajustar la prioridad de la alerta según la categoría
+// - Generar asunto, texto plano y HTML del email con datos del prospecto y su último mensaje
 // - Marcar canal_notificacion = EMAIL (destinos previstos: email Brevo/Resend; WhatsApp interno a futuro)
-// - NO enviar el correo (lo hacen los nodos HTTP "Brevo - Enviar notificaci├│n humana" y, como respaldo, "Resend - Enviar notificaci├│n humana")
+// - NO enviar el correo (lo hacen los nodos HTTP "Brevo - Enviar notificación humana" y, como respaldo, "Resend - Enviar notificación humana")
 // - NO enviar nada al prospecto
 // ======================================================
 
@@ -329,7 +329,7 @@ else if (
 // ======================================================
 
 let asunto =
-  'Pegaso - Prospecto requiere revisi├│n';
+  'Pegaso - Prospecto requiere revisión';
 
 
 if (
@@ -338,7 +338,7 @@ if (
 ) {
 
   asunto =
-    '­ƒöÑ Pegaso - Prospecto solicita datos de pago';
+    '🔥 Pegaso - Prospecto solicita datos de pago';
 
 }
 
@@ -349,7 +349,7 @@ else if (
 ) {
 
   asunto =
-    '­ƒÆ░ Pegaso - Prospecto report├│ un pago';
+    '💰 Pegaso - Prospecto reportó un pago';
 
 }
 
@@ -360,7 +360,7 @@ else if (
 ) {
 
   asunto =
-    'ÔÜá´©Å Pegaso - Reclamo requiere atenci├│n';
+    '⚠️ Pegaso - Reclamo requiere atención';
 
 }
 
@@ -371,7 +371,7 @@ else if (
 ) {
 
   asunto =
-    '­ƒôÄ Pegaso - Archivo requiere revisi├│n';
+    '📎 Pegaso - Archivo requiere revisión';
 
 }
 
@@ -383,22 +383,22 @@ else if (
 const lineas = [
   'PEGASO ADHESIVOS',
   '',
-  'Nueva conversaci├│n requiere atenci├│n.',
+  'Nueva conversación requiere atención.',
   '',
   `Prioridad: ${prioridadFinal}`,
-  `Categor├¡a: ${categoriaNotificacion}`,
+  `Categoría: ${categoriaNotificacion}`,
   `Motivo: ${motivo}`,
-  `Intenci├│n: ${intencion}`,
+  `Intención: ${intencion}`,
   '',
   `Prospecto: ${nombre}`,
-  `Tel├®fono: ${telefono}`,
+  `Teléfono: ${telefono}`,
   `Ciudad: ${ciudad}`,
-  `Clasificaci├│n: ${clasificacionProspecto ?? 'No definida'}`,
+  `Clasificación: ${clasificacionProspecto ?? 'No definida'}`,
   '',
-  '├Ültimo mensaje:',
+  'Último mensaje:',
   mensajeCliente,
   '',
-  `Conversaci├│n ID: ${conversacionId ?? 'N/D'}`,
+  `Conversación ID: ${conversacionId ?? 'N/D'}`,
   `Prospecto ID: ${prospectoId ?? 'N/D'}`
 ];
 
@@ -414,7 +414,7 @@ const mensajeNotificacion =
 const htmlEmail = `
 <h2>Pegaso Adhesivos</h2>
 
-<p><strong>Nueva conversaci├│n requiere atenci├│n.</strong></p>
+<p><strong>Nueva conversación requiere atención.</strong></p>
 
 <table style="border-collapse:collapse;">
   <tr>
@@ -422,7 +422,7 @@ const htmlEmail = `
     <td>${prioridadFinal}</td>
   </tr>
   <tr>
-    <td><strong>Categor├¡a</strong></td>
+    <td><strong>Categoría</strong></td>
     <td>${categoriaNotificacion}</td>
   </tr>
   <tr>
@@ -430,7 +430,7 @@ const htmlEmail = `
     <td>${motivo}</td>
   </tr>
   <tr>
-    <td><strong>Intenci├│n</strong></td>
+    <td><strong>Intención</strong></td>
     <td>${intencion}</td>
   </tr>
   <tr>
@@ -438,7 +438,7 @@ const htmlEmail = `
     <td>${nombre}</td>
   </tr>
   <tr>
-    <td><strong>Tel├®fono</strong></td>
+    <td><strong>Teléfono</strong></td>
     <td>${telefono}</td>
   </tr>
   <tr>
@@ -446,19 +446,19 @@ const htmlEmail = `
     <td>${ciudad}</td>
   </tr>
   <tr>
-    <td><strong>Clasificaci├│n</strong></td>
+    <td><strong>Clasificación</strong></td>
     <td>${clasificacionProspecto ?? 'No definida'}</td>
   </tr>
 </table>
 
-<h3>├Ültimo mensaje</h3>
+<h3>Último mensaje</h3>
 
 <p>${mensajeCliente}</p>
 
 <hr>
 
 <p>
-Conversaci├│n ID: ${conversacionId ?? 'N/D'}<br>
+Conversación ID: ${conversacionId ?? 'N/D'}<br>
 Prospecto ID: ${prospectoId ?? 'N/D'}
 </p>
 `;

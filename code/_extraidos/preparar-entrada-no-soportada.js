@@ -22,13 +22,13 @@
 // ======================================================
 //
 // Objetivo:
-// Convertir una entrada de WhatsApp que todav├¡a no puede
-// procesar autom├íticamente el bot en un mensaje v├ílido
+// Convertir una entrada de WhatsApp que todavía no puede
+// procesar automáticamente el bot en un mensaje válido
 // para continuar por:
-// contacto ÔåÆ prospecto ÔåÆ conversaci├│n ÔåÆ handoff.
+// contacto → prospecto → conversación → handoff.
 //
-// NO deriva todav├¡a.
-// Solo marca que esta entrada deber├í terminar en humano.
+// NO deriva todavía.
+// Solo marca que esta entrada deberá terminar en humano.
 // ======================================================
 
 const input = $input.first().json;
@@ -76,14 +76,14 @@ const mensajeOriginal =
 
 
 // ======================================================
-// 4. MOTIVO DE DERIVACI├ôN
+// 4. MOTIVO DE DERIVACIÓN
 // ======================================================
 
 let motivo =
   'FORMATO_NO_SOPORTADO';
 
 let descripcion =
-  'El cliente envi├│ un formato que todav├¡a no puede procesarse autom├íticamente.';
+  'El cliente envió un formato que todavía no puede procesarse automáticamente.';
 
 
 switch (tipo) {
@@ -93,7 +93,7 @@ switch (tipo) {
       'STICKER_NO_PROCESABLE';
 
     descripcion =
-      'El cliente envi├│ un sticker que requiere revisi├│n manual.';
+      'El cliente envió un sticker que requiere revisión manual.';
     break;
 
 
@@ -102,7 +102,7 @@ switch (tipo) {
       'UBICACION_NO_PROCESABLE';
 
     descripcion =
-      'El cliente comparti├│ una ubicaci├│n que todav├¡a no procesa autom├íticamente el flujo.';
+      'El cliente compartió una ubicación que todavía no procesa automáticamente el flujo.';
     break;
 
 
@@ -111,7 +111,7 @@ switch (tipo) {
       'CONTACTO_NO_PROCESABLE';
 
     descripcion =
-      'El cliente comparti├│ un contacto que todav├¡a no procesa autom├íticamente el flujo.';
+      'El cliente compartió un contacto que todavía no procesa automáticamente el flujo.';
     break;
 
 
@@ -120,7 +120,7 @@ switch (tipo) {
       'MENSAJE_INTERACTIVO_NO_PROCESABLE';
 
     descripcion =
-      'El cliente envi├│ una interacci├│n de WhatsApp que requiere revisi├│n.';
+      'El cliente envió una interacción de WhatsApp que requiere revisión.';
     break;
 
 
@@ -129,7 +129,7 @@ switch (tipo) {
       'FORMATO_DESCONOCIDO';
 
     descripcion =
-      'WhatsApp recibi├│ un tipo de mensaje desconocido para el flujo.';
+      'WhatsApp recibió un tipo de mensaje desconocido para el flujo.';
     break;
 }
 

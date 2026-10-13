@@ -25,7 +25,7 @@
 // Objetivo:
 //
 // Interpretar comandos administrativos enviados por
-// tel├®fonos autorizados:
+// teléfonos autorizados:
 //
 // STOP  -> activa MODO_PRUEBA
 // START -> desactiva MODO_PRUEBA
@@ -34,7 +34,7 @@
 // - NO procesa conversaciones comerciales
 // - NO busca prospectos
 // - NO responde al cerebro comercial
-// - NO modifica todav├¡a PostgreSQL
+// - NO modifica todavía PostgreSQL
 //
 // ======================================================
 
@@ -128,7 +128,7 @@ if (
   !ADMINISTRADORES.includes(telefonoAdmin)
 ) {
   throw new Error(
-    'PROCESAR COMANDO BOT: tel├®fono no autorizado.'
+    'PROCESAR COMANDO BOT: teléfono no autorizado.'
   );
 }
 

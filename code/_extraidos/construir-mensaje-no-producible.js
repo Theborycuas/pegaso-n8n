@@ -70,7 +70,7 @@ function medidaTexto(valor) {
 
 
 // ======================================================
-// DETALLE INV├üLIDO
+// DETALLE INVÁLIDO
 // ======================================================
 
 const detallesInvalidos =
@@ -116,13 +116,13 @@ if (
   mensaje =
     `La medida de ${medidaTexto(ancho)}x${medidaTexto(alto)} cm no es posible de producir.\n\n` +
     `No trabajamos etiquetas que tengan 1 cm o menos en cualquiera de sus lados.\n\n` +
-    `Ind├¡quenos otra medida y con gusto le cotizamos.`;
+    `Indíquenos otra medida y con gusto le cotizamos.`;
 
 } else {
 
   mensaje =
     `No podemos producir las etiquetas con las medidas indicadas. ` +
-    `Ind├¡quenos otra medida y con gusto le cotizamos.`;
+    `Indíquenos otra medida y con gusto le cotizamos.`;
 
 }
 

@@ -28,11 +28,11 @@
 // - Texto: mensaje = body.
 // - Imagen/audio soportados:
 //   mensaje = descriptor controlado que se guarda en mensajes.contenido:
-//     l├¡nea 1 "[IMAGEN] caption" o "[AUDIO]"
-//     l├¡nea 2 "[MEDIA_PENDIENTE] {json}"
-// - Imagen no descargable: genera contexto de revisi├│n.
-// - Audio no descargable: genera contexto de revisi├│n.
-// - Video/documento: por ahora contin├║an como ARCHIVO NO PROCESABLE.
+//     línea 1 "[IMAGEN] caption" o "[AUDIO]"
+//     línea 2 "[MEDIA_PENDIENTE] {json}"
+// - Imagen no descargable: genera contexto de revisión.
+// - Audio no descargable: genera contexto de revisión.
+// - Video/documento: por ahora continúan como ARCHIVO NO PROCESABLE.
 // - Aceptar enlaces de descarga solo de
 //   https://api.ycloud.com/v2/whatsapp/media/download/
 //   (anti-SSRF: la credencial YCloud nunca sale a otro host)
@@ -46,12 +46,12 @@
 //      requiere_procesamiento_media
 // - NO descargar ni analizar multimedia.
 // - NO transcribir audio.
-// - NO decidir acci├│n comercial.
+// - NO decidir acción comercial.
 // ======================================================
 
 
 // ======================================================
-// 0. CONFIGURACI├ôN
+// 0. CONFIGURACIÓN
 // ======================================================
 
 const MIME_IMAGEN_SOPORTADOS = [
@@ -151,7 +151,7 @@ const evento =
 
 
 // ======================================================
-// 3. VALIDACIONES B├üSICAS
+// 3. VALIDACIONES BÁSICAS
 // ======================================================
 
 if (!evento) {
@@ -162,7 +162,7 @@ if (!evento) {
 
 if (!evento.procesable) {
   throw new Error(
-    'PREPARAR ENTRADA WHATSAPP: el evento no est├í marcado como procesable.'
+    'PREPARAR ENTRADA WHATSAPP: el evento no está marcado como procesable.'
   );
 }
 
@@ -326,14 +326,14 @@ const aptoParaFlujoTexto =
 //
 // IMPORTANTE:
 //
-// El caption se aplana a una sola l├¡nea.
-// As├¡ el cliente no puede inyectar artificialmente:
+// El caption se aplana a una sola línea.
+// Así el cliente no puede inyectar artificialmente:
 //   [MEDIA_PENDIENTE]
 //   [CONTEXTO DE IMAGEN]
 //   [TRANSCRIPCION DE AUDIO]
 // etc.
 //
-// Los stickers contin├║an fuera del flujo conversacional.
+// Los stickers continúan fuera del flujo conversacional.
 //
 // ======================================================
 
@@ -413,7 +413,7 @@ if (entraComoMedia) {
 
 
   // ----------------------------------------------------
-  // IMAGEN SOPORTADA + LINK V├üLIDO
+  // IMAGEN SOPORTADA + LINK VÁLIDO
   // ----------------------------------------------------
 
   if (
@@ -447,7 +447,7 @@ if (entraComoMedia) {
 
 
   // ----------------------------------------------------
-  // AUDIO SOPORTADO + LINK V├üLIDO
+  // AUDIO SOPORTADO + LINK VÁLIDO
   // ----------------------------------------------------
 
   else if (
@@ -492,8 +492,8 @@ if (entraComoMedia) {
       'IMAGEN_NO_DESCARGABLE';
 
     lineaMedia =
-      '[CONTEXTO DE IMAGEN ┬À revision=SI ┬À motivo=IMAGEN_NO_DESCARGABLE] ' +
-      'No se pudo obtener la imagen para revisarla autom├íticamente.';
+      '[CONTEXTO DE IMAGEN · revision=SI · motivo=IMAGEN_NO_DESCARGABLE] ' +
+      'No se pudo obtener la imagen para revisarla automáticamente.';
 
   }
 
@@ -510,8 +510,8 @@ if (entraComoMedia) {
       'AUDIO_NO_DESCARGABLE';
 
     lineaMedia =
-      '[CONTEXTO DE AUDIO ┬À revision=SI ┬À motivo=AUDIO_NO_DESCARGABLE] ' +
-      'No se pudo obtener el audio para transcribirlo autom├íticamente.';
+      '[CONTEXTO DE AUDIO · revision=SI · motivo=AUDIO_NO_DESCARGABLE] ' +
+      'No se pudo obtener el audio para transcribirlo automáticamente.';
 
   }
 
@@ -528,8 +528,8 @@ if (entraComoMedia) {
       'FORMATO_IMAGEN_NO_SOPORTADO';
 
     lineaMedia =
-      `[ARCHIVO NO PROCESABLE ┬À tipo=${tipoMensaje} ┬À mime=${mimeTypeOriginal ?? 'desconocido'}] ` +
-      'El bot no puede revisar este archivo autom├íticamente.';
+      `[ARCHIVO NO PROCESABLE · tipo=${tipoMensaje} · mime=${mimeTypeOriginal ?? 'desconocido'}] ` +
+      'El bot no puede revisar este archivo automáticamente.';
 
   }
 
@@ -546,8 +546,8 @@ if (entraComoMedia) {
       'FORMATO_AUDIO_NO_SOPORTADO';
 
     lineaMedia =
-      `[ARCHIVO NO PROCESABLE ┬À tipo=${tipoMensaje} ┬À mime=${mimeTypeOriginal ?? 'desconocido'}] ` +
-      'El bot no puede transcribir este audio autom├íticamente.';
+      `[ARCHIVO NO PROCESABLE · tipo=${tipoMensaje} · mime=${mimeTypeOriginal ?? 'desconocido'}] ` +
+      'El bot no puede transcribir este audio automáticamente.';
 
   }
 
@@ -562,8 +562,8 @@ if (entraComoMedia) {
       'TIPO_ARCHIVO_NO_SOPORTADO';
 
     lineaMedia =
-      `[ARCHIVO NO PROCESABLE ┬À tipo=${tipoMensaje} ┬À mime=${mimeTypeOriginal ?? 'desconocido'}] ` +
-      'El bot no puede revisar este archivo autom├íticamente.';
+      `[ARCHIVO NO PROCESABLE · tipo=${tipoMensaje} · mime=${mimeTypeOriginal ?? 'desconocido'}] ` +
+      'El bot no puede revisar este archivo automáticamente.';
 
   }
 
@@ -590,10 +590,10 @@ if (entraComoMedia) {
 // Conservamos exactamente el comportamiento anterior:
 //
 // TEXTO:
-//   s├¡
+//   sí
 //
 // IMAGEN/AUDIO/VIDEO/DOCUMENTO:
-//   s├¡, incluso cuando no son procesables autom├íticamente,
+//   sí, incluso cuando no son procesables automáticamente,
 //   porque la etapa posterior puede derivarlos a humano.
 //
 // STICKER:
@@ -639,7 +639,7 @@ return [
 
 
       // ===============================================
-      // INFORMACI├ôN EXTRA DE META
+      // INFORMACIÓN EXTRA DE META
       // ===============================================
 
       meta_whatsapp: {
@@ -681,11 +681,11 @@ return [
           id:
             evento.media_id ?? null,
 
-          // Conservamos el MIME tal como lleg├│.
+          // Conservamos el MIME tal como llegó.
           mime_type:
             evento.media_mime_type ?? null,
 
-          // Y a├▒adimos el MIME base para l├│gica interna.
+          // Y añadimos el MIME base para lógica interna.
           mime_type_base:
             mimeType,
 

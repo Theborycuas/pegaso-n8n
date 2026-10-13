@@ -24,23 +24,23 @@
 //
 // OBJETIVO:
 //
-// Preparar una derivaci├│n humana directa cuando:
+// Preparar una derivación humana directa cuando:
 //
-// 1. Llega un tipo de entrada que el flujo autom├ítico
-//    todav├¡a no puede procesar.
+// 1. Llega un tipo de entrada que el flujo automático
+//    todavía no puede procesar.
 //
-// 2. Un audio s├¡ era soportado, pero fallaron todos los
-//    mecanismos autom├íticos de transcripci├│n:
+// 2. Un audio sí era soportado, pero fallaron todos los
+//    mecanismos automáticos de transcripción:
 //
-//      Groq -> falla / transcripci├│n inv├ílida
-//      Deepgram -> falla / transcripci├│n inv├ílida
+//      Groq -> falla / transcripción inválida
+//      Deepgram -> falla / transcripción inválida
 //
 // Ejemplos:
 // - audio no interpretable
 // - video
 // - documento
 // - sticker
-// - ubicaci├│n
+// - ubicación
 // - contacto
 // - tipo desconocido
 //
@@ -48,17 +48,17 @@
 //
 // Este nodo NO:
 // - transcribe audio
-// - analiza im├ígenes
+// - analiza imágenes
 // - consulta al cerebro comercial
-// - decide una cotizaci├│n
+// - decide una cotización
 //
-// Este nodo ├║nicamente normaliza el evento y construye
-// el contrato necesario para la ruta est├índar de
-// derivaci├│n humana.
+// Este nodo únicamente normaliza el evento y construye
+// el contrato necesario para la ruta estándar de
+// derivación humana.
 //
 // Puede recibir datos desde distintos puntos del flujo,
 // por lo que recupera contexto de nodos anteriores cuando
-// el item actual perdi├│ algunos campos.
+// el item actual perdió algunos campos.
 //
 // ======================================================
 
@@ -199,7 +199,7 @@ let conversacion = {};
 try {
 
   conversacion =
-    $('Preparar conversaci├│n')
+    $('Preparar conversación')
       .first()
       .json ?? {};
 
@@ -211,7 +211,7 @@ try {
 
 
 // ======================================================
-// 3. IDENTIFICACI├ôN
+// 3. IDENTIFICACIÓN
 // ======================================================
 
 const conversacionId =
@@ -253,7 +253,7 @@ const contactoId =
 
 
 // ======================================================
-// 4. TEL├ëFONO / NOMBRE
+// 4. TELÉFONO / NOMBRE
 // ======================================================
 
 const telefono =
@@ -342,8 +342,8 @@ let mensajeActual =
   '';
 
 
-// Si el mensaje qued├│ ├║nicamente como descriptor de sistema,
-// construimos una representaci├│n m├ís humana.
+// Si el mensaje quedó únicamente como descriptor de sistema,
+// construimos una representación más humana.
 
 if (
   mensajeActual === '[AUDIO]' ||
@@ -366,12 +366,12 @@ if (
 
 
 // ======================================================
-// 7. DETECTAR FALLO DE TRANSCRIPCI├ôN DE AUDIO
+// 7. DETECTAR FALLO DE TRANSCRIPCIÓN DE AUDIO
 // ======================================================
 //
-// Esta detecci├│n permite que este mismo nodo reciba:
+// Esta detección permite que este mismo nodo reciba:
 //
-// - false de "IF: ┬┐Transcripci├│n v├ílida Deepgram?"
+// - false de "IF: ¿Transcripción válida Deepgram?"
 // - error de "Transcribir audio Deepgram"
 // - error de descarga del audio fallback
 //
@@ -436,11 +436,11 @@ let prioridad =
 
 
 let mensajeTransicion =
-  'Perm├¡tame un momento por favor, ya revisamos lo que nos envi├│.';
+  'Permítame un momento por favor, ya revisamos lo que nos envió.';
 
 
 // ------------------------------------------------------
-// FALLO TOTAL DE TRANSCRIPCI├ôN
+// FALLO TOTAL DE TRANSCRIPCIÓN
 // ------------------------------------------------------
 
 if (falloTranscripcionAudio) {
@@ -452,7 +452,7 @@ if (falloTranscripcionAudio) {
     'MEDIA';
 
   mensajeTransicion =
-    'Perm├¡tame un momento por favor, no pudimos interpretar correctamente el audio que nos envi├│ y vamos a revisarlo manualmente.';
+    'Permítame un momento por favor, no pudimos interpretar correctamente el audio que nos envió y vamos a revisarlo manualmente.';
 
 }
 
@@ -475,7 +475,7 @@ else {
         'MEDIA';
 
       mensajeTransicion =
-        'Perm├¡tame un momento por favor, ya revisamos el audio que nos envi├│.';
+        'Permítame un momento por favor, ya revisamos el audio que nos envió.';
 
       break;
 
@@ -486,7 +486,7 @@ else {
         'VIDEO_REQUIERE_REVISION';
 
       mensajeTransicion =
-        'Perm├¡tame un momento por favor, ya revisamos el video que nos envi├│.';
+        'Permítame un momento por favor, ya revisamos el video que nos envió.';
 
       break;
 
@@ -498,7 +498,7 @@ else {
         'DOCUMENTO_REQUIERE_REVISION';
 
       mensajeTransicion =
-        'Perm├¡tame un momento por favor, ya revisamos el archivo que nos envi├│.';
+        'Permítame un momento por favor, ya revisamos el archivo que nos envió.';
 
       break;
 
@@ -509,7 +509,7 @@ else {
         'STICKER_NO_PROCESABLE';
 
       mensajeTransicion =
-        'Perm├¡tame un momento por favor, ya revisamos su mensaje.';
+        'Permítame un momento por favor, ya revisamos su mensaje.';
 
       break;
 
@@ -521,7 +521,7 @@ else {
         'UBICACION_REQUIERE_REVISION';
 
       mensajeTransicion =
-        'Perm├¡tame un momento por favor, ya revisamos la ubicaci├│n que nos envi├│.';
+        'Permítame un momento por favor, ya revisamos la ubicación que nos envió.';
 
       break;
 
@@ -534,7 +534,7 @@ else {
         'CONTACTO_REQUIERE_REVISION';
 
       mensajeTransicion =
-        'Perm├¡tame un momento por favor, ya revisamos la informaci├│n que nos envi├│.';
+        'Permítame un momento por favor, ya revisamos la información que nos envió.';
 
       break;
 
@@ -545,13 +545,13 @@ else {
         'ENTRADA_NO_SOPORTADA';
 
       mensajeTransicion =
-        'Perm├¡tame un momento por favor, ya revisamos lo que nos envi├│.';
+        'Permítame un momento por favor, ya revisamos lo que nos envió.';
   }
 }
 
 
 // ======================================================
-// 9. DATOS T├ëCNICOS DE AUDIO
+// 9. DATOS TÉCNICOS DE AUDIO
 // ======================================================
 
 const mediaId =
@@ -578,7 +578,7 @@ const indiceAudio =
 
 
 // ======================================================
-// 10. CLASIFICACI├ôN DEL ORIGEN DEL HANDOFF
+// 10. CLASIFICACIÓN DEL ORIGEN DEL HANDOFF
 // ======================================================
 
 let origenHandoff =
@@ -594,17 +594,17 @@ if (falloTranscripcionAudio) {
 
 
 // ======================================================
-// 11. VALIDACIONES M├ìNIMAS
+// 11. VALIDACIONES MÍNIMAS
 // ======================================================
 //
-// No obligamos prospecto_id aqu├¡ porque existen rutas
-// donde podr├¡a tratarse de un cliente registrado.
+// No obligamos prospecto_id aquí porque existen rutas
+// donde podría tratarse de un cliente registrado.
 //
-// La ruta est├índar de derivaci├│n decidir├í despu├®s qu├®
+// La ruta estándar de derivación decidirá después qué
 // identidad debe persistir.
 //
-// S├¡ necesitamos conversaci├│n para no crear un handoff
-// hu├®rfano.
+// Sí necesitamos conversación para no crear un handoff
+// huérfano.
 // ======================================================
 
 if (
@@ -660,7 +660,7 @@ return [
 
 
       // ------------------------------------------------
-      // DECISI├ôN
+      // DECISIÓN
       // ------------------------------------------------
 
       intencion:
@@ -719,7 +719,7 @@ return [
 
 
       // ------------------------------------------------
-      // RESPUESTA DE TRANSICI├ôN
+      // RESPUESTA DE TRANSICIÓN
       // ------------------------------------------------
 
       respuesta_sugerida:
@@ -738,7 +738,7 @@ return [
 
 
       // ------------------------------------------------
-      // AUDIO / TRANSCRIPCI├ôN
+      // AUDIO / TRANSCRIPCIÓN
       // ------------------------------------------------
 
       fallo_transcripcion_audio:

@@ -17,19 +17,21 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V2.3
+// RESOLVER CONTEXTO COMERCIAL - V2.4
 // ======================================================
 //
 // Objetivo:
 // - consolidar datos nuevos + contexto persistido;
-// - usar 1000 como m├¡nimo por defecto si hay medidas;
+// - usar 1000 como mínimo por defecto si hay medidas;
 // - NO exigir producto para cotizar;
 // - NO convertir cualquier mensaje en COTIZAR_P4;
 // - preservar acciones informativas como INFORMAR_DISENO;
 // - recotizar solo cuando corresponde;
-// - tratar ancho + alto como un par at├│mico cuando ambos vienen en el turno actual;
-// - invalidar metadatos de una cotizaci├│n anterior cuando cambian sus datos base,
-//   evitando snapshots h├¡bridos (por ejemplo id/precio viejos con medidas nuevas).
+// - tratar ancho + alto como un par atómico cuando ambos vienen en el turno actual;
+// - invalidar metadatos de una cotización anterior cuando cambian sus datos base,
+//   evitando snapshots híbridos (por ejemplo id/precio viejos con medidas nuevas).
+// - V2.4: cantidad cotizable >= 6000 -> DERIVAR_HUMANO (COTIZACION_ESPECIAL)
+//   antes de COTIZAR_P4; la IA no puede revertirlo.
 //
 // ======================================================
 
@@ -179,7 +181,7 @@ const formaAnterior =
 
 
 // ======================================================
-// 4. DATOS EXPL├ìCITOS DEL MENSAJE ACTUAL
+// 4. DATOS EXPLÍCITOS DEL MENSAJE ACTUAL
 // ======================================================
 
 const productoActual =
@@ -224,22 +226,22 @@ let cantidadSolicitada =
   cantidadAnterior;
 
 // ------------------------------------------------------
-// REGLA AT├ôMICA DE MEDIDAS
+// REGLA ATÓMICA DE MEDIDAS
 // ------------------------------------------------------
 //
 // Si el mensaje actual trae LAS DOS medidas, ambas
 // reemplazan juntas al par anterior.
 //
-// Esto evita estados h├¡bridos:
+// Esto evita estados híbridos:
 //
 // anterior: 7 x 12
 // actual:   8 x 11
 // incorrecto: 7 x 11
 // correcto:   8 x 11
 //
-// Si el mensaje actual trae solo UNA medida expl├¡cita,
-// s├¡ permitimos conservar la otra anterior, porque puede
-// ser una correcci├│n parcial leg├¡tima.
+// Si el mensaje actual trae solo UNA medida explícita,
+// sí permitimos conservar la otra anterior, porque puede
+// ser una corrección parcial legítima.
 // ------------------------------------------------------
 
 const medidasActualesCompletas =
@@ -291,8 +293,8 @@ if (
 // 7. CANTIDAD POR DEFECTO
 // ======================================================
 //
-// Si ya tenemos medidas y el cliente no indic├│ cantidad,
-// trabajamos con el m├¡nimo comercial de 1000.
+// Si ya tenemos medidas y el cliente no indicó cantidad,
+// trabajamos con el mínimo comercial de 1000.
 //
 // NO se pregunta cantidad.
 //
@@ -335,7 +337,7 @@ if (
 
 
 // ======================================================
-// 9. DETECTAR CAMBIOS REALES DE COTIZACI├ôN
+// 9. DETECTAR CAMBIOS REALES DE COTIZACIÓN
 // ======================================================
 
 const modificoCantidad =
@@ -412,7 +414,7 @@ const datosSuficientes =
 
 
 // ======================================================
-// 11. RESOLVER ACCI├ôN REAL
+// 11. RESOLVER ACCIÓN REAL
 // ======================================================
 
 const accionIA =
@@ -444,9 +446,9 @@ if (
 // B. ACCIONES INFORMATIVAS SE RESPETAN
 // ------------------------------------------------------
 //
-// Esta es la correcci├│n clave:
-// una pregunta de dise├▒o, material, pago, ubicaci├│n, etc.
-// NO puede convertirse en cotizaci├│n solamente porque
+// Esta es la corrección clave:
+// una pregunta de diseño, material, pago, ubicación, etc.
+// NO puede convertirse en cotización solamente porque
 // ya existan medidas previas.
 //
 // ------------------------------------------------------
@@ -487,7 +489,7 @@ else if (
 
 
 // ------------------------------------------------------
-// D. COTIZACI├ôN INICIAL
+// D. COTIZACIÓN INICIAL
 // ------------------------------------------------------
 
 else if (
@@ -503,7 +505,7 @@ else if (
 
 
 // ------------------------------------------------------
-// E. MODIFICACI├ôN DE UNA COTIZACI├ôN
+// E. MODIFICACIÓN DE UNA COTIZACIÓN
 // ------------------------------------------------------
 
 else if (
@@ -517,7 +519,7 @@ else if (
 
 
 // ------------------------------------------------------
-// F. SI LA IA YA DECIDI├ô COTIZAR
+// F. SI LA IA YA DECIDIÓ COTIZAR
 // ------------------------------------------------------
 
 else if (
@@ -530,7 +532,7 @@ else if (
 
 
 // ------------------------------------------------------
-// G. PROTECCI├ôN: NO PEDIR PRODUCTO PARA P4
+// G. PROTECCIÓN: NO PEDIR PRODUCTO PARA P4
 // ------------------------------------------------------
 
 else if (
@@ -540,6 +542,59 @@ else if (
     faltaMedidas
       ? 'PEDIR_MEDIDAS'
       : 'COTIZAR_P4';
+}
+
+
+// ------------------------------------------------------
+// H. CANTIDAD MAYORISTA -> HUMANO
+// ------------------------------------------------------
+//
+// Desde 6000 etiquetas (ya normalizadas a multiplos de
+// 1000) no existe precio automatico. Tiene prioridad
+// sobre COTIZAR_P4 y sobre pedir datos de cotizacion,
+// para que nunca se entre al extractor ni al calculo.
+//
+// Si la IA ya derivo por otro motivo, se respeta ese
+// motivo. Las acciones informativas sin cantidad nueva
+// en este turno se conservan.
+//
+// ------------------------------------------------------
+
+const CANTIDAD_DERIVACION_HUMANA = 6000;
+
+const ACCIONES_RUTA_COTIZACION = [
+  'COTIZAR_P4',
+  'PEDIR_MEDIDAS',
+  'PEDIR_CANTIDAD',
+  'PEDIR_PRODUCTO',
+  'PEDIR_FORMA'
+];
+
+const INTENCIONES_PRECIO = [
+  'SOLICITAR_COTIZACION',
+  'CONSULTAR_PRECIO',
+  'APORTAR_DATOS'
+];
+
+const cantidadMayorista =
+  cantidadCotizable !== null &&
+  cantidadCotizable >=
+    CANTIDAD_DERIVACION_HUMANA;
+
+const derivacionPorCantidad =
+  cantidadMayorista &&
+  accion !== 'DERIVAR_HUMANO' &&
+  (
+    ACCIONES_RUTA_COTIZACION.includes(accion) ||
+    (
+      cantidadActual !== null &&
+      INTENCIONES_PRECIO.includes(intencion)
+    )
+  );
+
+if (derivacionPorCantidad) {
+  accion =
+    'DERIVAR_HUMANO';
 }
 
 
@@ -556,11 +611,12 @@ if (
   accion === 'PEDIR_MEDIDAS'
 ) {
   respuestaSugerida =
-    '┬┐En qu├® medidas necesita sus etiquetas? Ind├¡quenos ancho y alto por favor.';
+    '¿En qué medidas necesita sus etiquetas? Indíquenos ancho y alto por favor.';
 }
 
 else if (
-  accion === 'COTIZAR_P4'
+  accion === 'COTIZAR_P4' ||
+  derivacionPorCantidad
 ) {
   respuestaSugerida =
     '';
@@ -572,12 +628,12 @@ else if (
 // ======================================================
 
 // ------------------------------------------------------
-// INVALIDAR RESULTADO DE COTIZACI├ôN ANTERIOR SI CAMBIARON
+// INVALIDAR RESULTADO DE COTIZACIÓN ANTERIOR SI CAMBIARON
 // SUS DATOS BASE
 // ------------------------------------------------------
 //
 // El objeto contexto_comercial.cotizacion funciona como
-// snapshot de la cotizaci├│n vigente.
+// snapshot de la cotización vigente.
 //
 // Si cambia cantidad, medidas o forma, ya no podemos
 // conservar como vigentes:
@@ -588,8 +644,8 @@ else if (
 // - cotizada_at
 // - flags de producibilidad del intento anterior
 //
-// Esos datos ser├ín escritos nuevamente por la ruta real
-// de cotizaci├│n cuando termine el c├ílculo.
+// Esos datos serán escritos nuevamente por la ruta real
+// de cotización cuando termine el cálculo.
 // ------------------------------------------------------
 
 const cotizacionBaseNueva =
@@ -702,6 +758,27 @@ return [
         medidasActualesCompletas,
 
       accion,
+
+      ...(
+        derivacionPorCantidad
+          ? {
+              requiere_humano:
+                true,
+
+              motivo_derivacion:
+                'COTIZACION_ESPECIAL',
+
+              requiere_notificacion:
+                true,
+
+              regla_derivacion:
+                'CANTIDAD_MAYORISTA'
+            }
+          : {}
+      ),
+
+      derivacion_por_cantidad:
+        derivacionPorCantidad,
 
       datos_suficientes_para_cotizar:
         datosSuficientes,

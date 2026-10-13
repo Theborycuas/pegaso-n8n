@@ -26,16 +26,16 @@
 //   - cliente_id
 //
 // Detalles comerciales:
-//   "Preparar datos cotizaci├│n"
+//   "Preparar datos cotización"
 //   - detalles[]
 //
 // Salida:
-//   1 item por cada detalle de la cotizaci├│n
+//   1 item por cada detalle de la cotización
 //
 // IMPORTANTE:
 //   producto NO es obligatorio.
-//   Si nombre y producto vienen vac├¡os, se genera un
-//   nombre t├®cnico usando medidas + forma.
+//   Si nombre y producto vienen vacíos, se genera un
+//   nombre técnico usando medidas + forma.
 //
 // Ejemplo:
 //   5x5 + CIRCULAR
@@ -44,7 +44,7 @@
 
 
 // ======================================================
-// 1. DATOS DE LA COTIZACI├ôN
+// 1. DATOS DE LA COTIZACIÓN
 // ======================================================
 
 const input = $input.first().json;
@@ -68,7 +68,7 @@ let datosPreparados = {};
 
 try {
   datosPreparados =
-    $('Preparar datos cotizaci├│n').first().json ?? {};
+    $('Preparar datos cotización').first().json ?? {};
 } catch (error) {
   datosPreparados = {};
 }
@@ -224,7 +224,7 @@ return detalles.map((detalle, index) => {
 
 
   // ====================================================
-  // VALIDACI├ôN DEL DETALLE
+  // VALIDACIÓN DEL DETALLE
   // ====================================================
 
   if (
@@ -232,7 +232,7 @@ return detalles.map((detalle, index) => {
     cantidad <= 0
   ) {
     throw new Error(
-      `EXPANDIR DETALLES: cantidad inv├ílida en detalle ${index}.`
+      `EXPANDIR DETALLES: cantidad inválida en detalle ${index}.`
     );
   }
 
@@ -241,7 +241,7 @@ return detalles.map((detalle, index) => {
     anchoCm <= 0
   ) {
     throw new Error(
-      `EXPANDIR DETALLES: ancho_cm inv├ílido en detalle ${index}.`
+      `EXPANDIR DETALLES: ancho_cm inválido en detalle ${index}.`
     );
   }
 
@@ -250,7 +250,7 @@ return detalles.map((detalle, index) => {
     altoCm <= 0
   ) {
     throw new Error(
-      `EXPANDIR DETALLES: alto_cm inv├ílido en detalle ${index}.`
+      `EXPANDIR DETALLES: alto_cm inválido en detalle ${index}.`
     );
   }
 
@@ -267,9 +267,9 @@ return detalles.map((detalle, index) => {
 
   // Prioridad:
   //
-  // 1. nombre expl├¡cito
+  // 1. nombre explícito
   // 2. producto
-  // 3. nombre t├®cnico generado
+  // 3. nombre técnico generado
   //
   // producto puede permanecer null.
 
@@ -304,7 +304,7 @@ return detalles.map((detalle, index) => {
       // Producto no es obligatorio.
       producto,
 
-      // Nombre s├¡ queda resuelto para dise├▒o.
+      // Nombre sí queda resuelto para diseño.
       nombre,
 
       sabor:

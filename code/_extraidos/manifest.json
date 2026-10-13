@@ -1,9 +1,9 @@
 {
   "workflowId": "09OF22FOxihypeeh",
   "workflowName": "SISTEMA AUTOMATIZADO PEGASO",
-  "workflowUpdatedAt": "2026-10-13T16:28:08.664Z",
-  "extractedAt": "2026-10-13T16:39:00.286Z",
-  "workflowNodeCount": 182,
+  "workflowUpdatedAt": "2026-10-13T18:58:52.258Z",
+  "extractedAt": "2026-10-13T18:58:59.458Z",
+  "workflowNodeCount": 183,
   "codeNodeCount": 69,
   "nodes": [
     {
@@ -12,47 +12,47 @@
       "fileName": "calcular-precio-detalle.js",
       "relativeFile": "code/_extraidos/calcular-precio-detalle.js",
       "typeVersion": 2,
-      "lines": 1465
+      "lines": 1690
     },
     {
       "nodeId": "2478267a-3ded-4aa1-9dbd-8e4e62a6a390",
-      "nodeName": "Calcular resumen cotizaci├│n",
-      "fileName": "calcular-resumen-cotizaci-n.js",
-      "relativeFile": "code/_extraidos/calcular-resumen-cotizaci-n.js",
+      "nodeName": "Calcular resumen cotización",
+      "fileName": "calcular-resumen-cotizacion.js",
+      "relativeFile": "code/_extraidos/calcular-resumen-cotizacion.js",
       "typeVersion": 2,
       "lines": 348
     },
     {
       "nodeId": "0378efe8-3c60-41ab-8db0-9cd1e64aae23",
-      "nodeName": "Validar extracci├│n Groq",
-      "fileName": "validar-extracci-n-groq.js",
-      "relativeFile": "code/_extraidos/validar-extracci-n-groq.js",
+      "nodeName": "Validar extracción Groq",
+      "fileName": "validar-extraccion-groq.js",
+      "relativeFile": "code/_extraidos/validar-extraccion-groq.js",
       "typeVersion": 2,
       "lines": 842
     },
     {
       "nodeId": "7bebd33a-2a0c-400a-aeaf-388110be4d9d",
-      "nodeName": "Validar extracci├│n DeepSeek",
-      "fileName": "validar-extracci-n-deepseek.js",
-      "relativeFile": "code/_extraidos/validar-extracci-n-deepseek.js",
+      "nodeName": "Validar extracción DeepSeek",
+      "fileName": "validar-extraccion-deepseek.js",
+      "relativeFile": "code/_extraidos/validar-extraccion-deepseek.js",
       "typeVersion": 2,
       "lines": 842
     },
     {
       "nodeId": "37bffb2b-33a0-46ca-8bd1-3538a453b6fe",
-      "nodeName": "Validar extracci├│n OpenApi",
-      "fileName": "validar-extracci-n-openapi.js",
-      "relativeFile": "code/_extraidos/validar-extracci-n-openapi.js",
+      "nodeName": "Validar extracción OpenApi",
+      "fileName": "validar-extraccion-openapi.js",
+      "relativeFile": "code/_extraidos/validar-extraccion-openapi.js",
       "typeVersion": 2,
       "lines": 842
     },
     {
       "nodeId": "b389417d-a3d7-4b2e-8819-255e7ba4a429",
-      "nodeName": "Aplicar m├¡nimo de impresi├│n",
-      "fileName": "aplicar-m-nimo-de-impresi-n.js",
-      "relativeFile": "code/_extraidos/aplicar-m-nimo-de-impresi-n.js",
+      "nodeName": "Aplicar mínimo de impresión",
+      "fileName": "aplicar-minimo-de-impresion.js",
+      "relativeFile": "code/_extraidos/aplicar-minimo-de-impresion.js",
       "typeVersion": 2,
-      "lines": 172
+      "lines": 197
     },
     {
       "nodeId": "62b676d9-ed78-4fbf-b802-86fde41a92b0",
@@ -64,9 +64,9 @@
     },
     {
       "nodeId": "41dca488-3afd-4edd-8c4f-12ed45e91ce7",
-      "nodeName": "Preparar datos cotizaci├│n",
-      "fileName": "preparar-datos-cotizaci-n.js",
-      "relativeFile": "code/_extraidos/preparar-datos-cotizaci-n.js",
+      "nodeName": "Preparar datos cotización",
+      "fileName": "preparar-datos-cotizacion.js",
+      "relativeFile": "code/_extraidos/preparar-datos-cotizacion.js",
       "typeVersion": 2,
       "lines": 257
     },
@@ -88,25 +88,25 @@
     },
     {
       "nodeId": "ec5fcae1-77b3-4f73-9643-6493270fee74",
-      "nodeName": "Resolver cat├ílogo Pegaso",
-      "fileName": "resolver-cat-ilogo-pegaso.js",
-      "relativeFile": "code/_extraidos/resolver-cat-ilogo-pegaso.js",
+      "nodeName": "Resolver catálogo Pegaso",
+      "fileName": "resolver-catalogo-pegaso.js",
+      "relativeFile": "code/_extraidos/resolver-catalogo-pegaso.js",
       "typeVersion": 2,
       "lines": 248
     },
     {
       "nodeId": "5502cb70-bd10-44a5-856b-1048721f2a3e",
-      "nodeName": "Resolver dise├▒o",
-      "fileName": "resolver-dise-o.js",
-      "relativeFile": "code/_extraidos/resolver-dise-o.js",
+      "nodeName": "Resolver diseño",
+      "fileName": "resolver-diseno.js",
+      "relativeFile": "code/_extraidos/resolver-diseno.js",
       "typeVersion": 2,
       "lines": 68
     },
     {
       "nodeId": "cb76a964-18e8-4183-8da5-2782485b1b81",
-      "nodeName": "Preparar dise├▒o creado",
-      "fileName": "preparar-dise-o-creado.js",
-      "relativeFile": "code/_extraidos/preparar-dise-o-creado.js",
+      "nodeName": "Preparar diseño creado",
+      "fileName": "preparar-diseno-creado.js",
+      "relativeFile": "code/_extraidos/preparar-diseno-creado.js",
       "typeVersion": 2,
       "lines": 38
     },
@@ -128,9 +128,9 @@
     },
     {
       "nodeId": "d5e02846-ddb3-4498-a909-fdf6258237fb",
-      "nodeName": "Preparar conversaci├│n",
-      "fileName": "preparar-conversaci-n.js",
-      "relativeFile": "code/_extraidos/preparar-conversaci-n.js",
+      "nodeName": "Preparar conversación",
+      "fileName": "preparar-conversacion.js",
+      "relativeFile": "code/_extraidos/preparar-conversacion.js",
       "typeVersion": 2,
       "lines": 289
     },
@@ -144,25 +144,25 @@
     },
     {
       "nodeId": "f207ef1c-d7ff-4fae-9910-486f2ba24c0a",
-      "nodeName": "Validar extracci├│n Cerebro comercial",
-      "fileName": "validar-extracci-n-cerebro-comercial.js",
-      "relativeFile": "code/_extraidos/validar-extracci-n-cerebro-comercial.js",
+      "nodeName": "Validar extracción Cerebro comercial",
+      "fileName": "validar-extraccion-cerebro-comercial.js",
+      "relativeFile": "code/_extraidos/validar-extraccion-cerebro-comercial.js",
       "typeVersion": 2,
       "lines": 1137
     },
     {
       "nodeId": "033b7f46-8a18-4244-9c65-75047b2d6aac",
-      "nodeName": "Validar extracci├│n DeepSeek1",
-      "fileName": "validar-extracci-n-deepseek1.js",
-      "relativeFile": "code/_extraidos/validar-extracci-n-deepseek1.js",
+      "nodeName": "Validar extracción DeepSeek1",
+      "fileName": "validar-extraccion-deepseek1.js",
+      "relativeFile": "code/_extraidos/validar-extraccion-deepseek1.js",
       "typeVersion": 2,
       "lines": 1137
     },
     {
       "nodeId": "e79de69f-646a-4449-81a4-725be9a4a6ec",
-      "nodeName": "Validar extracci├│n OpenApi1",
-      "fileName": "validar-extracci-n-openapi1.js",
-      "relativeFile": "code/_extraidos/validar-extracci-n-openapi1.js",
+      "nodeName": "Validar extracción OpenApi1",
+      "fileName": "validar-extraccion-openapi1.js",
+      "relativeFile": "code/_extraidos/validar-extraccion-openapi1.js",
       "typeVersion": 2,
       "lines": 1137
     },
@@ -176,9 +176,9 @@
     },
     {
       "nodeId": "29fac3bc-5564-446a-95d0-fc1f3263459c",
-      "nodeName": "Normalizar decisi├│n IA",
-      "fileName": "normalizar-decisi-n-ia.js",
-      "relativeFile": "code/_extraidos/normalizar-decisi-n-ia.js",
+      "nodeName": "Normalizar decisión IA",
+      "fileName": "normalizar-decision-ia.js",
+      "relativeFile": "code/_extraidos/normalizar-decision-ia.js",
       "typeVersion": 2,
       "lines": 878
     },
@@ -208,33 +208,33 @@
     },
     {
       "nodeId": "747d2f8b-66aa-487d-87c6-3458c649a4e6",
-      "nodeName": "Resolver conversaci├│n prospecto",
-      "fileName": "resolver-conversaci-n-prospecto.js",
-      "relativeFile": "code/_extraidos/resolver-conversaci-n-prospecto.js",
+      "nodeName": "Resolver conversación prospecto",
+      "fileName": "resolver-conversacion-prospecto.js",
+      "relativeFile": "code/_extraidos/resolver-conversacion-prospecto.js",
       "typeVersion": 2,
       "lines": 70
     },
     {
       "nodeId": "6b096918-3e74-4e49-8182-cfc44a11ca45",
-      "nodeName": "Preparar conversaci├│n creada",
-      "fileName": "preparar-conversaci-n-creada.js",
-      "relativeFile": "code/_extraidos/preparar-conversaci-n-creada.js",
+      "nodeName": "Preparar conversación creada",
+      "fileName": "preparar-conversacion-creada.js",
+      "relativeFile": "code/_extraidos/preparar-conversacion-creada.js",
       "typeVersion": 2,
       "lines": 43
     },
     {
       "nodeId": "862e8f48-a08f-4ff8-ad24-797075d126d3",
-      "nodeName": "Preparar actualizaci├│n prospecto",
-      "fileName": "preparar-actualizaci-n-prospecto.js",
-      "relativeFile": "code/_extraidos/preparar-actualizaci-n-prospecto.js",
+      "nodeName": "Preparar actualización prospecto",
+      "fileName": "preparar-actualizacion-prospecto.js",
+      "relativeFile": "code/_extraidos/preparar-actualizacion-prospecto.js",
       "typeVersion": 2,
       "lines": 168
     },
     {
       "nodeId": "5c895f4e-16ee-4834-8f4d-ce7c3228f92f",
-      "nodeName": "Recuperar decisi├│n comercial",
-      "fileName": "recuperar-decisi-n-comercial.js",
-      "relativeFile": "code/_extraidos/recuperar-decisi-n-comercial.js",
+      "nodeName": "Recuperar decisión comercial",
+      "fileName": "recuperar-decision-comercial.js",
+      "relativeFile": "code/_extraidos/recuperar-decision-comercial.js",
       "typeVersion": 2,
       "lines": 71
     },
@@ -260,37 +260,37 @@
       "fileName": "resolver-contexto-comercial.js",
       "relativeFile": "code/_extraidos/resolver-contexto-comercial.js",
       "typeVersion": 2,
-      "lines": 698
+      "lines": 775
     },
     {
       "nodeId": "49b907ef-f963-4ccc-b7bb-db921afc5898",
-      "nodeName": "Preparar contexto post cotizaci├│n",
-      "fileName": "preparar-contexto-post-cotizaci-n.js",
-      "relativeFile": "code/_extraidos/preparar-contexto-post-cotizaci-n.js",
+      "nodeName": "Preparar contexto post cotización",
+      "fileName": "preparar-contexto-post-cotizacion.js",
+      "relativeFile": "code/_extraidos/preparar-contexto-post-cotizacion.js",
       "typeVersion": 2,
       "lines": 664
     },
     {
       "nodeId": "2b93b87f-f0d9-4ed5-bebc-e200226e2531",
-      "nodeName": "Resolver estado post cotizaci├│n",
-      "fileName": "resolver-estado-post-cotizaci-n.js",
-      "relativeFile": "code/_extraidos/resolver-estado-post-cotizaci-n.js",
+      "nodeName": "Resolver estado post cotización",
+      "fileName": "resolver-estado-post-cotizacion.js",
+      "relativeFile": "code/_extraidos/resolver-estado-post-cotizacion.js",
       "typeVersion": 2,
       "lines": 46
     },
     {
       "nodeId": "662c9948-ec8d-4c43-a087-33905eba5a6a",
-      "nodeName": "Finalizar cotizaci├│n comercial",
-      "fileName": "finalizar-cotizaci-n-comercial.js",
-      "relativeFile": "code/_extraidos/finalizar-cotizaci-n-comercial.js",
+      "nodeName": "Finalizar cotización comercial",
+      "fileName": "finalizar-cotizacion-comercial.js",
+      "relativeFile": "code/_extraidos/finalizar-cotizacion-comercial.js",
       "typeVersion": 2,
       "lines": 410
     },
     {
       "nodeId": "f85439cb-8b0f-4f83-9171-7cb72c198bc6",
-      "nodeName": "Preparar derivaci├│n humana",
-      "fileName": "preparar-derivaci-n-humana.js",
-      "relativeFile": "code/_extraidos/preparar-derivaci-n-humana.js",
+      "nodeName": "Preparar derivación humana",
+      "fileName": "preparar-derivacion-humana.js",
+      "relativeFile": "code/_extraidos/preparar-derivacion-humana.js",
       "typeVersion": 2,
       "lines": 699
     },
@@ -304,25 +304,25 @@
     },
     {
       "nodeId": "3e267a32-bf79-4b10-bb07-443b04b97cf9",
-      "nodeName": "Preparar mensaje transici├│n humano",
-      "fileName": "preparar-mensaje-transici-n-humano.js",
-      "relativeFile": "code/_extraidos/preparar-mensaje-transici-n-humano.js",
+      "nodeName": "Preparar mensaje transición humano",
+      "fileName": "preparar-mensaje-transicion-humano.js",
+      "relativeFile": "code/_extraidos/preparar-mensaje-transicion-humano.js",
       "typeVersion": 2,
       "lines": 361
     },
     {
       "nodeId": "ebb48494-a503-4619-8523-aecbae62a80b",
-      "nodeName": "Finalizar derivaci├│n humana",
-      "fileName": "finalizar-derivaci-n-humana.js",
-      "relativeFile": "code/_extraidos/finalizar-derivaci-n-humana.js",
+      "nodeName": "Finalizar derivación humana",
+      "fileName": "finalizar-derivacion-humana.js",
+      "relativeFile": "code/_extraidos/finalizar-derivacion-humana.js",
       "typeVersion": 2,
       "lines": 349
     },
     {
       "nodeId": "39de2c44-ec67-4f28-9cb1-c469f60993f4",
-      "nodeName": "Finalizar mensaje atenci├│n humana",
-      "fileName": "finalizar-mensaje-atenci-n-humana.js",
-      "relativeFile": "code/_extraidos/finalizar-mensaje-atenci-n-humana.js",
+      "nodeName": "Finalizar mensaje atención humana",
+      "fileName": "finalizar-mensaje-atencion-humana.js",
+      "relativeFile": "code/_extraidos/finalizar-mensaje-atencion-humana.js",
       "typeVersion": 2,
       "lines": 27
     },
@@ -336,9 +336,9 @@
     },
     {
       "nodeId": "d7e0930c-eaa2-4f71-b884-b8dc44bf1436",
-      "nodeName": "Resolver permiso automatizaci├│n",
-      "fileName": "resolver-permiso-automatizaci-n.js",
-      "relativeFile": "code/_extraidos/resolver-permiso-automatizaci-n.js",
+      "nodeName": "Resolver permiso automatización",
+      "fileName": "resolver-permiso-automatizacion.js",
+      "relativeFile": "code/_extraidos/resolver-permiso-automatizacion.js",
       "typeVersion": 2,
       "lines": 296
     },
@@ -352,9 +352,9 @@
     },
     {
       "nodeId": "8d427a27-6eda-44e2-b437-1b84be55165c",
-      "nodeName": "Validar verificaci├│n Meta",
-      "fileName": "validar-verificaci-n-meta.js",
-      "relativeFile": "code/_extraidos/validar-verificaci-n-meta.js",
+      "nodeName": "Validar verificación Meta",
+      "fileName": "validar-verificacion-meta.js",
+      "relativeFile": "code/_extraidos/validar-verificacion-meta.js",
       "typeVersion": 2,
       "lines": 53
     },
@@ -376,9 +376,9 @@
     },
     {
       "nodeId": "aabdc11d-b55e-467d-b32d-50c9d5bf8c4e",
-      "nodeName": "Preparar env├¡o WhatsApp",
-      "fileName": "preparar-env-o-whatsapp.js",
-      "relativeFile": "code/_extraidos/preparar-env-o-whatsapp.js",
+      "nodeName": "Preparar envío WhatsApp",
+      "fileName": "preparar-envio-whatsapp.js",
+      "relativeFile": "code/_extraidos/preparar-envio-whatsapp.js",
       "typeVersion": 2,
       "lines": 897
     },
@@ -408,11 +408,11 @@
     },
     {
       "nodeId": "68a0eb70-195a-4a1b-bb2d-833a7cb45967",
-      "nodeName": "Preparar mensaje cotizaci├│n",
-      "fileName": "preparar-mensaje-cotizaci-n.js",
-      "relativeFile": "code/_extraidos/preparar-mensaje-cotizaci-n.js",
+      "nodeName": "Preparar mensaje cotización",
+      "fileName": "preparar-mensaje-cotizacion.js",
+      "relativeFile": "code/_extraidos/preparar-mensaje-cotizacion.js",
       "typeVersion": 2,
-      "lines": 781
+      "lines": 826
     },
     {
       "nodeId": "d942cfd8-ee3a-4f2b-8e50-4778b26e5bdb",
@@ -424,9 +424,9 @@
     },
     {
       "nodeId": "268786b8-303c-47fd-9cb3-e79bf3d18a4b",
-      "nodeName": "Aplicar reglas comerciales determin├¡sticas",
-      "fileName": "aplicar-reglas-comerciales-determin-sticas.js",
-      "relativeFile": "code/_extraidos/aplicar-reglas-comerciales-determin-sticas.js",
+      "nodeName": "Aplicar reglas comerciales determinísticas",
+      "fileName": "aplicar-reglas-comerciales-deterministicas.js",
+      "relativeFile": "code/_extraidos/aplicar-reglas-comerciales-deterministicas.js",
       "typeVersion": 2,
       "lines": 416
     },
@@ -448,17 +448,17 @@
     },
     {
       "nodeId": "e357151c-1616-49f0-9f2b-b5c86ffe8a1a",
-      "nodeName": "Validar an├ílisis imagen Groq",
-      "fileName": "validar-an-ilisis-imagen-groq.js",
-      "relativeFile": "code/_extraidos/validar-an-ilisis-imagen-groq.js",
+      "nodeName": "Validar análisis imagen Groq",
+      "fileName": "validar-analisis-imagen-groq.js",
+      "relativeFile": "code/_extraidos/validar-analisis-imagen-groq.js",
       "typeVersion": 2,
       "lines": 1219
     },
     {
       "nodeId": "771b9b13-a594-4d57-aab3-a7ec3526b9e2",
-      "nodeName": "Validar an├ílisis imagen DeepSeek",
-      "fileName": "validar-an-ilisis-imagen-deepseek.js",
-      "relativeFile": "code/_extraidos/validar-an-ilisis-imagen-deepseek.js",
+      "nodeName": "Validar análisis imagen DeepSeek",
+      "fileName": "validar-analisis-imagen-deepseek.js",
+      "relativeFile": "code/_extraidos/validar-analisis-imagen-deepseek.js",
       "typeVersion": 2,
       "lines": 1219
     },
@@ -472,9 +472,9 @@
     },
     {
       "nodeId": "397a709e-9177-4c15-b89a-6bf1f4266e81",
-      "nodeName": "Preparar derivaci├│n imagen fallida",
-      "fileName": "preparar-derivaci-n-imagen-fallida.js",
-      "relativeFile": "code/_extraidos/preparar-derivaci-n-imagen-fallida.js",
+      "nodeName": "Preparar derivación imagen fallida",
+      "fileName": "preparar-derivacion-imagen-fallida.js",
+      "relativeFile": "code/_extraidos/preparar-derivacion-imagen-fallida.js",
       "typeVersion": 2,
       "lines": 571
     },
@@ -504,9 +504,9 @@
     },
     {
       "nodeId": "57653d69-a094-474e-9506-fb4ed1811c62",
-      "nodeName": "Validar transcripci├│n audio",
-      "fileName": "validar-transcripci-n-audio.js",
-      "relativeFile": "code/_extraidos/validar-transcripci-n-audio.js",
+      "nodeName": "Validar transcripción audio",
+      "fileName": "validar-transcripcion-audio.js",
+      "relativeFile": "code/_extraidos/validar-transcripcion-audio.js",
       "typeVersion": 2,
       "lines": 1034
     },
@@ -528,9 +528,9 @@
     },
     {
       "nodeId": "3e759bba-a9cd-4c0c-a70c-48f8618607c5",
-      "nodeName": "Validar transcripci├│n audio Deepgram",
-      "fileName": "validar-transcripci-n-audio-deepgram.js",
-      "relativeFile": "code/_extraidos/validar-transcripci-n-audio-deepgram.js",
+      "nodeName": "Validar transcripción audio Deepgram",
+      "fileName": "validar-transcripcion-audio-deepgram.js",
+      "relativeFile": "code/_extraidos/validar-transcripcion-audio-deepgram.js",
       "typeVersion": 2,
       "lines": 1034
     },
@@ -544,9 +544,9 @@
     },
     {
       "nodeId": "f7e4c5f2-8a86-458b-b4d0-6e6d79b97bb9",
-      "nodeName": "Normalizar intervenci├│n humana",
-      "fileName": "normalizar-intervenci-n-humana.js",
-      "relativeFile": "code/_extraidos/normalizar-intervenci-n-humana.js",
+      "nodeName": "Normalizar intervención humana",
+      "fileName": "normalizar-intervencion-humana.js",
+      "relativeFile": "code/_extraidos/normalizar-intervencion-humana.js",
       "typeVersion": 2,
       "lines": 242
     },

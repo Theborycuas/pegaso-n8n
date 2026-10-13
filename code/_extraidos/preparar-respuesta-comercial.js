@@ -20,10 +20,10 @@
 // PREPARAR RESPUESTA COMERCIAL - V2.2
 // ======================================================
 //
-// Recibe la decisi├│n comercial resuelta.
+// Recibe la decisión comercial resuelta.
 //
 // Defensa adicional:
-// evita enviar exactamente el mismo texto que el ├║ltimo
+// evita enviar exactamente el mismo texto que el último
 // mensaje saliente registrado en el historial reciente.
 //
 // ======================================================
@@ -39,7 +39,7 @@ function normalizarParaComparar(valor) {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/\s+/g, ' ')
-    .replace(/^[\s┬í!┬┐?.,;:*-]+|[\s┬í!┬┐?.,;:*-]+$/g, '');
+    .replace(/^[\s¡!¿?.,;:*-]+|[\s¡!¿?.,;:*-]+$/g, '');
 }
 
 
@@ -59,7 +59,7 @@ return items.map(
       conversacionId <= 0
     ) {
       throw new Error(
-        'No existe conversacion_id v├ílido.'
+        'No existe conversacion_id válido.'
       );
     }
 
@@ -74,13 +74,13 @@ return items.map(
       !respuesta
     ) {
       throw new Error(
-        `La acci├│n ${data.accion ?? 'DESCONOCIDA'} no gener├│ respuesta_sugerida.`
+        `La acción ${data.accion ?? 'DESCONOCIDA'} no generó respuesta_sugerida.`
       );
     }
 
 
     // ==================================================
-    // ANTI-REPETICI├ôN
+    // ANTI-REPETICIÓN
     // ==================================================
 
     const ultimoMensaje =
@@ -99,9 +99,9 @@ return items.map(
       esDuplicado
     ) {
       // No enviamos literalmente el mismo mensaje.
-      // Usamos una salida neutra para solicitar precisi├│n.
+      // Usamos una salida neutra para solicitar precisión.
       respuesta =
-        '┬┐Qu├® parte desea que revisemos o aclaremos por favor?';
+        '¿Qué parte desea que revisemos o aclaremos por favor?';
     }
 
 
