@@ -4,9 +4,10 @@ Este repositorio controla el workflow de **producción** del bot comercial de Wh
 
 ## Antes de actuar
 
-1. Leer [ARQUITECTURA-PEGASO-N8N.md](ARQUITECTURA-PEGASO-N8N.md) y [GUIA-USO-PEGASO-N8N.md](GUIA-USO-PEGASO-N8N.md).
-2. Inspeccionar los archivos reales antes de asumir nada: `manifest.json`, el nodo en `edit.json`, el `.js` correspondiente. No confiar en documentación o estructuras antiguas (`npm run`, `code/01-entrada/`, `docs/etapas/`, `pegaso-whatsapp.map.json` ya no existen).
-3. Ejecutar `git status` y verificar el encoding (procedimiento de la guía, §0) antes de editar.
+1. Leer [ARQUITECTURA-PEGASO-N8N.md](ARQUITECTURA-PEGASO-N8N.md) y [GUIA-USO-PEGASO-N8N.md](GUIA-USO-PEGASO-N8N.md). Para ubicar un nodo, sus entradas, salidas y quién lo referencia, usar [FLUJO-WORKFLOW-PEGASO.md](FLUJO-WORKFLOW-PEGASO.md).
+2. Al crear, renombrar, conectar, desconectar o eliminar un nodo, actualizar también `FLUJO-WORKFLOW-PEGASO.md` (ficha, diagrama y puntos finales).
+3. Inspeccionar los archivos reales antes de asumir nada: `manifest.json`, el nodo en `edit.json`, el `.js` correspondiente. No confiar en documentación o estructuras antiguas (`npm run`, `code/01-entrada/`, `docs/etapas/`, `pegaso-whatsapp.map.json` ya no existen).
+4. Ejecutar `git status` y verificar el encoding (procedimiento de la guía, §0) antes de editar.
 
 ## Producción y Git
 

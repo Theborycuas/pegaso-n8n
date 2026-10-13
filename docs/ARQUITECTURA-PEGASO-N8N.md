@@ -9,6 +9,7 @@ Documentos relacionados:
 
 - [GUIA-USO-PEGASO-N8N.md](GUIA-USO-PEGASO-N8N.md): runbook operativo (qué hacer paso a paso).
 - [REGLAS-PARA-CURSOR.md](REGLAS-PARA-CURSOR.md): reglas para agentes de IA que trabajen en el repo.
+- [FLUJO-WORKFLOW-PEGASO.md](FLUJO-WORKFLOW-PEGASO.md): recorrido del workflow nodo por nodo y sus conexiones.
 
 ---
 
@@ -85,7 +86,9 @@ Distribución de nodos por tipo (estado inspeccionado):
 | `n8n-nodes-base.wait` | 1 |
 | `n8n-nodes-base.manualTrigger` | 1 |
 
-Nodos sin ninguna conexión (ni entrante ni saliente) en el estado inspeccionado: `Enviar WhatsApp Cloud API1` (HTTP Request) y `Execute a SQL query` (Postgres).
+Nodos aislados (sin conexiones de flujo) en el estado inspeccionado: `Webhook Post`, `Respond to Webhook Post`, `Enviar WhatsApp Cloud API1` y `Execute a SQL query`.
+
+El recorrido completo nodo por nodo (qué hace cada uno, de quién recibe, a quién envía, ramas true/false) está en [FLUJO-WORKFLOW-PEGASO.md](FLUJO-WORKFLOW-PEGASO.md).
 
 ### Estructura interna del JSON descargado
 
@@ -583,5 +586,5 @@ Estado comprobado el 13 oct 2026 (solo lectura y ejecución en copia temporal):
 5. `pull.ps1` y `extract-code.mjs` sobrescriben ediciones locales sin avisar.
 6. Snapshots `pre-push` generados por PowerShell (dañados) y sin política de limpieza (~2,2 MB cada uno).
 7. `README.md` (secciones Estructura, Encabezado, Flujo de trabajo, Reglas) y `.cursor/rules/pegaso-n8n.mdc` describen una estructura anterior que ya no existe (`npm run build/extract`, `npm test`, `code/01-entrada/…`, `prompts/`, `schemas/`, `tests/`, `docs/etapas/`, `pegaso-whatsapp.map.json`, encabezado `NODO N8N/VERSION/RESPONSABILIDAD`).
-8. Dos nodos sin conexiones: `Enviar WhatsApp Cloud API1`, `Execute a SQL query`.
+8. Cuatro nodos aislados: `Webhook Post`, `Respond to Webhook Post`, `Enviar WhatsApp Cloud API1`, `Execute a SQL query`. Otros posibles problemas del flujo (ramas sin conectar, condiciones dudosas) están en [FLUJO-WORKFLOW-PEGASO.md §18](FLUJO-WORKFLOW-PEGASO.md#18-observaciones-y-posibles-problemas).
 9. Lógica duplicada en varios Code Nodes por proveedor de IA (§5.5).

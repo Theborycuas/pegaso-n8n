@@ -1,6 +1,6 @@
 # Guía de uso de `pegaso-n8n` (runbook)
 
-Qué hacer, en qué orden, para cambiar el workflow **SISTEMA AUTOMATIZADO PEGASO** sin dañar producción. El detalle técnico de cada script está en [ARQUITECTURA-PEGASO-N8N.md](ARQUITECTURA-PEGASO-N8N.md).
+Qué hacer, en qué orden, para cambiar el workflow **SISTEMA AUTOMATIZADO PEGASO** sin dañar producción. El detalle técnico de cada script está en [ARQUITECTURA-PEGASO-N8N.md](ARQUITECTURA-PEGASO-N8N.md); qué hace cada nodo y cómo se conectan, en [FLUJO-WORKFLOW-PEGASO.md](FLUJO-WORKFLOW-PEGASO.md).
 
 **Todos los comandos se ejecutan en PowerShell desde la raíz del repositorio** (`pegaso-n8n/`). Los scripts usan el directorio actual como raíz.
 
