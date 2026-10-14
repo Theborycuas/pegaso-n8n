@@ -1,8 +1,8 @@
 {
   "workflowId": "09OF22FOxihypeeh",
   "workflowName": "SISTEMA AUTOMATIZADO PEGASO",
-  "workflowUpdatedAt": "2026-10-14T03:31:48.821Z",
-  "extractedAt": "2026-10-14T03:40:37.853Z",
+  "workflowUpdatedAt": "2026-10-14T03:43:32.908Z",
+  "extractedAt": "2026-10-14T03:43:37.908Z",
   "workflowNodeCount": 184,
   "codeNodeCount": 69,
   "nodes": [
@@ -412,7 +412,7 @@
       "fileName": "preparar-mensaje-cotizacion.js",
       "relativeFile": "code/_extraidos/preparar-mensaje-cotizacion.js",
       "typeVersion": 2,
-      "lines": 826
+      "lines": 848
     },
     {
       "nodeId": "d942cfd8-ee3a-4f2b-8e50-4778b26e5bdb",

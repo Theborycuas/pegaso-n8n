@@ -8,6 +8,7 @@ Un reporte por intervención sobre el workflow **SISTEMA AUTOMATIZADO PEGASO**: 
 |---|---|---|
 | 2026-10-13 | [Control conversacional determinístico: saludos, humanos, ecos, fechas y productos no P4](2026-10-13-control-conversacional.md) | Implementado en local, sin publicar en n8n ni commit |
 | 2026-10-13 | [Auditoría funcional final antes de publicar: intervención humana, clientes y concurrencia](2026-10-13-auditoria-final-pre-push.md) | Solo análisis y pruebas; veredicto: listo para push con riesgos conocidos |
+| 2026-10-13 | [Cierre de cotizaciones repetidas: "comparando alternativas" una sola vez](2026-10-13-cierre-cotizaciones-repetidas.md) | Implementado en local, sin publicar en n8n ni commit |
 
 ## Convenciones
 

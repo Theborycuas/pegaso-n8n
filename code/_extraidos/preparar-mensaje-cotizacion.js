@@ -18,8 +18,13 @@
 
 // ======================================================
 // PREPARAR MENSAJE COTIZACIÓN
-// PEGASO ADHESIVOS - V2.7
+// PEGASO ADHESIVOS - V2.8
 // ======================================================
+//
+// V2.8: el cierre "Veo que estamos comparando varias
+// alternativas..." se envía una sola vez. Si ya está en
+// los salientes recientes, las cotizaciones siguientes
+// cierran con "Verifíquele a detalle por favor."
 //
 // V2.7: si un detalle supera el minimo de su rango de
 // cantidad y "Calcular precio detalle" indica una
@@ -434,6 +439,20 @@ const cantidadCotizacionesRecientes =
   cotizacionesRecientes.length;
 
 
+const CIERRE_COMPARACION =
+  'Veo que estamos comparando varias alternativas. ' +
+  'Si gusta, indíquenos cuáles son sus opciones favoritas ' +
+  'y le ayudamos a definir la más conveniente.';
+
+const cierreComparacionYaEnviado =
+  mensajesSalientesRecientes.some(
+    texto =>
+      texto
+        .toLowerCase()
+        .includes('comparando varias alternativas')
+  );
+
+
 // ======================================================
 // 9. RESOLVER CIERRE DE COTIZACIÓN
 // ======================================================
@@ -515,16 +534,8 @@ function resolverCierreCotizacion({
     cantidadCotizacionesPrevias === 2
   ) {
 
-    if (multiplesOpcionesActuales) {
-
-      return (
-        'Verifiquele por favor '
-      );
-
-    }
-
     return (
-      'Verifiquele por favor '
+      'Verifíquele por favor.'
     );
 
   }
@@ -533,11 +544,19 @@ function resolverCierreCotizacion({
   // ----------------------------------------------------
   // 3 O MÁS COTIZACIONES PREVIAS
   // ----------------------------------------------------
+  //
+  // La invitación a elegir favoritas va una sola vez
+  // dentro de la ventana de salientes recientes.
+  // ----------------------------------------------------
+
+  if (!cierreComparacionYaEnviado) {
+
+    return CIERRE_COMPARACION;
+
+  }
 
   return (
-    'Veo que estamos comparando varias alternativas. ' +
-    'Si gusta, indíquenos cuáles son sus opciones favoritas ' +
-    'y le ayudamos a definir la más conveniente.'
+    'Verifíquele a detalle por favor.'
   );
 
 }
@@ -818,6 +837,9 @@ return [
 
       cotizaciones_recientes_detectadas:
         cantidadCotizacionesRecientes,
+
+      cierre_comparacion_ya_enviado:
+        cierreComparacionYaEnviado,
 
       multiples_opciones_en_cotizacion:
         detalles.length > 1,
