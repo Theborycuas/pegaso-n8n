@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Preparar contexto IA
 // ARCHIVO: code/03-conversacion/preparar-contexto-ia.js
-// VERSION: 4.1
+// VERSION: 4.2
 // ======================================================
 //
 // RESPONSABILIDAD:
@@ -41,6 +41,15 @@
 // - Detectar si empieza una nueva sesión por inactividad.
 // - Conservar contexto_comercial estructurado aunque el
 //   historial libre haya expirado.
+// - Excluir del historial los marcadores de respuesta omitida.
+// - Exponer ultimo_saliente (origen BOT / AUTOMATICO / HUMANO,
+//   acción equivalente, si llegó después del inicio del turno)
+//   y medidas_ya_solicitadas para el anti-duplicado.
+// - Reglas pre-IA solo para texto sin multimedia:
+//   SALUDO_SIMPLE (respuesta corta fija) y PRODUCTO_NO_P4
+//   (DERIVAR_HUMANO + COTIZACION_ESPECIAL). Cuando aplican se
+//   emite decision con el contrato del cerebro y
+//   requiere_cerebro_comercial = false para saltar la IA.
 // - NO llamar a IA.
 // - NO escribir PostgreSQL.
 //
@@ -58,6 +67,12 @@ const MAX_MENSAJES_HISTORIAL = 24;
 const MAX_SALIENTES_RECIENTES = 6;
 
 const LARGO_MAXIMO_CONTENIDO_HISTORIAL = 4000;
+
+const PREFIJO_AUTOMATICO_WHATSAPP_BUSINESS = '[AUTOMATICO WHATSAPP BUSINESS';
+
+const PREFIJO_RESPUESTA_OMITIDA = '[RESPUESTA AUTOMÁTICA OMITIDA';
+
+const OFFSET_HORA_ECUADOR = -5;
 
 
 // ======================================================
@@ -160,6 +175,17 @@ function fechaMs(valor) {
   return Number.isFinite(ms)
     ? ms
     : null;
+}
+
+
+function normalizarTexto(valor) {
+  return String(valor ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 
@@ -1039,6 +1065,14 @@ let historialCandidato =
         return false;
       }
 
+      if (
+        String(row.contenido)
+          .trim()
+          .startsWith(PREFIJO_RESPUESTA_OMITIDA)
+      ) {
+        return false;
+      }
+
 
       // -----------------------------------------------
       // VENTANA TEMPORAL
@@ -1215,6 +1249,158 @@ const ultimoMensajeSaliente =
         mensajesSalientesRecientes.length - 1
       ]
     : null;
+
+
+// ======================================================
+// 7.1 ÚLTIMO SALIENTE Y ACCIÓN EQUIVALENTE
+// ======================================================
+//
+// Origen de cada SALIENTE en pegaso.mensajes:
+// - BOT: sin mensaje_externo_id (lo guarda este flujo).
+// - AUTOMATICO: eco con prefijo [AUTOMATICO WHATSAPP BUSINESS.
+// - HUMANO: cualquier otro eco de WhatsApp Business.
+//
+// Se recorre el historial completo y no solo la ventana: el
+// eco automático de un anuncio suele llegar DESPUÉS del primer
+// mensaje del turno.
+//
+// ======================================================
+
+function origenSaliente(row) {
+  if (textoONull(row.mensaje_externo_id) === null) {
+    return 'BOT';
+  }
+
+  return String(row.contenido ?? '')
+    .trim()
+    .startsWith(PREFIJO_AUTOMATICO_WHATSAPP_BUSINESS)
+    ? 'AUTOMATICO'
+    : 'HUMANO';
+}
+
+
+function accionEquivalenteSaliente(contenido) {
+  const texto =
+    String(contenido ?? '').trim();
+
+  const prefijo =
+    texto.match(
+      /^\[AUTOMATICO WHATSAPP BUSINESS[^\]]*accion=([A-Z_]+)/
+    );
+
+  if (prefijo) {
+    return prefijo[1] === 'NINGUNA'
+      ? null
+      : prefijo[1];
+  }
+
+  const plano =
+    normalizarTexto(texto);
+
+  if (
+    /\ben que medidas\b|\bque medidas (requiere|necesita|desea|tendrian|tendria)\b|\bancho y alto\b|\bsolo nos falta el (ancho|alto)\b/.test(plano)
+  ) {
+    return 'PEDIR_MEDIDAS';
+  }
+
+  if (
+    /^(hola|buen[oa]s?( dias| tardes| noches)?)\b.*\ben que (podemos|le podemos|puedo|le puedo) ayudarle\b/.test(plano)
+  ) {
+    return 'SALUDO';
+  }
+
+  return null;
+}
+
+
+const turnoDesdeId =
+  hayTurno
+    ? numeroONull(
+        turno.turno_desde_id
+      )
+    : null;
+
+
+const salientesConversacion =
+  itemsHistorial
+    .map(item => item.json ?? {})
+    .filter(row =>
+      String(row.direccion ?? '').toUpperCase() === 'SALIENTE' &&
+      textoONull(row.contenido) !== null &&
+      !String(row.contenido).trim().startsWith(PREFIJO_RESPUESTA_OMITIDA) &&
+      numeroONull(row.id) !== null
+    )
+    .sort((a, b) => numeroONull(a.id) - numeroONull(b.id))
+    .map(row => ({
+      id:
+        numeroONull(row.id),
+
+      origen:
+        origenSaliente(row),
+
+      accion_equivalente:
+        accionEquivalenteSaliente(row.contenido),
+
+      enviado_at:
+        row.enviado_at ?? null,
+
+      contenido:
+        String(row.contenido).trim().slice(0, LARGO_MAXIMO_CONTENIDO_HISTORIAL)
+    }));
+
+
+const ultimoSalienteFila =
+  salientesConversacion.length > 0
+    ? salientesConversacion[salientesConversacion.length - 1]
+    : null;
+
+
+const ultimoSaliente =
+  ultimoSalienteFila
+    ? {
+        ...ultimoSalienteFila,
+
+        posterior_al_turno:
+          turnoDesdeId !== null &&
+          ultimoSalienteFila.id > turnoDesdeId
+      }
+    : null;
+
+
+// Las medidas ya se pidieron si el último SALIENTE con acción
+// reconocible (ignorando saludos) dentro de la ventana fue
+// PEDIR_MEDIDAS, sin importar si lo envió el bot, la
+// automatización de WhatsApp Business o un humano.
+
+let medidasYaSolicitadas = false;
+
+for (
+  let i = salientesConversacion.length - 1;
+  i >= 0;
+  i--
+) {
+  const saliente =
+    salientesConversacion[i];
+
+  const fecha =
+    fechaMs(saliente.enviado_at);
+
+  if (
+    fecha !== null &&
+    fecha < limiteHistorialMs
+  ) {
+    break;
+  }
+
+  if (saliente.accion_equivalente === 'SALUDO') {
+    continue;
+  }
+
+  medidasYaSolicitadas =
+    saliente.accion_equivalente === 'PEDIR_MEDIDAS';
+
+  break;
+}
 
 
 // ======================================================
@@ -1626,6 +1812,163 @@ const contextoComercial = {
 
 
 // ======================================================
+// 10.1 REGLAS PRE-IA
+// ======================================================
+//
+// Solo texto sin multimedia. Ante cualquier duda decide el
+// cerebro: una regla solo aplica si el texto es inequívoco.
+//
+// SALUDO_SIMPLE: todas las palabras pertenecen al vocabulario
+// de saludo y al menos una es un saludo núcleo.
+// "Hola, necesito etiquetas de 5x5" NO es saludo simple.
+//
+// PRODUCTO_NO_P4: el texto nombra un impreso que no es
+// etiqueta adhesiva y NO menciona etiquetas/stickers/adhesivos.
+//
+// ======================================================
+
+const VOCABULARIO_SALUDO = new Set([
+  'hola', 'holi', 'ola', 'alo', 'hey', 'hi', 'hello',
+  'buenas', 'buenos', 'buena', 'buen', 'dia', 'dias',
+  'tarde', 'tardes', 'noche', 'noches', 'saludos', 'saludo',
+  'que', 'tal', 'como', 'esta', 'estan', 'estas', 'muy', 'y',
+  'senor', 'senora', 'senorita', 'sr', 'sra', 'srta',
+  'estimado', 'estimada', 'estimados', 'amigo', 'amiga',
+  'a', 'todos', 'usted', 'ustedes'
+]);
+
+const NUCLEO_SALUDO = new Set([
+  'hola', 'holi', 'ola', 'alo', 'hey', 'hi', 'hello',
+  'buenas', 'buenos', 'buena', 'buen', 'saludos', 'saludo'
+]);
+
+const PRODUCTOS_NO_P4 = [
+  { patron: /\btarjetas? (de )?(presentacion|personales?|visita|de visita|corporativas?)\b/, producto: 'tarjetas de presentación' },
+  { patron: /\b(flyers?|flayers?|volantes?)\b/, producto: 'flyers / volantes' },
+  { patron: /\bcarpetas?\b/, producto: 'carpetas' },
+  { patron: /\btalonarios?\b/, producto: 'talonarios' },
+  { patron: /\bboletos?\b/, producto: 'boletos' },
+  { patron: /\bentradas? (para|de)\b/, producto: 'entradas' },
+  { patron: /\bformularios?\b/, producto: 'formularios' },
+  { patron: /\bhojas? membretadas?\b|\bmembretes?\b/, producto: 'hojas membretadas' },
+  { patron: /\b(tripticos?|dipticos?)\b/, producto: 'trípticos / dípticos' },
+  { patron: /\bafiches?\b/, producto: 'afiches' },
+  { patron: /\bbrochures?\b/, producto: 'brochures' }
+];
+
+const MENCIONA_ETIQUETA =
+  /\b(etiquetas?|stickers?|adhesiv[oa]s?|calcomanias?|pegatinas?|rotulos?|vinil|viniles)\b/;
+
+const RESPUESTA_TRANSICION_NO_P4 =
+  'Permítame un momento por favor, verificamos su requerimiento.';
+
+
+function saludoHorario(textoPlano) {
+  if (/\bnoches?\b/.test(textoPlano)) {
+    return 'Buenas noches';
+  }
+
+  if (/\btardes?\b/.test(textoPlano)) {
+    return 'Buenas tardes';
+  }
+
+  if (/\bdias?\b/.test(textoPlano)) {
+    return 'Buenos días';
+  }
+
+  const horaEcuador =
+    new Date(
+      Date.now() + OFFSET_HORA_ECUADOR * 3600 * 1000
+    ).getUTCHours();
+
+  if (horaEcuador >= 5 && horaEcuador < 12) {
+    return 'Buenos días';
+  }
+
+  if (horaEcuador >= 12 && horaEcuador < 19) {
+    return 'Buenas tardes';
+  }
+
+  return 'Buenas noches';
+}
+
+
+function decisionBase() {
+  return {
+    intencion: 'OTRO',
+    accion: 'RESPONDER_GENERAL',
+    producto: null,
+    material: null,
+    cantidad: null,
+    ancho_cm: null,
+    alto_cm: null,
+    forma: 'NO_ESPECIFICADA',
+    ciudad_detectada: null,
+    provincia_detectada: null,
+    datos_suficientes_para_cotizar: false,
+    requiere_humano: false,
+    motivo_derivacion: 'NINGUNO',
+    respuesta_sugerida: ''
+  };
+}
+
+
+let reglaPreIA = null;
+
+let decisionPreIA = null;
+
+let productoNoP4Detectado = null;
+
+const textoTurnoPlano =
+  normalizarTexto(textoTurno);
+
+if (
+  mediaTurno.cantidad_media === 0 &&
+  textoTurnoPlano !== ''
+) {
+
+  const tokens =
+    textoTurnoPlano
+      .split(' ')
+      .map(t => t.replace(/(.)\1+/g, '$1'));
+
+  const esSaludoSimple =
+    tokens.length > 0 &&
+    tokens.length <= 6 &&
+    tokens.every(t => VOCABULARIO_SALUDO.has(t)) &&
+    tokens.some(t => NUCLEO_SALUDO.has(t));
+
+  const productoNoP4 =
+    MENCIONA_ETIQUETA.test(textoTurnoPlano)
+      ? null
+      : PRODUCTOS_NO_P4.find(p => p.patron.test(textoTurnoPlano)) ?? null;
+
+  if (esSaludoSimple) {
+    reglaPreIA = 'SALUDO_SIMPLE';
+
+    decisionPreIA = {
+      ...decisionBase(),
+      respuesta_sugerida:
+        `${saludoHorario(textoTurnoPlano)} 🤗 ¿En qué podemos ayudarle?`
+    };
+  } else if (productoNoP4) {
+    reglaPreIA = 'PRODUCTO_NO_P4';
+
+    productoNoP4Detectado = productoNoP4.producto;
+
+    decisionPreIA = {
+      ...decisionBase(),
+      intencion: 'SOLICITAR_COTIZACION',
+      accion: 'DERIVAR_HUMANO',
+      requiere_humano: true,
+      motivo_derivacion: 'COTIZACION_ESPECIAL',
+      respuesta_sugerida: RESPUESTA_TRANSICION_NO_P4
+    };
+  }
+}
+
+
+// ======================================================
 // 11. SALIDA
 // ======================================================
 
@@ -1908,7 +2251,33 @@ return [
         ultimoMensajeSaliente,
 
       mensajes_salientes_recientes:
-        mensajesSalientesRecientes
+        mensajesSalientesRecientes,
+
+      ultimo_saliente:
+        ultimoSaliente,
+
+      medidas_ya_solicitadas:
+        medidasYaSolicitadas,
+
+
+      // ==================================================
+      // REGLAS PRE-IA
+      // ==================================================
+
+      regla_pre_ia:
+        reglaPreIA,
+
+      producto_no_p4:
+        productoNoP4Detectado,
+
+      requiere_cerebro_comercial:
+        decisionPreIA === null,
+
+      ...(
+        decisionPreIA
+          ? { decision: decisionPreIA }
+          : {}
+      )
     }
   }
 ];

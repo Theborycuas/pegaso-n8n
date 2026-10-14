@@ -19,8 +19,12 @@
 // ======================================================
 // PREPARAR ENVÍO WHATSAPP - YCLOUD
 // PEGASO ADHESIVOS
-// VERSION: 2.0
+// VERSION: 2.1
 // ======================================================
+//
+// V2.1: no envía si el texto persistido es el marcador
+// [RESPUESTA AUTOMÁTICA OMITIDA ...] de "Preparar respuesta
+// comercial" (motivo_no_envio = RESPUESTA_OMITIDA_DUPLICADA).
 //
 // Puede recibir datos desde distintas rutas:
 //
@@ -608,7 +612,19 @@ const tipoYCloud =
 // 11. DECIDIR SI SE ENVÍA
 // ======================================================
 
+const respuestaOmitida =
+  String(textoSalida ?? '')
+    .trim()
+    .startsWith('[RESPUESTA AUTOMÁTICA OMITIDA') ||
+  (
+    prepararRespuestaComercial.omitir_envio === true &&
+    String(textoSalida ?? '').trim() ===
+      String(prepararRespuestaComercial.respuesta_final ?? '').trim()
+  );
+
+
 const enviarWhatsApp =
+  !respuestaOmitida &&
   vieneDeWhatsAppReal &&
   vieneDeYCloud &&
   esTexto &&
@@ -627,7 +643,14 @@ let motivoNoEnvio =
 
 if (!enviarWhatsApp) {
 
-  if (!vieneDeWhatsAppReal) {
+  if (respuestaOmitida) {
+
+    motivoNoEnvio =
+      'RESPUESTA_OMITIDA_DUPLICADA';
+
+  }
+
+  else if (!vieneDeWhatsAppReal) {
 
     motivoNoEnvio =
       'EJECUCION_NO_ORIGINADA_EN_WEBHOOK_WHATSAPP';

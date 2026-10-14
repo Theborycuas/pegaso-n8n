@@ -19,6 +19,13 @@
 // ======================================================
 // PREPARAR MENSAJE HUMANO SALIENTE
 // PEGASO ADHESIVOS
+// VERSION 1.1
+// RESPONSABILIDAD:
+// - Armar la fila SALIENTE del echo de WhatsApp Business
+//   (humano o automatización) para "Guardar mensaje humano
+//   saliente", conservando mensaje_externo_id.
+// - origen_mensaje / intervencion_humana vienen de
+//   "Normalizar intervención humana".
 // ======================================================
 
 const conversacion =
@@ -86,10 +93,11 @@ return [
         true,
 
       origen_mensaje:
+        evento.origen_mensaje ??
         'HUMANO',
 
       intervencion_humana:
-        true
+        evento.intervencion_humana !== false
 
     }
   }

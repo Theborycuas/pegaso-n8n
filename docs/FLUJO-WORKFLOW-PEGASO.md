@@ -3,7 +3,7 @@
 Recorrido completo del workflow de producción: qué hace cada nodo, de quién recibe datos y a quién los envía.
 
 > **Fuente:** versión de producción con `updatedAt 2026-10-13T16:28:08.664Z` (`versionId 3e62b91c…`), descargada vía Node (sin mojibake).
-> **Contenido:** 182 nodos, 219 conexiones (207 de flujo `main`, 9 de modelo de lenguaje `ai_languageModel`, 3 de parser `ai_outputParser`).
+> **Contenido:** 184 nodos, 221 conexiones (209 de flujo `main`, 9 de modelo de lenguaje `ai_languageModel`, 3 de parser `ai_outputParser`).
 > Si el workflow cambia, este documento debe actualizarse a mano (ver §17).
 
 Documentos relacionados: [ARQUITECTURA-PEGASO-N8N.md](ARQUITECTURA-PEGASO-N8N.md) (repo y scripts) · [GUIA-USO-PEGASO-N8N.md](GUIA-USO-PEGASO-N8N.md) (runbook).
@@ -130,9 +130,9 @@ flowchart TD
 
 | Nodo | Tipo | Qué hace | Recibe de | Envía a |
 |---|---|---|---|---|
-| Normalizar evento WhatsApp | Code | Detecta el origen del webhook (YCloud inbound `whatsapp.inbound_message.received`, YCloud eco de WhatsApp Business `whatsapp.smb.message.echoes`, Meta Cloud API `body.entry`) y produce un `evento_whatsapp` uniforme: teléfono, nombre, id, tipo, texto, multimedia. Marca los mensajes enviados manualmente por Pegaso. No guarda nada | Webhook YCloud | IF: ¿Comando administrador? |
+| Normalizar evento WhatsApp | Code | Detecta el origen del webhook (YCloud inbound `whatsapp.inbound_message.received`, YCloud eco de WhatsApp Business `whatsapp.smb.message.echoes`, Meta Cloud API `body.entry`) y produce un `evento_whatsapp` uniforme: teléfono, nombre, id, tipo, texto, multimedia. Clasifica `clasificacion_mensaje`: `ENTRANTE_CLIENTE` (inbound), `SALIENTE_AUTOMATICO` (eco cuyo texto coincide con una automatización de WhatsApp Business de la lista `AUTOMATIZACIONES_WHATSAPP_BUSINESS`; expone `accion_equivalente`, por ejemplo `PEDIR_MEDIDAS` o `SALUDO`) o `SALIENTE_HUMANO` (cualquier otro eco). Todo eco tiene `direccion = SALIENTE`. Expone `es_lead_anuncio` y `anuncio` desde `referral` del inbound (anuncios click-to-WhatsApp). No guarda nada | Webhook YCloud | IF: ¿Comando administrador? |
 | IF: ¿Comando administrador? | IF (expresión sobre teléfono y texto del evento) | Detecta comandos de administración | Normalizar evento WhatsApp | [T] Procesar comando BOT · [F] IF: ¿Mensaje humano de Pegaso? |
-| IF: ¿Mensaje humano de Pegaso? | IF `evento_whatsapp.es_mensaje_humano_pegaso` | Separa los mensajes que un humano de Pegaso envió desde WhatsApp Business | IF: ¿Comando administrador? [F] | [T] Normalizar intervención humana · [F] If: ¿Evento WhatsApp procesable? |
+| IF: ¿Mensaje humano de Pegaso? | IF `evento_whatsapp.direccion === 'SALIENTE'` o `es_mensaje_humano_pegaso` | Separa **todo** eco saliente de WhatsApp Business (humano o automático): un eco nunca entra como mensaje del cliente ni llega al cerebro | IF: ¿Comando administrador? [F] | [T] Normalizar intervención humana · [F] If: ¿Evento WhatsApp procesable? |
 | If: ¿Evento WhatsApp procesable? | IF `evento_whatsapp.procesable` | Descarta eventos que no son mensajes procesables (por ejemplo estados) | IF: ¿Mensaje humano de Pegaso? [F] | [T] Preparar entrada WhatsApp · [F] **fin** |
 | Preparar entrada WhatsApp | Code | Valida teléfono e id; traduce el tipo a enum interno (`TEXTO`, `IMAGEN`, `AUDIO`, `VIDEO`, `DOCUMENTO`, `STICKER`, …). Para imagen/audio crea un descriptor `[IMAGEN]/[AUDIO]` + `[MEDIA_PENDIENTE] {json}` que se guarda en `mensajes.contenido`. Emite `apto_para_flujo_conversacional` | If: ¿Evento WhatsApp procesable? [T] | IF: ¿Entrada soportada por el flujo? |
 | IF: ¿Entrada soportada por el flujo? | IF `apto_para_flujo_conversacional` | Separa entradas que el bot puede atender | Preparar entrada WhatsApp | [T] Normalizar mensaje · [F] Preparar entrada no soportada |
@@ -157,7 +157,9 @@ flowchart LR
 
 ## 6. Intervención humana desde WhatsApp de Pegaso
 
-Cuando alguien de Pegaso escribe al cliente desde WhatsApp Business, el bot registra ese mensaje y marca al prospecto como atendido por humano.
+Cuando alguien de Pegaso escribe al cliente desde WhatsApp Business, el bot registra ese mensaje y marca al prospecto como atendido por humano. Las respuestas automáticas de WhatsApp Business (saludo, respuesta de anuncio) siguen la misma ruta: se registran como SALIENTE con el prefijo `[AUTOMATICO WHATSAPP BUSINESS · accion=...]`, pero **no** marcan `requiere_humano`.
+
+Origen de cada SALIENTE en `mensajes` (sin columnas nuevas): sin `mensaje_externo_id` → lo envió el bot; con `mensaje_externo_id` y el prefijo anterior → automatización de WhatsApp Business; con `mensaje_externo_id` sin prefijo → humano.
 
 ```mermaid
 flowchart TD
@@ -170,13 +172,13 @@ flowchart TD
 
 | Nodo | Tipo | Qué hace | Recibe de | Envía a |
 |---|---|---|---|---|
-| Normalizar intervención humana | Code | Para mensajes de Pegaso: cliente = destinatario (`TO`), Pegaso = emisor. Extrae teléfono del cliente, tipo y contenido | IF: ¿Mensaje humano de Pegaso? [T] | Buscar prospecto intervención humana |
+| Normalizar intervención humana | Code | Para mensajes de Pegaso: cliente = destinatario (`TO`), Pegaso = emisor. Extrae teléfono del cliente, tipo y contenido. Emite `intervencion_humana` (`false` para automatizaciones) y `origen_mensaje` (`HUMANO` / `AUTOMATICO_WHATSAPP_BUSINESS`); al contenido automático le antepone `[AUTOMATICO WHATSAPP BUSINESS · accion=...]` | IF: ¿Mensaje humano de Pegaso? [T] | Buscar prospecto intervención humana |
 | Buscar prospecto intervención humana | Postgres (SQL) | `SELECT` en `prospectos` por teléfono (solo dígitos), canal `WHATSAPP`, activo | Normalizar intervención humana | IF: ¿Prospecto encontrado? |
 | IF: ¿Prospecto encontrado? | IF `prospecto_id > 0` | | Buscar prospecto… | [T] Marcar prospecto requiere humano2 · [F] **fin** |
-| Marcar prospecto requiere humano2 | Postgres (SQL) | `UPDATE prospectos SET requiere_humano = TRUE, ultima_accion = 'DERIVAR_HUMANO'` | IF [T] | Buscar conversación intervención humana |
+| Marcar prospecto requiere humano2 | Postgres (SQL) | `UPDATE prospectos`: si `intervencion_humana` es verdadera, `requiere_humano = TRUE` y `ultima_accion = 'DERIVAR_HUMANO'`; un eco automático solo toca `actualizado_at` (nunca apaga una bandera ya levantada) | IF [T] | Buscar conversación intervención humana |
 | Buscar conversación intervención humana | Postgres (SQL) | `SELECT` la conversación WhatsApp más reciente del prospecto | Marcar prospecto requiere humano2 | IF ¿Conversación encontrada? |
 | IF ¿Conversación encontrada? | IF `conversacion_id > 0` | | Buscar conversación… | [T] Preparar mensaje humano saliente · [F] **fin** |
-| Preparar mensaje humano saliente | Code | Arma la fila del mensaje SALIENTE escrito por el humano. Lee además: Normalizar intervención humana | IF [T] | Guardar mensaje humano saliente |
+| Preparar mensaje humano saliente | Code | Arma la fila SALIENTE del eco (humano o automático) conservando `mensaje_externo_id`, `origen_mensaje` e `intervencion_humana`. Lee además: Normalizar intervención humana | IF [T] | Guardar mensaje humano saliente |
 | Guardar mensaje humano saliente | Postgres (SQL) | `INSERT INTO mensajes` (`SALIENTE`, procesado) con `ON CONFLICT (mensaje_externo_id) DO NOTHING` | Preparar mensaje humano saliente | Actualizar conversación por intervención humana |
 | Actualizar conversación por intervención humana | Postgres (SQL) | `UPDATE conversaciones SET ultimo_mensaje_at` | Guardar mensaje humano saliente | — (**fin**) |
 
@@ -236,7 +238,7 @@ flowchart TD
 | Guardar mensaje entrante | Postgres insert `mensajes` | Guarda el mensaje ENTRANTE (`procesado`, conversación, cliente, dirección, tipo, contenido, id externo, fecha) | Preparar conversación | IF: ¿Derivación directa por entrada? |
 | IF: ¿Derivación directa por entrada? | IF `$json.puede_responder_bot` | Pretende enviar directo a humano las entradas no soportadas. **Ver §18: la condición parece incorrecta** | Guardar mensaje entrante | [T] Preparar handoff entrada no soportada · [F] Obtener configuración MODO_PRUEBA |
 | Obtener configuración MODO_PRUEBA | Postgres (SQL) | `SELECT` en `configuracion_bot` de las claves `MODO_PRUEBA` y `DEBOUNCE_WHATSAPP` | IF [F] | Resolver permiso automatización |
-| Resolver permiso automatización | Code | Si MODO_PRUEBA está inactivo, el bot atiende a todos; si está activo, solo a teléfonos autorizados. Ante configuración ausente o inválida asume MODO_PRUEBA activo (seguro). Emite `puede_responder_bot`, `motivo_bloqueo_bot` y la configuración de debounce (`debounce_segundos`). Lee además: Normalizar mensaje, Preparar conversación | Obtener configuración MODO_PRUEBA | IF: ¿Puede responder el BOT? |
+| Resolver permiso automatización | Code | Si MODO_PRUEBA está inactivo, el bot atiende a todos; si está activo, solo a teléfonos autorizados. Ante configuración ausente o inválida asume MODO_PRUEBA activo (seguro). Emite `puede_responder_bot`, `motivo_bloqueo_bot` y la configuración de debounce (`debounce_segundos`, `debounce_motivo`). En primer contacto (lead de anuncio, conversación nueva o sin turno del bot en 24 h) usa `debounce_primer_contacto_ms` de `DEBOUNCE_WHATSAPP` (10 s por defecto, máximo 15 s) para que el eco automático de WhatsApp Business llegue antes de resolver el turno. Lee además: Normalizar mensaje, Preparar conversación, Normalizar evento WhatsApp | Obtener configuración MODO_PRUEBA | IF: ¿Puede responder el BOT? |
 | IF: ¿Puede responder el BOT? | IF `puede_responder_bot` | | Resolver permiso automatización | [T] ¿Requiere atención humana? · [F] Finalizar mensaje modo prueba |
 | Finalizar mensaje modo prueba | Code | Cierre sin IA, sin cotizar y sin responder (el mensaje ya quedó guardado) | IF [F] | — (**fin**) |
 | ¿Requiere atención humana? | IF `$('Unificar prospecto').first().json.prospecto_requiere_humano` | Si el prospecto ya está con un humano, el bot no responde | IF: ¿Puede responder el BOT? [T] | [T] Finalizar mensaje atención humana · [F] Wait |
@@ -265,7 +267,7 @@ flowchart TD
 
 | Nodo | Tipo | Qué hace | Recibe de | Envía a |
 |---|---|---|---|---|
-| Resolver turno conversacional | Code | Decide si esta ejecución corresponde al **último** mensaje ENTRANTE (gana el último). Si llegó uno posterior, devuelve `continuar_procesamiento = false` (`DEBOUNCE_SUPERSEDED`). Si es el último, arma el turno con los ENTRANTES no procesados posteriores al último SALIENTE. Ignora reenvíos del mismo id externo. Lee además: Guardar mensaje entrante, Unificar conversación, Preparar conversación, Unificar prospecto, Resolver prospecto, Resolver permiso automatización | Recuperar historial conversación | IF: ¿Procesar turno? |
+| Resolver turno conversacional | Code | Decide si esta ejecución corresponde al **último** mensaje ENTRANTE (gana el último). Si llegó uno posterior, devuelve `continuar_procesamiento = false` (`DEBOUNCE_SUPERSEDED`). Guardia humana posterior a la espera: si hay un SALIENTE humano posterior a este mensaje o de hace menos de 10 minutos, no procesa (`ATENCION_HUMANA`). Si es el último, arma el turno con los ENTRANTES no procesados posteriores al último SALIENTE (los ecos automáticos de WhatsApp Business no cortan el turno). Ignora reenvíos del mismo id externo. Lee además: Guardar mensaje entrante, Unificar conversación, Preparar conversación, Unificar prospecto, Resolver prospecto, Resolver permiso automatización | Recuperar historial conversación | IF: ¿Procesar turno? |
 | IF: ¿Procesar turno? | IF `continuar_procesamiento` | | Resolver turno conversacional | [T] Preparar media del turno · [F] **fin** |
 | Preparar media del turno | Code | Busca imágenes `[MEDIA_PENDIENTE]` del turno; revalida MIME (JPEG/PNG/WebP) y que el enlace sea de YCloud (anti-SSRF); límite por turno. Emite un item por imagen (`analizar_imagen = true`) o uno solo con `false`. Lee además: Resolver turno conversacional, Preparar conversación | IF: ¿Procesar turno? [T] | IF: ¿Hay imágenes por analizar? |
 | IF: ¿Hay imágenes por analizar? | IF `analizar_imagen` | | Preparar media del turno | [T] Descargar imagen YCloud · [F] Preparar audio del turno |
@@ -330,7 +332,9 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    PCI[Preparar contexto IA] --> CG[Cerebro comercial Groq] --> VCG[Validar extracción Cerebro comercial] --> G1{If GROQ1}
+    PCI[Preparar contexto IA] --> RCB{IF: ¿Requiere cerebro comercial?}
+    RCB -->|T| CG[Cerebro comercial Groq] --> VCG[Validar extracción Cerebro comercial] --> G1{If GROQ1}
+    RCB -->|F| NDI
     G1 -->|T| NDI[Normalizar decisión IA]
     G1 -->|F| CD[Cerebro comercial DeepSeek] --> VCD[Validar extracción DeepSeek1] --> I{If}
     I -->|T| NDI
@@ -343,8 +347,9 @@ flowchart TD
 
 | Nodo | Tipo | Qué hace | Recibe de | Envía a |
 |---|---|---|---|---|
-| Preparar contexto IA | Code | Construye el contexto final del cerebro: identidad y memoria comercial (de Preparar conversación), turno enriquecido (audios transcritos, análisis de imagen válido, medidas detectadas en imágenes) e historial. Lee además: Preparar conversación, Resolver turno conversacional, Recuperar historial conversación | IF: ¿Hay audios…? [F] · IF: ¿Audio listo para cerebro? [T] | Cerebro comercial Groq |
-| Cerebro comercial Groq | Information Extractor (modelo: Groq Chat Model1; schema manual) | Interpreta la conversación y decide intención, acción, datos de cotización, clasificación y respuesta sugerida | Preparar contexto IA | Validar extracción Cerebro comercial |
+| Preparar contexto IA | Code | Construye el contexto final del cerebro: identidad y memoria comercial (de Preparar conversación), turno enriquecido (audios transcritos, análisis de imagen válido, medidas detectadas en imágenes) e historial (sin marcadores de respuesta omitida). Expone `ultimo_saliente` (origen BOT / AUTOMATICO / HUMANO, `accion_equivalente`, `posterior_al_turno`) y `medidas_ya_solicitadas`. Reglas pre-IA solo para texto sin multimedia: `SALUDO_SIMPLE` (todas las palabras son de saludo; respuesta fija "Buenas tardes 🤗 ¿En qué podemos ayudarle?" según el saludo del cliente o la hora de Ecuador) y `PRODUCTO_NO_P4` (tarjetas de presentación, flyers/volantes, carpetas, talonarios, boletos, entradas, formularios, hojas membretadas, trípticos, afiches, brochures, sin mencionar etiquetas/stickers/adhesivos). Si una regla aplica emite `decision` con el contrato del cerebro y `requiere_cerebro_comercial = false`. Lee además: Preparar conversación, Resolver turno conversacional, Recuperar historial conversación | IF: ¿Hay audios…? [F] · IF: ¿Audio listo para cerebro? [T] | IF: ¿Requiere cerebro comercial? |
+| IF: ¿Requiere cerebro comercial? | IF `requiere_cerebro_comercial !== false` | Salta los tres proveedores de IA cuando una regla pre-IA ya decidió | Preparar contexto IA | [T] Cerebro comercial Groq · [F] Normalizar decisión IA |
+| Cerebro comercial Groq | Information Extractor (modelo: Groq Chat Model1; schema manual) | Interpreta la conversación y decide intención, acción, datos de cotización, clasificación y respuesta sugerida | IF: ¿Requiere cerebro comercial? [T] | Validar extracción Cerebro comercial |
 | Validar extracción Cerebro comercial | Code | Valida el contrato del cerebro: enums, tipos, respuesta sugerida (tono, anti-repetición), cotización P4, medidas no producibles (lado ≤ 1 cm), derivación, clasificación A/B/C, motivo y notificación. Emite `valid`. Lee además: Preparar contexto IA | Cerebro comercial Groq | If GROQ1 |
 | If GROQ1 | IF `valid` | | Validar extracción Cerebro comercial | [T] Normalizar decisión IA · [F] Cerebro comercial DeepSeek |
 | Cerebro comercial DeepSeek | Information Extractor (modelo: DeepSeek Chat Model1) | Mismo prompt con DeepSeek | If GROQ1 [F] | Validar extracción DeepSeek1 |
@@ -354,12 +359,12 @@ flowchart TD
 | Validar extracción OpenApi1 | Code | Misma validación (copia). Lee además: Preparar contexto IA | Cerebro comercial OpenAI | If3 |
 | If3 | IF `valid` | | Validar extracción OpenApi1 | [T] Normalizar decisión IA · [F] Error ninguna IA funciono cerebro |
 | Error ninguna IA funciono cerebro | Code | Devuelve `ALL_AI_FAILED` | If3 [F] | — (**fin**, el cliente no recibe respuesta) |
-| Normalizar decisión IA | Code | Convierte la decisión validada (de cualquier proveedor) en un contrato único, la une al contexto (ids, prospecto, actor, contexto comercial), resuelve ciudad/provincia y aplica evidencia multimedia (comprobante → `REPORTAR_PAGO` + `DERIVAR_HUMANO`; imagen/archivo que requiere revisión → `DERIVAR_HUMANO`). Lee además: Preparar contexto IA | If GROQ1 [T] · If [T] · If3 [T] | Resolver contexto comercial |
-| Resolver contexto comercial | Code | Consolida datos nuevos con el contexto persistido: medidas como par atómico, forma derivada, cantidad por defecto 1000 si hay medidas (no se pregunta cantidad), detecta cambios reales para recotizar, resuelve la acción final (humano siempre se respeta; acciones informativas se preservan). Si la cantidad cotizable es **≥ 6000** fuerza `DERIVAR_HUMANO` (`motivo_derivacion = COTIZACION_ESPECIAL`, `regla_derivacion = CANTIDAD_MAYORISTA`) antes de `COTIZAR_P4`. Lee además: Preparar contexto IA | Normalizar decisión IA | Aplicar reglas comerciales determinísticas |
+| Normalizar decisión IA | Code | Convierte la decisión validada (de cualquier proveedor) en un contrato único, la une al contexto (ids, prospecto, actor, contexto comercial), resuelve ciudad/provincia y aplica evidencia multimedia (comprobante → `REPORTAR_PAGO` + `DERIVAR_HUMANO`; imagen/archivo que requiere revisión → `DERIVAR_HUMANO`). Acepta la `decision` de la regla pre-IA (`input.decision`). Lee además: Preparar contexto IA | If GROQ1 [T] · If [T] · If3 [T] · IF: ¿Requiere cerebro comercial? [F] | Resolver contexto comercial |
+| Resolver contexto comercial | Code | Consolida datos nuevos con el contexto persistido: medidas como par atómico, forma derivada, cantidad por defecto 1000 si hay medidas (no se pregunta cantidad), detecta cambios reales para recotizar, resuelve la acción final (humano siempre se respeta; acciones informativas se preservan). Si la cantidad cotizable es **≥ 6000** fuerza `DERIVAR_HUMANO` (`motivo_derivacion = COTIZACION_ESPECIAL`, `regla_derivacion = CANTIDAD_MAYORISTA`) antes de `COTIZAR_P4`. `PRODUCTO_NO_P4` → `DERIVAR_HUMANO` (`COTIZACION_ESPECIAL`, `regla_derivacion = PRODUCTO_NO_P4`, guarda `contexto_comercial.producto_no_p4`). Fecha pedida por el cliente ("para el 15", "para el viernes", "15 de octubre", "lo necesito para…") o respuesta de IA que promete fecha → responde la metodología semanal (pedidos lunes a miércoles, producción miércoles y jueves, entregas viernes desde las 17:00) y guarda `contexto_comercial.fecha_deseada_cliente`; nunca confirma la fecha. `PEDIR_MEDIDAS` con medidas ya solicitadas → "Gracias. Para cotizar sus etiquetas solo nos falta …" si el turno aporta datos, u `omitir_envio` si no. `omitir_envio` también cuando un eco automático posterior al inicio del turno ya cubrió la misma acción. Lee además: Preparar contexto IA | Normalizar decisión IA | Aplicar reglas comerciales determinísticas |
 | Aplicar reglas comerciales determinísticas | Code | Reglas objetivas con prioridad sobre la IA (medida mínima: lado ≤ 1 cm no producible; limpia restricciones previas si la nueva medida es válida). Conserva todo el contrato | Resolver contexto comercial | Guardar contexto comercial |
 | Guardar contexto comercial | Postgres update `conversaciones` | Persiste `contexto_comercial` y `ultimo_mensaje_at` | Aplicar reglas… | Preparar actualización prospecto |
-| Preparar actualización prospecto | Code | Prepara los campos de `prospectos` (producto de interés, ciudad, provincia, intención, acción, requiere humano, estado) conservando valores previos si no hay nuevos | Guardar contexto comercial | Actualizar prospecto comercial |
-| Actualizar prospecto comercial | Postgres update `prospectos` | Persiste esos campos | Preparar actualización prospecto | Recuperar decisión comercial |
+| Preparar actualización prospecto | Code | Prepara los campos de `prospectos` (producto de interés, ciudad, provincia, intención, acción, estado) conservando valores previos si no hay nuevos. Toma la decisión de `Resolver contexto comercial` (su entrada es solo la fila del UPDATE). No persiste `requiere_humano`. Lee además: Resolver contexto comercial | Guardar contexto comercial | Actualizar prospecto comercial |
+| Actualizar prospecto comercial | Postgres update `prospectos` | Persiste esos campos (sin `requiere_humano`: esa bandera solo la levantan las rutas de derivación e intervención humana) | Preparar actualización prospecto | Recuperar decisión comercial |
 | Recuperar decisión comercial | Code | Recupera el contrato definitivo de "Resolver contexto comercial" (el UPDATE solo devuelve la fila). Lee además: Resolver contexto comercial | Actualizar prospecto comercial | Enrutar acción comercial |
 | Enrutar acción comercial | Switch (por `accion`, 20 reglas + salida *fallback*) | Distribuye según la acción decidida | Recuperar decisión comercial | Ver tabla siguiente |
 
@@ -394,7 +399,7 @@ flowchart TD
 
 | Nodo | Tipo | Qué hace | Recibe de | Envía a |
 |---|---|---|---|---|
-| Preparar respuesta comercial | Code | Toma la respuesta decidida; anti-repetición: si es idéntica al último saliente, usa una salida neutra pidiendo precisión | Enrutar acción comercial (salidas 1–12, 17, 18, 20) | Guardar mensaje saliente |
+| Preparar respuesta comercial | Code | Toma la respuesta decidida. Si la decisión trae `omitir_envio` o la respuesta es idéntica al último saliente (de `Preparar contexto IA`), `respuesta_final` queda como marcador `[RESPUESTA AUTOMÁTICA OMITIDA · motivo=...]`: se guarda como SALIENTE (cierra el turno) pero no se envía. Lee además: Preparar contexto IA | Enrutar acción comercial (salidas 1–12, 17, 18, 20) | Guardar mensaje saliente |
 | Guardar mensaje saliente | Postgres insert `mensajes` | Guarda la respuesta SALIENTE | Preparar respuesta comercial | Marcar mensaje entrante procesado **y** Preparar envío WhatsApp (en paralelo) |
 | Marcar mensaje entrante procesado | Postgres update `mensajes` (por `mensaje_externo_id`) | `procesado = true` | Guardar mensaje saliente | Actualizar actividad conversación |
 | Actualizar actividad conversación | Postgres update `conversaciones` | `ultimo_mensaje_at` | Marcar mensaje entrante procesado | Resolver estado prospecto |
@@ -540,7 +545,7 @@ flowchart LR
 
 | Nodo | Tipo | Qué hace | Recibe de | Envía a |
 |---|---|---|---|---|
-| Preparar envío WhatsApp | Code | Punto único de envío. Resuelve el texto (prioriza el contenido persistido), el teléfono destino, confirma que la ejecución nació de un WhatsApp real (evita envíos en TEST/manual), resuelve proveedor YCloud y número emisor, y construye `ycloud_request`. Emite `enviar_whatsapp`. Recupera contexto de las tres rutas con lectura segura (`{}` si un nodo no participó) | Guardar mensaje saliente · Guardar mensaje comercial · Guardar mensaje transición humano | If:¿Enviar por WhatsApp? |
+| Preparar envío WhatsApp | Code | Punto único de envío. Resuelve el texto (prioriza el contenido persistido), el teléfono destino, confirma que la ejecución nació de un WhatsApp real (evita envíos en TEST/manual), resuelve proveedor YCloud y número emisor, y construye `ycloud_request`. Emite `enviar_whatsapp`; nunca envía el marcador de respuesta omitida (`motivo_no_envio = RESPUESTA_OMITIDA_DUPLICADA`). Recupera contexto de las tres rutas con lectura segura (`{}` si un nodo no participó) | Guardar mensaje saliente · Guardar mensaje comercial · Guardar mensaje transición humano | If:¿Enviar por WhatsApp? |
 | If:¿Enviar por WhatsApp? | IF `enviar_whatsapp` | | Preparar envío WhatsApp | [T] YCloud Enviar Wts · [F] **fin** |
 | YCloud Enviar Wts | HTTP POST `api.ycloud.com/v2/whatsapp/messages` (credencial Header Auth) | Envía el mensaje al cliente | If [T] | — (**fin**) |
 
@@ -583,14 +588,14 @@ flowchart LR
 | ¿Cliente existente? [T] | Cliente registrado (sin rama implementada) |
 | Finalizar mensaje modo prueba | Teléfono no autorizado con MODO_PRUEBA activo |
 | Finalizar mensaje atención humana | Prospecto ya atendido por humano |
-| IF: ¿Procesar turno? [F] | Llegó otro mensaje durante la espera (lo atiende la ejecución más reciente) |
+| IF: ¿Procesar turno? [F] | Llegó otro mensaje durante la espera (lo atiende la ejecución más reciente) o un humano de Pegaso escribió hace menos de 10 minutos (`ATENCION_HUMANA`) |
 | IF: ¿Audio listo para cerebro? [F] | Sin conexión |
 | Error ninguna IA funciono cerebro / Error ninguna IA funciono | Fallaron los 3 proveedores (sin respuesta al cliente) |
 | Enrutar acción comercial salidas 13–16 | `REGISTRAR_ACEPTACION`, `ENVIAR_DATOS_PAGO`, `VALIDAR_ABONO` (sin respuesta) |
 | EXECUTOR MOMENTANEP | Fin de respuesta comercial |
 | Finalizar cotización comercial | Fin de cotización |
 | Brevo (ok) / Resend | Fin de notificación interna |
-| YCloud Enviar Wts / If:¿Enviar por WhatsApp? [F] | Fin del envío al cliente |
+| YCloud Enviar Wts / If:¿Enviar por WhatsApp? [F] | Fin del envío al cliente (incluye respuestas omitidas por duplicado) |
 
 ### Mantener este documento
 
@@ -603,7 +608,7 @@ Al crear, renombrar, conectar o eliminar un nodo, actualiza la ficha de su etapa
 Detectados al documentar. Son hechos del workflow actual; **no se ha cambiado nada**. Verificar con ejecuciones reales antes de corregir.
 
 1. **`IF: ¿Derivación directa por entrada?` evalúa `$json.puede_responder_bot`.** Su entrada es la fila devuelta por `Guardar mensaje entrante` y ese campo se crea más tarde, en `Resolver permiso automatización`. `Preparar entrada no soportada` marca `requiere_humano_entrada`, no `puede_responder_bot`. Probablemente la rama *true* (handoff directo de entradas no soportadas) nunca se ejecuta y esas entradas siguen hacia el cerebro comercial.
-2. **`¿Cliente existente?` [T] no está conectado**: si el teléfono pertenece a un cliente registrado en `contactos`, la ejecución termina sin guardar el mensaje ni responder.
+2. **`¿Cliente existente?` [T] no está conectado**: si el teléfono pertenece a un cliente registrado en `contactos`, la ejecución termina sin guardar el mensaje ni responder. Conectarlo a la ruta de prospectos haría que el bot conteste a clientes (incluidas cotizaciones automáticas) y que la intervención humana, que busca por `prospectos`, no los encuentre: el eco humano no levantaría la bandera ni se registraría. Requiere decidir antes qué debe hacer el bot con clientes.
 3. **`Enrutar acción comercial`**: las acciones `REGISTRAR_ACEPTACION` (regla duplicada en las salidas 13 y 14), `ENVIAR_DATOS_PAGO` y `VALIDAR_ABONO` no tienen destino. Si el cerebro las devuelve, el cliente no recibe respuesta. Ya se guardaron el contexto comercial y el prospecto.
 4. **`IF: ¿Requiere notificación?`** envía *true* y *false* al mismo nodo, así que el IF no filtra: siempre se prepara y envía el email (salvo que `Peparar notificacion humano` lo decida internamente).
 5. **Fallo total de IA sin respuesta**: `Error ninguna IA funciono` y `Error ninguna IA funciono cerebro` terminan el flujo sin avisar al cliente ni a Pegaso.
@@ -616,3 +621,8 @@ Detectados al documentar. Son hechos del workflow actual; **no se ha cambiado na
 12. **Nodos aislados** (§17): cuatro nodos sin uso en el flujo.
 13. **La decisión de `Aplicar reglas comerciales determinísticas` no llega al Switch.** `Recuperar decisión comercial` lee `$('Resolver contexto comercial')`, así que la `accion` que fija ese nodo (por ejemplo `RESPONDER_NO_PRODUCIBLE`) no se usa para enrutar; solo se persiste su `contexto_comercial`. Por eso las reglas que deben cambiar la ruta (como cantidad ≥ 6000 → `DERIVAR_HUMANO`) viven en `Resolver contexto comercial`.
 14. **Pedidos mixtos con un detalle ≥ 6000** (por ejemplo "1000 de 5x5 y 8000 de 10x10") pueden llegar al extractor si el cerebro resume la cantidad en 1000. `Aplicar mínimo de impresión` bloquea la cotización con un error antes de insertar, pero el cliente no recibe respuesta. Una ruta limpia a handoff desde la rama de cotización requeriría una conexión nueva.
+15. **Eco que llega durante la llamada a la IA.** La guardia humana de `Resolver turno conversacional` corre después del Wait; si el humano escribe mientras el cerebro responde (unos segundos), el bot puede enviar igualmente su respuesta.
+16. **Eco automático tardío.** El debounce de primer contacto espera 10 s (máximo configurable 15 s). Si la respuesta automática de WhatsApp Business llega después, el bot ya respondió y puede duplicar el saludo o la pregunta de medidas.
+17. **Huellas de automatizaciones.** `AUTOMATIZACIONES_WHATSAPP_BUSINESS` (en `Normalizar evento WhatsApp`) compara el texto de los ecos con las plantillas actuales de WhatsApp Business. Si se cambia una plantilla en la app, hay que actualizar la lista; si no, ese eco se tratará como humano y bloqueará al bot.
+18. **Humano que escribe primero a un número sin prospecto.** `IF: ¿Prospecto encontrado?` [F] termina sin registrar el eco; cuando el cliente responda, el bot no sabrá que hubo un humano.
+19. **Reactivación manual del bot.** Si alguien pone `requiere_humano = FALSE` a mano, el bot vuelve a responder solo cuando han pasado 10 minutos desde el último mensaje humano (guardia de `Resolver turno conversacional`).

@@ -17,19 +17,34 @@
 // ======================================================
 
 // ======================================================
-// PREPARAR RESPUESTA COMERCIAL - V2.2
+// PREPARAR RESPUESTA COMERCIAL - V2.3
 // ======================================================
 //
 // Recibe la decisión comercial resuelta.
 //
 // Defensa adicional:
-// evita enviar exactamente el mismo texto que el último
-// mensaje saliente registrado en el historial reciente.
+// - si la decisión trae omitir_envio (acción ya atendida,
+//   medidas ya solicitadas sin dato nuevo) o la respuesta es
+//   idéntica al último SALIENTE de "Preparar contexto IA",
+//   NO se envía: respuesta_final queda como marcador
+//   [RESPUESTA AUTOMÁTICA OMITIDA · motivo=...] para que el
+//   SALIENTE registrado cierre el turno sin llegar al cliente.
 //
 // ======================================================
 
+const PREFIJO_RESPUESTA_OMITIDA = '[RESPUESTA AUTOMÁTICA OMITIDA';
+
 const items =
   $input.all();
+
+let contextoIA = {};
+
+try {
+  contextoIA =
+    $('Preparar contexto IA').first().json ?? {};
+} catch (error) {
+  contextoIA = {};
+}
 
 
 function normalizarParaComparar(valor) {
@@ -70,8 +85,12 @@ return items.map(
       ).trim();
 
 
+    const omisionSolicitada =
+      data.omitir_envio === true;
+
     if (
-      !respuesta
+      !respuesta &&
+      !omisionSolicitada
     ) {
       throw new Error(
         `La acción ${data.accion ?? 'DESCONOCIDA'} no generó respuesta_sugerida.`
@@ -86,22 +105,31 @@ return items.map(
     const ultimoMensaje =
       String(
         data.ultimo_mensaje_saliente ??
+        contextoIA.ultimo_saliente?.contenido ??
+        contextoIA.ultimo_mensaje_saliente ??
         ''
       ).trim();
 
     const esDuplicado =
+      !omisionSolicitada &&
       ultimoMensaje !== '' &&
       normalizarParaComparar(respuesta) ===
       normalizarParaComparar(ultimoMensaje);
 
+    const omitirEnvio =
+      omisionSolicitada ||
+      esDuplicado;
 
-    if (
-      esDuplicado
-    ) {
-      // No enviamos literalmente el mismo mensaje.
-      // Usamos una salida neutra para solicitar precisión.
+    const motivoOmisionEnvio =
+      omisionSolicitada
+        ? (data.motivo_omision_envio ?? 'OMISION_SOLICITADA')
+        : esDuplicado
+          ? 'RESPUESTA_IDENTICA_A_ULTIMO_SALIENTE'
+          : null;
+
+    if (omitirEnvio) {
       respuesta =
-        '¿Qué parte desea que revisemos o aclaremos por favor?';
+        `${PREFIJO_RESPUESTA_OMITIDA} · motivo=${motivoOmisionEnvio}]`;
     }
 
 
@@ -111,6 +139,12 @@ return items.map(
 
         respuesta_duplicada_evitable:
           esDuplicado,
+
+        omitir_envio:
+          omitirEnvio,
+
+        motivo_omision_envio:
+          motivoOmisionEnvio,
 
         respuesta_final:
           respuesta,

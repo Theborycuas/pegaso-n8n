@@ -12,6 +12,7 @@ n8n guarda todo el workflow como un único JSON, con el código de cada nodo emb
 | [docs/GUIA-USO-PEGASO-N8N.md](docs/GUIA-USO-PEGASO-N8N.md) | Runbook: flujo diario, cómo cambiar nodos y qué hacer ante errores de pull/push |
 | [docs/REGLAS-PARA-CURSOR.md](docs/REGLAS-PARA-CURSOR.md) | Reglas obligatorias para agentes de IA que trabajen en el repo |
 | [docs/FLUJO-WORKFLOW-PEGASO.md](docs/FLUJO-WORKFLOW-PEGASO.md) | Recorrido del workflow nodo por nodo: qué hace cada uno, conexiones, ramas y puntos finales |
+| [docs/reportes/](docs/reportes/README.md) | Reportes de cada intervención: qué se cambió, cómo, por qué y cómo se verificó |
 
 > Las secciones siguientes de este README (Estructura, Encabezado, Flujo de trabajo, Reglas) describen una estructura anterior (`npm run …`, `code/01-entrada/`, `tests/`, `pegaso-whatsapp.map.json`) que ya no existe. La referencia vigente son los tres documentos de arriba.
 

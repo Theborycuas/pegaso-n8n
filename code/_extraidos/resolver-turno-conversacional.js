@@ -19,12 +19,16 @@
 // ======================================================
 // NODO N8N: Resolver turno conversacional
 // ARCHIVO: code/03-conversacion/resolver-turno-conversacional.js
-// VERSION: 1.1
+// VERSION: 1.2
 // RESPONSABILIDAD:
 // - Tras "Esperar ventana de turno", decidir si esta ejecución sigue siendo la del último mensaje ENTRANTE de la conversación (latest-wins por mensajes.id)
 // - Ignorar reenvíos del mismo mensaje_externo_id (reintentos del webhook): solo cuenta la primera fila
 // - Si llegó un mensaje posterior: continuar_procesamiento = false, resultado DEBOUNCE_SUPERSEDED, motivo MENSAJE_POSTERIOR_RECIBIDO (final válido, sin error)
-// - Si es la última: armar el turno con los ENTRANTE con procesado = false posteriores al último SALIENTE anterior y no más antiguos que turno_max_antiguedad_segundos
+// - Guardia humana posterior a la espera: si hay un SALIENTE humano (eco de WhatsApp Business con mensaje_externo_id y sin
+//   prefijo [AUTOMATICO WHATSAPP BUSINESS) posterior a este mensaje o de hace menos de HUMANO_ACTIVO_MINUTOS, no procesar
+//   (resultado ATENCION_HUMANA): el humano escribió durante la ventana y la bandera leída antes del Wait ya no vale
+// - Si es la última: armar el turno con los ENTRANTE con procesado = false posteriores al último SALIENTE anterior (sin contar
+//   ecos automáticos de WhatsApp Business) y no más antiguos que turno_max_antiguedad_segundos
 // - Entregar turno_texto (un mensaje por línea, en orden), los ids y el rango turno_desde_id / turno_hasta_id para "Preparar contexto IA" y "Confirmar turno conversacional"
 // - Conservar identidad de conversación/prospecto/contacto durante toda la rama
 // - Lanzar error solo si falta el id de "Guardar mensaje entrante" o esa fila no aparece en el historial (configuración rota)
@@ -33,6 +37,8 @@
 // ======================================================
 
 const TURNO_MAX_ANTIGUEDAD_SEGUNDOS_DEFECTO = 600;
+const HUMANO_ACTIVO_MINUTOS = 10;
+const PREFIJO_AUTOMATICO_WHATSAPP_BUSINESS = '[AUTOMATICO WHATSAPP BUSINESS';
 
 
 // ======================================================
@@ -102,6 +108,21 @@ function fechaMs(valor) {
   return Number.isFinite(ms)
     ? ms
     : null;
+}
+
+
+// Los SALIENTE del bot se guardan sin mensaje_externo_id;
+// los ecos de WhatsApp Business siempre lo traen.
+function origenSaliente(fila) {
+  if (textoONull(fila.mensaje_externo_id) === null) {
+    return 'BOT';
+  }
+
+  return String(fila.contenido ?? '')
+    .trim()
+    .startsWith(PREFIJO_AUTOMATICO_WHATSAPP_BUSINESS)
+    ? 'AUTOMATICO'
+    : 'HUMANO';
 }
 
 
@@ -580,6 +601,50 @@ if (
 
 
 // ======================================================
+// 9.1 GUARDIA HUMANA POSTERIOR A LA ESPERA
+// ======================================================
+
+const salientesHumanos =
+  filas.filter(
+    fila =>
+      direccion(fila) === 'SALIENTE' &&
+      origenSaliente(fila) === 'HUMANO'
+  );
+
+const ultimoHumano =
+  salientesHumanos.length > 0
+    ? salientesHumanos[salientesHumanos.length - 1]
+    : null;
+
+if (ultimoHumano) {
+
+  const fechaHumano =
+    fechaMs(ultimoHumano.enviado_at);
+
+  const humanoPosterior =
+    ultimoHumano.id > miId;
+
+  const humanoReciente =
+    fechaHumano !== null &&
+    Date.now() - fechaHumano <= HUMANO_ACTIVO_MINUTOS * 60 * 1000;
+
+  if (humanoPosterior || humanoReciente) {
+
+    return noProcesar(
+      'ATENCION_HUMANA',
+      humanoPosterior
+        ? 'HUMANO_RESPONDIO_DURANTE_ESPERA'
+        : 'INTERVENCION_HUMANA_RECIENTE',
+      {
+        ultimo_saliente_humano_id:
+          ultimoHumano.id
+      }
+    );
+  }
+}
+
+
+// ======================================================
 // 10. ARMAR EL TURNO
 // ======================================================
 //
@@ -599,6 +664,9 @@ const ultimoSalienteAnteriorId =
         direccion(
           fila
         ) === 'SALIENTE' &&
+        origenSaliente(
+          fila
+        ) !== 'AUTOMATICO' &&
         fila.id < miId
     )
     .reduce(

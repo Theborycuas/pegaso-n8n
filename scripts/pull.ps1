@@ -1,15 +1,22 @@
 # ======================================================
-# PEGASO N8N - PULL WORKFLOW
+# PEGASO N8N - PULL WORKFLOW SEGURO
 # ======================================================
 #
 # RESPONSABILIDAD:
 # - Identificar exactamente el workflow principal activo.
-# - Descargar el JSON desde n8n.
-# - Guardarlo como UTF-8 SIN BOM.
 # - Crear snapshot local antes de reemplazar.
+# - Descargar el workflow usando download-workflow.mjs
+#   para preservar UTF-8 correctamente.
+# - Sincronizar workflow editable.
+# - Actualizar state/remote-base.json.
 # - Ejecutar extract-code.mjs.
+# - Validar encoding CP850 / box-drawing.
 #
 # NO modifica n8n.
+#
+# IMPORTANTE:
+# - NO transporta el JSON por Out-String.
+# - NO usa PowerShell para decodificar la salida JSON de n8n.
 # ======================================================
 
 $ErrorActionPreference = "Stop"
@@ -22,29 +29,70 @@ $WORKFLOW_FILE = Join-Path `
     $ROOT `
     "workflows\sistema-automatizado-pegaso.json"
 
+$EDIT_FILE = Join-Path `
+    $ROOT `
+    "workflows\sistema-automatizado-pegaso.edit.json"
+
 $SNAPSHOT_DIR = Join-Path `
     $ROOT `
     "snapshots"
+
+$STATE_DIR = Join-Path `
+    $ROOT `
+    "state"
+
+$STATE_FILE = Join-Path `
+    $STATE_DIR `
+    "remote-base.json"
+
+$DOWNLOAD_SCRIPT = Join-Path `
+    $ROOT `
+    "scripts\download-workflow.mjs"
 
 $EXTRACT_SCRIPT = Join-Path `
     $ROOT `
     "scripts\extract-code.mjs"
 
+$CHECK_ENCODING_SCRIPT = Join-Path `
+    $ROOT `
+    "scripts\check-encoding.mjs"
+
 Write-Host ""
 Write-Host "=============================================="
-Write-Host " PEGASO N8N - PULL"
+Write-Host " PEGASO N8N - PULL SEGURO"
 Write-Host "=============================================="
 Write-Host ""
 
 # ------------------------------------------------------
-# 1. BUSCAR WORKFLOW
+# 1. VALIDAR DEPENDENCIAS
 # ------------------------------------------------------
 
-Write-Host "Buscando workflow..."
+if (-not (Test-Path $DOWNLOAD_SCRIPT)) {
+    throw "ERROR: No existe download-workflow.mjs"
+}
 
-$allWorkflows = `
-    n8n-cli workflow list --format=json |
-    ConvertFrom-Json
+if (-not (Test-Path $EXTRACT_SCRIPT)) {
+    throw "ERROR: No existe extract-code.mjs"
+}
+
+# ------------------------------------------------------
+# 2. BUSCAR WORKFLOW ACTIVO
+# ------------------------------------------------------
+
+Write-Host "Buscando workflow activo..."
+
+$allWorkflowsRaw = n8n-cli workflow list --format=json
+
+if ($LASTEXITCODE -ne 0) {
+    throw "ERROR: n8n-cli workflow list terminó con error."
+}
+
+try {
+    $allWorkflows = $allWorkflowsRaw | ConvertFrom-Json
+}
+catch {
+    throw "ERROR: No se pudo interpretar la lista de workflows."
+}
 
 $wf = @(
     $allWorkflows |
@@ -55,7 +103,6 @@ $wf = @(
 )
 
 if ($wf.Count -ne 1) {
-
     throw @"
 ERROR:
 Se esperaba exactamente 1 workflow activo llamado:
@@ -76,7 +123,7 @@ Write-Host "  ID:     $WORKFLOW_ID"
 Write-Host ""
 
 # ------------------------------------------------------
-# 2. SNAPSHOT DEL ARCHIVO LOCAL ACTUAL
+# 3. SNAPSHOT DEL ARCHIVO LOCAL ACTUAL
 # ------------------------------------------------------
 
 if (Test-Path $WORKFLOW_FILE) {
@@ -96,7 +143,8 @@ if (Test-Path $WORKFLOW_FILE) {
 
     Copy-Item `
         $WORKFLOW_FILE `
-        $snapshotFile
+        $snapshotFile `
+        -Force
 
     Write-Host "Snapshot local creado:"
     Write-Host "  $snapshotFile"
@@ -104,42 +152,45 @@ if (Test-Path $WORKFLOW_FILE) {
 }
 
 # ------------------------------------------------------
-# 3. DESCARGAR WORKFLOW
+# 4. DESCARGAR WORKFLOW POR NODE / UTF-8
 # ------------------------------------------------------
 
-Write-Host "Descargando workflow desde n8n..."
+Write-Host "Descargando workflow desde n8n mediante Node..."
+Write-Host ""
 
-$json = `
-    n8n-cli workflow get `
-        $WORKFLOW_ID `
-        --format=json |
-    Out-String
+node $DOWNLOAD_SCRIPT
 
-if ([string]::IsNullOrWhiteSpace($json)) {
-    throw "ERROR: n8n devolvió un workflow vacío."
+if ($LASTEXITCODE -ne 0) {
+    throw "ERROR: download-workflow.mjs terminó con error."
 }
 
-# Eliminar BOM si existiera
-$json = $json.TrimStart([char]0xFEFF)
+if (-not (Test-Path $WORKFLOW_FILE)) {
+    throw "ERROR: download-workflow.mjs no generó el workflow esperado."
+}
+
+Write-Host ""
 
 # ------------------------------------------------------
-# 4. VALIDAR JSON ANTES DE GUARDAR
+# 5. LEER Y VALIDAR WORKFLOW DESCARGADO
 # ------------------------------------------------------
 
 try {
 
-    $parsed = `
-        $json |
-        ConvertFrom-Json
+    $json = [System.IO.File]::ReadAllText(
+        $WORKFLOW_FILE,
+        [System.Text.Encoding]::UTF8
+    )
+
+    $json = $json.TrimStart([char]0xFEFF)
+
+    $parsed = $json | ConvertFrom-Json
 
 }
 catch {
-
-    throw "ERROR: n8n devolvió JSON inválido. No se modificó el archivo local."
+    throw "ERROR: El workflow descargado no contiene JSON válido."
 }
 
 if ($parsed.id -ne $WORKFLOW_ID) {
-
     throw @"
 ERROR:
 El workflow descargado no coincide con el esperado.
@@ -154,31 +205,54 @@ PULL CANCELADO.
 "@
 }
 
-# ------------------------------------------------------
-# 5. GUARDAR UTF-8 SIN BOM
-# ------------------------------------------------------
-
-[System.IO.File]::WriteAllText(
-    $WORKFLOW_FILE,
-    $json,
-    [System.Text.UTF8Encoding]::new($false)
-)
-
-Write-Host ""
-Write-Host "Workflow descargado correctamente."
-Write-Host ""
-Write-Host "  ID:     $($parsed.id)"
-Write-Host "  Nombre: $($parsed.name)"
-Write-Host "  Nodos:  $($parsed.nodes.Count)"
+Write-Host "Workflow validado:"
+Write-Host "  ID:        $($parsed.id)"
+Write-Host "  Nombre:    $($parsed.name)"
+Write-Host "  Nodos:     $($parsed.nodes.Count)"
+Write-Host "  UpdatedAt: $($parsed.updatedAt)"
+Write-Host "  VersionId: $($parsed.versionId)"
 Write-Host ""
 
 # ------------------------------------------------------
-# 5.1 ACTUALIZAR WORKFLOW EDITABLE
+# 6. VALIDAR MOJIBAKE CP850 / BOX-DRAWING
 # ------------------------------------------------------
 
-$EDIT_FILE = Join-Path `
-    $ROOT `
-    "workflows\sistema-automatizado-pegaso.edit.json"
+Write-Host "Validando caracteres sospechosos de encoding..."
+
+$boxDrawingCount = 0
+
+foreach ($char in $json.ToCharArray()) {
+
+    $code = [int][char]$char
+
+    if ($code -ge 0x2500 -and $code -le 0x257F) {
+        $boxDrawingCount++
+    }
+}
+
+if ($boxDrawingCount -gt 0) {
+
+    throw @"
+ERROR:
+Se detectaron caracteres box-drawing sospechosos.
+
+Cantidad:
+$boxDrawingCount
+
+Esto puede indicar mojibake CP850.
+
+PULL CANCELADO.
+No se sincronizará el editable ni se extraerán Code Nodes.
+"@
+}
+
+Write-Host "Encoding base OK."
+Write-Host "  Caracteres box-drawing sospechosos: 0"
+Write-Host ""
+
+# ------------------------------------------------------
+# 7. SINCRONIZAR WORKFLOW EDITABLE
+# ------------------------------------------------------
 
 Copy-Item `
     $WORKFLOW_FILE `
@@ -189,16 +263,8 @@ Write-Host "Workflow editable sincronizado."
 Write-Host ""
 
 # ------------------------------------------------------
-# 5.2 ACTUALIZAR ESTADO REMOTO BASE
+# 8. ACTUALIZAR REMOTE BASE
 # ------------------------------------------------------
-
-$STATE_DIR = Join-Path `
-    $ROOT `
-    "state"
-
-$STATE_FILE = Join-Path `
-    $STATE_DIR `
-    "remote-base.json"
 
 if (-not (Test-Path $STATE_DIR)) {
     New-Item `
@@ -208,11 +274,11 @@ if (-not (Test-Path $STATE_DIR)) {
 }
 
 $state = [ordered]@{
-    workflowId = $parsed.id
+    workflowId   = $parsed.id
     workflowName = $parsed.name
-    updatedAt = $parsed.updatedAt
-    versionId = $parsed.versionId
-    capturedAt = (Get-Date).ToUniversalTime().ToString("o")
+    updatedAt    = $parsed.updatedAt
+    versionId    = $parsed.versionId
+    capturedAt   = (Get-Date).ToUniversalTime().ToString("o")
 }
 
 $stateJson = `
@@ -221,7 +287,7 @@ $stateJson = `
 
 [System.IO.File]::WriteAllText(
     $STATE_FILE,
-    $stateJson,
+    $stateJson + [Environment]::NewLine,
     [System.Text.UTF8Encoding]::new($false)
 )
 
@@ -229,12 +295,8 @@ Write-Host "Estado remoto base actualizado."
 Write-Host ""
 
 # ------------------------------------------------------
-# 6. EXTRAER CODE NODES
+# 9. EXTRAER CODE NODES
 # ------------------------------------------------------
-
-if (-not (Test-Path $EXTRACT_SCRIPT)) {
-    throw "ERROR: No existe extract-code.mjs"
-}
 
 Write-Host "Extrayendo Code Nodes..."
 Write-Host ""
@@ -246,9 +308,108 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host ""
+
+# ------------------------------------------------------
+# 10. VALIDAR LOS .JS EXTRAÍDOS CONTRA CP850
+# ------------------------------------------------------
+
+Write-Host "Validando Code Nodes extraídos..."
+
+$CODE_DIR = Join-Path `
+    $ROOT `
+    "code\_extraidos"
+
+$totalBoxDrawing = 0
+
+$jsFiles = Get-ChildItem `
+    -Path $CODE_DIR `
+    -Filter "*.js" `
+    -File
+
+foreach ($file in $jsFiles) {
+
+    $content = [System.IO.File]::ReadAllText(
+        $file.FullName,
+        [System.Text.Encoding]::UTF8
+    )
+
+    $fileCount = 0
+
+    foreach ($char in $content.ToCharArray()) {
+
+        $code = [int][char]$char
+
+        if ($code -ge 0x2500 -and $code -le 0x257F) {
+            $fileCount++
+        }
+    }
+
+    if ($fileCount -gt 0) {
+
+        Write-Host `
+            "  ERROR: $($file.Name) => $fileCount caracteres sospechosos"
+
+        $totalBoxDrawing += $fileCount
+    }
+}
+
+if ($totalBoxDrawing -gt 0) {
+
+    throw @"
+ERROR:
+Se detectó mojibake CP850 en los Code Nodes extraídos.
+
+Total:
+$totalBoxDrawing
+
+PULL CANCELADO.
+"@
+}
+
+Write-Host "Code Nodes encoding OK."
+Write-Host "  Caracteres box-drawing sospechosos: 0"
+Write-Host ""
+
+# ------------------------------------------------------
+# 11. CHECK ENCODING LEGACY ADICIONAL
+# ------------------------------------------------------
+
+if (Test-Path $CHECK_ENCODING_SCRIPT) {
+
+    Write-Host "Ejecutando check-encoding.mjs..."
+    Write-Host ""
+
+    node $CHECK_ENCODING_SCRIPT
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "ERROR: check-encoding.mjs detectó problemas."
+    }
+
+    Write-Host ""
+}
+
+# ------------------------------------------------------
+# 12. FIN
+# ------------------------------------------------------
+
 Write-Host "=============================================="
-Write-Host " PULL COMPLETADO"
+Write-Host " PULL COMPLETADO CORRECTAMENTE"
 Write-Host "=============================================="
+Write-Host ""
+Write-Host "Workflow:"
+Write-Host "  $($parsed.name)"
+Write-Host ""
+Write-Host "ID:"
+Write-Host "  $($parsed.id)"
+Write-Host ""
+Write-Host "Nodos:"
+Write-Host "  $($parsed.nodes.Count)"
+Write-Host ""
+Write-Host "UpdatedAt:"
+Write-Host "  $($parsed.updatedAt)"
+Write-Host ""
+Write-Host "VersionId:"
+Write-Host "  $($parsed.versionId)"
 Write-Host ""
 Write-Host "Producción NO fue modificada."
 Write-Host ""

@@ -17,17 +17,39 @@
 // ======================================================
 
 // ======================================================
-// PREPARAR ACTUALIZACIÓN PROSPECTO
+// NODO N8N: Preparar actualización prospecto
+// ARCHIVO: code/05-persistencia/preparar-actualizacion-prospecto.js
+// VERSION: 1.1
 // ======================================================
-// Objetivo:
-// - Tomar la decisión comercial ya normalizada.
+//
+// RESPONSABILIDAD:
+// - Tomar la decisión comercial de "Resolver contexto comercial"
+//   (la misma que enruta "Recuperar decisión comercial"); la
+//   entrada del nodo es solo la fila que devuelve el UPDATE de
+//   "Guardar contexto comercial".
 // - Conservar datos previos del prospecto cuando
 //   la nueva interacción no aporta un valor nuevo.
-// - Preparar exactamente los campos que actualizará
-//   PostgreSQL en pegaso.prospectos.
+// - Preparar los campos que actualizará PostgreSQL en
+//   pegaso.prospectos.
+// - NO persistir requiere_humano: esa bandera solo la levantan
+//   la ruta de derivación ("Marcar prospecto requiere humano")
+//   y la intervención humana ("Marcar prospecto requiere humano2").
+//   Escribirla aquí la apagaba en cada turno de la IA.
 // ======================================================
 
-const data = $input.first().json;
+let decisionResuelta = {};
+
+try {
+  decisionResuelta =
+    $('Resolver contexto comercial').first().json ?? {};
+} catch (e) {
+  decisionResuelta = {};
+}
+
+const data = {
+  ...$input.first().json,
+  ...decisionResuelta
+};
 
 // ------------------------------------------------------
 // HELPERS
@@ -83,7 +105,7 @@ if (
 // prospecto_producto_interes.
 
 const productoInteres = conservarTexto(
-  data.producto,
+  data.producto_no_p4 ?? data.producto,
   data.prospecto_producto_interes
 );
 

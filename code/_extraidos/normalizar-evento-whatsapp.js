@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Normalizar evento WhatsApp
 // ARCHIVO: code/01-entrada/normalizar-evento-whatsapp.js
-// VERSION: 2.0
+// VERSION: 2.1
 // RESPONSABILIDAD:
 // - Detectar el origen del webhook:
 //      1. YCloud inbound:
@@ -55,6 +55,17 @@
 // - Identificar mensajes enviados manualmente desde
 //   WhatsApp Business de Pegaso.
 //
+// - Clasificar cada evento en clasificacion_mensaje:
+//      ENTRANTE_CLIENTE / SALIENTE_HUMANO / SALIENTE_AUTOMATICO.
+//   Todo echo es direccion SALIENTE y va a la ruta de
+//   salida; nunca entra como mensaje del cliente.
+//   SALIENTE_AUTOMATICO = automatización de la app
+//   WhatsApp Business (bienvenida / respuesta de anuncio):
+//   se registra pero NO marca atención humana.
+//
+// - Exponer el contexto de anuncio (referral CTWA) del
+//   mensaje entrante: es_lead_anuncio y anuncio.
+//
 // - NO guardar mensajes.
 // - NO modificar prospectos.
 // - NO decidir si debe intervenir humano.
@@ -63,6 +74,50 @@
 
 const input = $input.first().json;
 const body = input.body ?? {};
+
+
+// ======================================================
+// 0. AUTOMATIZACIONES DE WHATSAPP BUSINESS
+// ======================================================
+//
+// YCloud entrega los mensajes automáticos de la app
+// WhatsApp Business (bienvenida, respuesta del anuncio)
+// como whatsapp.smb.message.echoes, con exactamente los
+// mismos campos que un mensaje escrito por una persona.
+// No existe bandera que los distinga, por eso se
+// reconocen por su texto configurado.
+//
+// Si se cambia una automatización en la app, actualizar
+// aquí su texto normalizado (minúsculas, sin tildes,
+// sin signos ni emojis).
+//
+// exacto = true: el mensaje debe ser solo esa frase.
+// exacto = false: basta con que empiece por esa frase.
+//
+// accion_equivalente: lo que ese mensaje ya le pidió o
+// dijo al cliente, para no repetirlo desde el BOT.
+// ======================================================
+
+const AUTOMATIZACIONES_WHATSAPP_BUSINESS = [
+  {
+    codigo: 'RESPUESTA_ANUNCIO_MEDIDAS',
+    texto: 'claro con mucho gusto le podemos ayudar en que medidas requiere sus etiquetas',
+    exacto: false,
+    accion_equivalente: 'PEDIR_MEDIDAS'
+  },
+  {
+    codigo: 'BIENVENIDA_PEGASO',
+    texto: 'gracias por comunicarte con pegaso adhesivos le saluda borys espinoza',
+    exacto: false,
+    accion_equivalente: 'SALUDO'
+  },
+  {
+    codigo: 'BIENVENIDA_ANUNCIO',
+    texto: 'hola le saluda borys espinoza como puedo ayudarle',
+    exacto: true,
+    accion_equivalente: 'SALUDO'
+  }
+];
 
 
 // ======================================================
@@ -124,6 +179,66 @@ const isoAUnix = (valor) => {
       fecha.getTime() / 1000
     )
   );
+};
+
+
+const normalizarHuella = (valor) =>
+  String(valor ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+
+const resolverAutomatizacion = (valor) => {
+  const huella =
+    normalizarHuella(valor);
+
+  if (!huella) {
+    return null;
+  }
+
+  return AUTOMATIZACIONES_WHATSAPP_BUSINESS.find(
+    a =>
+      a.exacto
+        ? huella === a.texto
+        : huella.startsWith(a.texto)
+  ) ?? null;
+};
+
+
+const extraerAnuncio = (referral) => {
+  if (
+    !referral ||
+    typeof referral !== 'object'
+  ) {
+    return null;
+  }
+
+  const sourceType =
+    textoONull(referral.source_type)?.toLowerCase() ?? null;
+
+  const ctwaClid =
+    textoONull(referral.ctwa_clid);
+
+  if (
+    sourceType !== 'ad' &&
+    !ctwaClid
+  ) {
+    return null;
+  }
+
+  return {
+    source_type: sourceType,
+    source_id: textoONull(referral.source_id),
+    source_url: textoONull(referral.source_url),
+    headline: textoONull(referral.headline),
+    ctwa_clid: ctwaClid,
+    welcome_message:
+      textoONull(referral.welcome_message?.text)
+  };
 };
 
 
@@ -227,6 +342,14 @@ let actor = null;
 let esMensajeEntrante = false;
 
 let esMensajeHumanoPegaso = false;
+
+let esMensajeAutomaticoPegaso = false;
+
+let clasificacionMensaje = null;
+
+let automatizacion = null;
+
+let anuncio = null;
 
 let eventoConversacional = false;
 
@@ -354,8 +477,27 @@ if (esYCloudInbound) {
   esMensajeHumanoPegaso =
     false;
 
+  clasificacionMensaje =
+    'ENTRANTE_CLIENTE';
+
   eventoConversacional =
     true;
+
+
+  // ----------------------------------------------------
+  // ANUNCIO (Click to WhatsApp)
+  // ----------------------------------------------------
+  //
+  // Meta adjunta referral al primer mensaje que llega
+  // desde un anuncio. La app WhatsApp Business responde
+  // sola a ese mensaje y su eco llega segundos después.
+  //
+  // ----------------------------------------------------
+
+  anuncio =
+    extraerAnuncio(
+      message.referral
+    );
 
 
   // ----------------------------------------------------
@@ -550,14 +692,31 @@ else if (esYCloudEchoHumano) {
   direccion =
     'SALIENTE';
 
+  automatizacion =
+    textoONull(message.type)?.toLowerCase() === 'text'
+      ? resolverAutomatizacion(
+          message.text?.body
+        )
+      : null;
+
+  esMensajeAutomaticoPegaso =
+    automatizacion !== null;
+
   actor =
-    'HUMANO_PEGASO';
+    esMensajeAutomaticoPegaso
+      ? 'AUTOMATIZACION_WHATSAPP_BUSINESS'
+      : 'HUMANO_PEGASO';
 
   esMensajeEntrante =
     false;
 
   esMensajeHumanoPegaso =
-    true;
+    !esMensajeAutomaticoPegaso;
+
+  clasificacionMensaje =
+    esMensajeAutomaticoPegaso
+      ? 'SALIENTE_AUTOMATICO'
+      : 'SALIENTE_HUMANO';
 
   eventoConversacional =
     true;
@@ -775,6 +934,11 @@ else if (esMeta) {
 
   esMensajeHumanoPegaso =
     false;
+
+  clasificacionMensaje =
+    messages.length > 0
+      ? 'ENTRANTE_CLIENTE'
+      : null;
 
   eventoConversacional =
     messages.length > 0;
@@ -1058,6 +1222,28 @@ return [
 
         es_mensaje_humano_pegaso:
           esMensajeHumanoPegaso,
+
+        es_mensaje_automatico_pegaso:
+          esMensajeAutomaticoPegaso,
+
+        clasificacion_mensaje:
+          clasificacionMensaje,
+
+        automatizacion_codigo:
+          automatizacion?.codigo ?? null,
+
+        accion_equivalente:
+          automatizacion?.accion_equivalente ?? null,
+
+
+        // ==============================================
+        // ANUNCIO
+        // ==============================================
+
+        es_lead_anuncio:
+          anuncio !== null,
+
+        anuncio,
 
 
         // ==============================================

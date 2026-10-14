@@ -19,8 +19,21 @@
 // ======================================================
 // NORMALIZAR INTERVENCIÓN HUMANA
 // PEGASO ADHESIVOS
-// VERSION 1.0
+// VERSION 1.1
+// RESPONSABILIDAD:
+// - Normalizar todo mensaje SALIENTE enviado desde la app
+//   WhatsApp Business (echo YCloud) para registrarlo.
+// - intervencion_humana = false cuando el echo es una
+//   automatización de la app (clasificacion_mensaje =
+//   SALIENTE_AUTOMATICO): se registra pero no marca
+//   atención humana.
+// - El contenido de un automático se guarda con el prefijo
+//   [AUTOMATICO WHATSAPP BUSINESS · accion=...] para que
+//   el historial lo distinga de un mensaje humano.
 // ======================================================
+
+const PREFIJO_AUTOMATICO =
+  '[AUTOMATICO WHATSAPP BUSINESS';
 
 const input = $input.first()?.json ?? {};
 
@@ -203,6 +216,24 @@ else {
 
 
 // ======================================================
+// AUTOMATIZACIÓN WHATSAPP BUSINESS
+// ======================================================
+
+const esAutomatico =
+  evento.es_mensaje_automatico_pegaso === true;
+
+const accionEquivalente =
+  textoONull(
+    evento.accion_equivalente
+  );
+
+if (esAutomatico) {
+  contenido =
+    `${PREFIJO_AUTOMATICO} · accion=${accionEquivalente ?? 'NINGUNA'}] ${contenido ?? ''}`.trim();
+}
+
+
+// ======================================================
 // SALIDA
 // ======================================================
 
@@ -210,9 +241,26 @@ return [
   {
     json: {
 
-      intervencion_humana: true,
+      intervencion_humana:
+        !esAutomatico,
 
-      origen_mensaje: 'HUMANO',
+      origen_mensaje:
+        esAutomatico
+          ? 'AUTOMATICO_WHATSAPP_BUSINESS'
+          : 'HUMANO',
+
+      clasificacion_mensaje:
+        esAutomatico
+          ? 'SALIENTE_AUTOMATICO'
+          : 'SALIENTE_HUMANO',
+
+      automatizacion_codigo:
+        textoONull(
+          evento.automatizacion_codigo
+        ),
+
+      accion_equivalente:
+        accionEquivalente,
 
       enviado_por_bot: false,
 

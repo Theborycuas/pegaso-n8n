@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Resolver permiso automatización
 // ARCHIVO: code/03-conversacion/resolver-permiso-automatizacion.js
-// VERSION: 2.0
+// VERSION: 2.1
 // RESPONSABILIDAD:
 // - Buscar entre las filas de "Obtener configuración MODO_PRUEBA" la de clave MODO_PRUEBA (valor_json: activo, telefonos_permitidos)
 // - Si MODO_PRUEBA está inactivo, permitir el BOT para cualquier teléfono
@@ -27,13 +27,18 @@
 // - Ante configuración ausente o inválida, asumir MODO_PRUEBA activo sin teléfonos (comportamiento seguro: no automatizar)
 // - Emitir puede_responder_bot y motivo_bloqueo_bot (MODO_PRUEBA_TELEFONO_NO_IDENTIFICADO / MODO_PRUEBA_TELEFONO_NO_AUTORIZADO)
 // - Resolver la configuración del turno conversacional desde la fila DEBOUNCE_WHATSAPP (debounce_ms, turno_max_antiguedad_segundos), con valores por defecto si no existe
+// - En primer contacto (lead de anuncio, conversación nueva o sin turno del bot en 24 h) usar
+//   debounce_primer_contacto_ms (10 s por defecto): las respuestas automáticas de WhatsApp Business
+//   llegan como eco 2-8 s después del primer mensaje y deben quedar registradas antes de resolver el turno
 // - Conservar ids de conversación desde "Preparar conversación" para diagnóstico
 // - NO decidir derivación a humano (lo evalúa el IF "¿Requiere atención humana?")
 // ======================================================
 
 const DEBOUNCE_WHATSAPP_MS_DEFECTO = 3000;
+const DEBOUNCE_PRIMER_CONTACTO_MS_DEFECTO = 10000;
 const DEBOUNCE_WHATSAPP_MS_MAXIMO = 15000;
 const TURNO_MAX_ANTIGUEDAD_SEGUNDOS_DEFECTO = 600;
+const SESION_PRIMER_CONTACTO_HORAS = 24;
 
 
 // ======================================================
@@ -107,11 +112,18 @@ function enteroEnRango(valor, minimo, maximo, defecto) {
   return Math.min(maximo, Math.max(minimo, Math.round(n)));
 }
 
-const debounceMs = enteroEnRango(
+const debounceMsNormal = enteroEnRango(
   configDebounce.debounce_ms,
   0,
   DEBOUNCE_WHATSAPP_MS_MAXIMO,
   DEBOUNCE_WHATSAPP_MS_DEFECTO
+);
+
+const debouncePrimerContactoMs = enteroEnRango(
+  configDebounce.debounce_primer_contacto_ms,
+  0,
+  DEBOUNCE_WHATSAPP_MS_MAXIMO,
+  Math.max(debounceMsNormal, DEBOUNCE_PRIMER_CONTACTO_MS_DEFECTO)
 );
 
 const turnoMaxAntiguedadSegundos = enteroEnRango(
@@ -222,6 +234,43 @@ try {
 
 
 // ======================================================
+// 9.1. PRIMER CONTACTO (DEBOUNCE EXTENDIDO)
+// ======================================================
+
+let eventoWhatsApp = {};
+
+try {
+  eventoWhatsApp =
+    $('Normalizar evento WhatsApp').first().json?.evento_whatsapp ?? {};
+} catch (error) {
+  eventoWhatsApp = {};
+}
+
+const sesionActualizadaMs = Date.parse(
+  conversacion.contexto_comercial?.sesion?.actualizado_at ?? ''
+);
+
+const sinTurnoBotReciente =
+  !Number.isFinite(sesionActualizadaMs) ||
+  Date.now() - sesionActualizadaMs > SESION_PRIMER_CONTACTO_HORAS * 3600 * 1000;
+
+let debounceMotivo = 'NORMAL';
+
+if (eventoWhatsApp.es_lead_anuncio === true) {
+  debounceMotivo = 'PRIMER_CONTACTO_ANUNCIO';
+} else if (conversacion.conversacion_nueva === true) {
+  debounceMotivo = 'PRIMER_CONTACTO_CONVERSACION_NUEVA';
+} else if (sinTurnoBotReciente) {
+  debounceMotivo = 'PRIMER_CONTACTO_SESION_NUEVA';
+}
+
+const debounceMs =
+  debounceMotivo === 'NORMAL'
+    ? debounceMsNormal
+    : Math.max(debounceMsNormal, debouncePrimerContactoMs);
+
+
+// ======================================================
 // 10. SALIDA
 // ======================================================
 
@@ -291,6 +340,9 @@ return [
 
       debounce_segundos:
         debounceMs / 1000,
+
+      debounce_motivo:
+        debounceMotivo,
 
       turno_max_antiguedad_segundos:
         turnoMaxAntiguedadSegundos,

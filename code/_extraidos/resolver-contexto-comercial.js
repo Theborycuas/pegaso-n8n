@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V2.4
+// RESOLVER CONTEXTO COMERCIAL - V2.5
 // ======================================================
 //
 // Objetivo:
@@ -32,6 +32,13 @@
 //   evitando snapshots híbridos (por ejemplo id/precio viejos con medidas nuevas).
 // - V2.4: cantidad cotizable >= 6000 -> DERIVAR_HUMANO (COTIZACION_ESPECIAL)
 //   antes de COTIZAR_P4; la IA no puede revertirlo.
+// - V2.5: reglas pre-IA de "Preparar contexto IA" (PRODUCTO_NO_P4 ->
+//   DERIVAR_HUMANO con regla_derivacion PRODUCTO_NO_P4; SALUDO_SIMPLE);
+//   fecha pedida por el cliente -> nunca se promete: se responde con la
+//   metodología semanal y se guarda contexto_comercial.fecha_deseada_cliente;
+//   PEDIR_MEDIDAS no se repite si las medidas ya se pidieron (solo lo que falta);
+//   omitir_envio cuando la automatización de WhatsApp Business ya atendió
+//   la misma acción después de iniciado el turno.
 //
 // ======================================================
 
@@ -125,15 +132,18 @@ function igualesNumero(a, b) {
 
 let contextoAnterior = {};
 
+let contextoIA = {};
+
 try {
-  const contextoIA =
-    $('Preparar contexto IA').first().json;
+  contextoIA =
+    $('Preparar contexto IA').first().json ?? {};
 
   contextoAnterior =
     objeto(
       contextoIA.contexto_comercial
     );
 } catch (_) {
+  contextoIA = {};
   contextoAnterior = {};
 }
 
@@ -598,6 +608,32 @@ if (derivacionPorCantidad) {
 }
 
 
+// ------------------------------------------------------
+// I. REGLAS PRE-IA
+// ------------------------------------------------------
+//
+// PRODUCTO_NO_P4: impreso que no es etiqueta adhesiva.
+// Nunca se piden medidas ni se cotiza P4: lo atiende un
+// humano como COTIZACION_ESPECIAL.
+//
+// ------------------------------------------------------
+
+const reglaPreIA =
+  texto(contextoIA.regla_pre_ia);
+
+const productoNoP4 =
+  texto(contextoIA.producto_no_p4);
+
+const derivacionPorProductoNoP4 =
+  reglaPreIA === 'PRODUCTO_NO_P4' &&
+  !derivacionPorCantidad;
+
+if (derivacionPorProductoNoP4) {
+  accion =
+    'DERIVAR_HUMANO';
+}
+
+
 // ======================================================
 // 12. RESPUESTA SUGERIDA
 // ======================================================
@@ -620,6 +656,191 @@ else if (
 ) {
   respuestaSugerida =
     '';
+}
+
+
+// ------------------------------------------------------
+// 12.1 FECHA DESEADA POR EL CLIENTE
+// ------------------------------------------------------
+//
+// Pedidos de lunes a miércoles, producción miércoles y
+// jueves, entregas viernes desde las 17:00. La fecha que
+// pide el cliente se guarda, pero nunca se confirma.
+//
+// ------------------------------------------------------
+
+const RESPUESTA_METODOLOGIA =
+  'Trabajamos con una metodología semanal: recibimos pedidos de lunes a miércoles, ' +
+  'producimos miércoles y jueves, y realizamos entregas y envíos los viernes a partir de las 17:00. ' +
+  'El viernes de entrega se confirma según el día en que ingrese su pedido.';
+
+function textoPlano(valor) {
+  return String(valor ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+const DIAS_SEMANA =
+  '(lunes|martes|miercoles|jueves|viernes|sabado|domingo)';
+
+const MESES =
+  '(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)';
+
+const PATRONES_FECHA_DESEADA = [
+  new RegExp(`\\b(para|hasta|antes del?) (el )?(dia )?(proximo )?${DIAS_SEMANA}\\b`),
+  /\b(para|hasta|antes del?) (el )?(dia )?\d{1,2}\b(?! ?(x|cm|mm|ml|cc|gr|g|kg|lt|l|litros?|onzas?|oz|unidades|etiquetas|mil|por))/,
+  new RegExp(`\\b\\d{1,2} de ${MESES}\\b`),
+  /\b(para|hasta|antes de) (hoy|manana|pasado manana|esta semana|la proxima semana|el fin de semana|fin de mes)\b/,
+  /\b(las|los|la|lo) (necesito|necesitamos|requiero|requerimos|quiero|queremos) (para|hasta|antes)\b/
+];
+
+const PATRON_PROMESA =
+  /\b(se (lo|la|los|las) (entregamos|tenemos|tendremos)|(estara|estaran) list[oa]s? (para|el)|le (confirmamos|garantizamos) (la entrega|que)|sin problema (para|el))\b/;
+
+const mensajeTurnoPlano =
+  textoPlano(
+    contextoIA.mensaje_actual ??
+    data.mensaje_actual
+  );
+
+const coincidenciaFecha =
+  PATRONES_FECHA_DESEADA
+    .map(patron => mensajeTurnoPlano.match(patron))
+    .find(Boolean) ?? null;
+
+
+// ------------------------------------------------------
+// 12.2 NO REPETIR PEDIR_MEDIDAS
+// ------------------------------------------------------
+//
+// Si el último SALIENTE con acción reconocible ya pidió
+// medidas (bot, automatización de WhatsApp Business o
+// humano), no se vuelve a hacer la pregunta completa:
+// - con información nueva en el turno, se agradece y se
+//   pide solo lo que falta;
+// - sin información nueva, no se envía nada.
+//
+// ------------------------------------------------------
+
+const ultimoSaliente =
+  objeto(contextoIA.ultimo_saliente);
+
+const medidasYaSolicitadas =
+  contextoIA.medidas_ya_solicitadas === true;
+
+const turnoAportaInformacion =
+  anchoActual !== null ||
+  altoActual !== null ||
+  cantidadActual !== null ||
+  materialActual !== null ||
+  formaActual !== null ||
+  coincidenciaFecha !== null ||
+  (
+    productoActual !== null &&
+    productoActual !== productoAnterior
+  );
+
+let omitirEnvio = false;
+
+let motivoOmisionEnvio = null;
+
+let preguntaMedidasFaltantes = null;
+
+if (
+  accion === 'PEDIR_MEDIDAS' &&
+  medidasYaSolicitadas
+) {
+  if (turnoAportaInformacion) {
+    const faltante =
+      anchoCm === null && altoCm === null
+        ? 'el ancho y alto'
+        : anchoCm === null
+          ? 'el ancho'
+          : 'el alto';
+
+    preguntaMedidasFaltantes =
+      `Para cotizar sus etiquetas solo nos falta ${faltante} en centímetros.`;
+
+    respuestaSugerida =
+      `Gracias. ${preguntaMedidasFaltantes}`;
+  } else {
+    omitirEnvio = true;
+    motivoOmisionEnvio = 'MEDIDAS_YA_SOLICITADAS';
+  }
+}
+
+
+// ------------------------------------------------------
+// 12.3 METODOLOGÍA EN LUGAR DE PROMESA DE FECHA
+// ------------------------------------------------------
+
+const respuestaPrometeFecha =
+  PATRON_PROMESA.test(
+    textoPlano(respuestaSugerida)
+  );
+
+let fechaDeseadaCliente =
+  objeto(contextoAnterior.fecha_deseada_cliente);
+
+const aplicaMetodologia =
+  (coincidenciaFecha !== null || respuestaPrometeFecha) &&
+  !omitirEnvio &&
+  !['COTIZAR_P4', 'DERIVAR_HUMANO'].includes(accion);
+
+if (coincidenciaFecha !== null) {
+  fechaDeseadaCliente = {
+    texto:
+      coincidenciaFecha[0],
+    detectada_at:
+      new Date().toISOString()
+  };
+}
+
+if (aplicaMetodologia) {
+  const preguntaPendiente =
+    accion === 'PEDIR_MEDIDAS'
+      ? (
+          preguntaMedidasFaltantes !== null
+            ? ` ${preguntaMedidasFaltantes}`
+            : ' Para cotizar, ¿en qué medidas necesita sus etiquetas? Indíquenos ancho y alto por favor.'
+        )
+      : '';
+
+  respuestaSugerida =
+    `${RESPUESTA_METODOLOGIA}${preguntaPendiente}`.trim();
+}
+
+
+// ------------------------------------------------------
+// 12.4 ACCIÓN YA ATENDIDA DURANTE EL TURNO
+// ------------------------------------------------------
+//
+// El eco automático de WhatsApp Business (por ejemplo la
+// respuesta de anuncio que pide medidas) puede llegar
+// después de iniciado el turno. Si ya cubrió la misma
+// acción, el bot no repite.
+//
+// ------------------------------------------------------
+
+if (
+  !omitirEnvio &&
+  !aplicaMetodologia &&
+  ultimoSaliente.posterior_al_turno === true &&
+  ultimoSaliente.origen === 'AUTOMATICO' &&
+  (
+    ultimoSaliente.accion_equivalente === accion ||
+    (
+      reglaPreIA === 'SALUDO_SIMPLE' &&
+      texto(ultimoSaliente.accion_equivalente) !== null
+    )
+  )
+) {
+  omitirEnvio = true;
+  motivoOmisionEnvio = 'ACCION_YA_ATENDIDA_POR_AUTOMATIZACION';
 }
 
 
@@ -683,6 +904,23 @@ const cotizacionBaseNueva =
 
 const contextoComercialNuevo = {
   ...contextoAnterior,
+
+  ...(
+    Object.keys(fechaDeseadaCliente).length > 0
+      ? { fecha_deseada_cliente: fechaDeseadaCliente }
+      : {}
+  ),
+
+  ...(
+    derivacionPorProductoNoP4
+      ? {
+          producto_no_p4: {
+            producto: productoNoP4,
+            detectado_at: new Date().toISOString()
+          }
+        }
+      : {}
+  ),
 
   cotizacion: {
     ...cotizacionBaseNueva,
@@ -777,8 +1015,43 @@ return [
           : {}
       ),
 
+      ...(
+        derivacionPorProductoNoP4
+          ? {
+              requiere_humano:
+                true,
+
+              motivo_derivacion:
+                'COTIZACION_ESPECIAL',
+
+              requiere_notificacion:
+                true,
+
+              regla_derivacion:
+                'PRODUCTO_NO_P4',
+
+              producto_no_p4:
+                productoNoP4
+            }
+          : {}
+      ),
+
       derivacion_por_cantidad:
         derivacionPorCantidad,
+
+      regla_pre_ia:
+        reglaPreIA,
+
+      fecha_deseada_cliente:
+        Object.keys(fechaDeseadaCliente).length > 0
+          ? fechaDeseadaCliente
+          : null,
+
+      omitir_envio:
+        omitirEnvio,
+
+      motivo_omision_envio:
+        motivoOmisionEnvio,
 
       datos_suficientes_para_cotizar:
         datosSuficientes,
