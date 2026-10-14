@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Preparar contexto IA
 // ARCHIVO: code/03-conversacion/preparar-contexto-ia.js
-// VERSION: 4.3
+// VERSION: 4.4
 // ======================================================
 //
 // RESPONSABILIDAD:
@@ -41,7 +41,8 @@
 // - Detectar si empieza una nueva sesión por inactividad.
 // - Conservar contexto_comercial estructurado aunque el
 //   historial libre haya expirado.
-// - Excluir del historial los marcadores de respuesta omitida.
+// - Excluir del historial los marcadores internos (respuesta omitida
+//   y bot reactivado por administrador).
 // - Exponer ultimo_saliente (origen BOT / AUTOMATICO / HUMANO,
 //   acción equivalente, si llegó después del inicio del turno)
 //   y medidas_ya_solicitadas para el anti-duplicado.
@@ -74,6 +75,15 @@ const LARGO_MAXIMO_CONTENIDO_HISTORIAL = 4000;
 const PREFIJO_AUTOMATICO_WHATSAPP_BUSINESS = '[AUTOMATICO WHATSAPP BUSINESS';
 
 const PREFIJO_RESPUESTA_OMITIDA = '[RESPUESTA AUTOMÁTICA OMITIDA';
+
+const PREFIJO_BOT_REACTIVADO = '[BOT REACTIVADO POR ADMINISTRADOR';
+
+// Marcadores internos: se guardan como SALIENTE, nunca se envían
+// y no forman parte de la conversación con el cliente.
+function esMarcadorInterno(contenido) {
+  const t = String(contenido ?? '').trim();
+  return t.startsWith(PREFIJO_RESPUESTA_OMITIDA) || t.startsWith(PREFIJO_BOT_REACTIVADO);
+}
 
 const OFFSET_HORA_ECUADOR = -5;
 
@@ -1068,11 +1078,7 @@ let historialCandidato =
         return false;
       }
 
-      if (
-        String(row.contenido)
-          .trim()
-          .startsWith(PREFIJO_RESPUESTA_OMITIDA)
-      ) {
+      if (esMarcadorInterno(row.contenido)) {
         return false;
       }
 
@@ -1330,7 +1336,7 @@ const salientesConversacion =
     .filter(row =>
       String(row.direccion ?? '').toUpperCase() === 'SALIENTE' &&
       textoONull(row.contenido) !== null &&
-      !String(row.contenido).trim().startsWith(PREFIJO_RESPUESTA_OMITIDA) &&
+      !esMarcadorInterno(row.contenido) &&
       numeroONull(row.id) !== null
     )
     .sort((a, b) => numeroONull(a.id) - numeroONull(b.id))

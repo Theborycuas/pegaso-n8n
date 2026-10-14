@@ -19,14 +19,15 @@
 // ======================================================
 // NODO N8N: Resolver turno conversacional
 // ARCHIVO: code/03-conversacion/resolver-turno-conversacional.js
-// VERSION: 1.2
+// VERSION: 1.3
 // RESPONSABILIDAD:
 // - Tras "Esperar ventana de turno", decidir si esta ejecución sigue siendo la del último mensaje ENTRANTE de la conversación (latest-wins por mensajes.id)
 // - Ignorar reenvíos del mismo mensaje_externo_id (reintentos del webhook): solo cuenta la primera fila
 // - Si llegó un mensaje posterior: continuar_procesamiento = false, resultado DEBOUNCE_SUPERSEDED, motivo MENSAJE_POSTERIOR_RECIBIDO (final válido, sin error)
 // - Guardia humana posterior a la espera: si hay un SALIENTE humano (eco de WhatsApp Business con mensaje_externo_id y sin
 //   prefijo [AUTOMATICO WHATSAPP BUSINESS) posterior a este mensaje o de hace menos de HUMANO_ACTIVO_MINUTOS, no procesar
-//   (resultado ATENCION_HUMANA): el humano escribió durante la ventana y la bandera leída antes del Wait ya no vale
+//   (resultado ATENCION_HUMANA): el humano escribió durante la ventana y la bandera leída antes del Wait ya no vale.
+//   Los SALIENTE humanos anteriores al último marcador [BOT REACTIVADO POR ADMINISTRADOR] (comando ACTIVEBOT) no cuentan
 // - Si es la última: armar el turno con los ENTRANTE con procesado = false posteriores al último SALIENTE anterior (sin contar
 //   ecos automáticos de WhatsApp Business) y no más antiguos que turno_max_antiguedad_segundos
 // - Entregar turno_texto (un mensaje por línea, en orden), los ids y el rango turno_desde_id / turno_hasta_id para "Preparar contexto IA" y "Confirmar turno conversacional"
@@ -39,6 +40,7 @@
 const TURNO_MAX_ANTIGUEDAD_SEGUNDOS_DEFECTO = 600;
 const HUMANO_ACTIVO_MINUTOS = 10;
 const PREFIJO_AUTOMATICO_WHATSAPP_BUSINESS = '[AUTOMATICO WHATSAPP BUSINESS';
+const PREFIJO_BOT_REACTIVADO = '[BOT REACTIVADO POR ADMINISTRADOR';
 
 
 // ======================================================
@@ -616,7 +618,24 @@ const ultimoHumano =
     ? salientesHumanos[salientesHumanos.length - 1]
     : null;
 
-if (ultimoHumano) {
+const ultimaReactivacionId =
+  filas
+    .filter(
+      fila =>
+        direccion(fila) === 'SALIENTE' &&
+        String(fila.contenido ?? '')
+          .trim()
+          .startsWith(PREFIJO_BOT_REACTIVADO)
+    )
+    .reduce(
+      (max, fila) => Math.max(max, fila.id),
+      0
+    );
+
+if (
+  ultimoHumano &&
+  ultimoHumano.id > ultimaReactivacionId
+) {
 
   const fechaHumano =
     fechaMs(ultimoHumano.enviado_at);

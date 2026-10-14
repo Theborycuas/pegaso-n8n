@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: PROCESAR COMANDO BOT
 // PEGASO ADHESIVOS
-// VERSION: 1.0
+// VERSION: 2.0
 // ======================================================
 //
 // Objetivo:
@@ -29,12 +29,17 @@
 //
 // STOP  -> activa MODO_PRUEBA
 // START -> desactiva MODO_PRUEBA
+// ACTIVEBOT 0999999999 -> el bot vuelve a atender a ese
+//   prospecto (requiere_humano = false), lo ejecuta
+//   "Reactivar bot prospecto"
 //
 // Este nodo:
 // - NO procesa conversaciones comerciales
 // - NO busca prospectos
 // - NO responde al cerebro comercial
-// - NO modifica todavía PostgreSQL
+// - NO modifica PostgreSQL
+// - Entrega telefono_objetivo solo con dígitos y prefijo
+//   593 (0999999999 -> 593999999999)
 //
 // ======================================================
 
@@ -113,10 +118,45 @@ const textoRecibido =
     evento.text?.body
   );
 
-const comando =
+const textoComando =
   textoRecibido
-    ? textoRecibido.toUpperCase()
+    ? textoRecibido.toUpperCase().replace(/\s+/g, ' ')
     : null;
+
+const coincidenciaActivebot =
+  textoComando
+    ? textoComando.match(/^ACTIVEBOT ([+\d][\d\s\-().]*)$/)
+    : null;
+
+const comando =
+  coincidenciaActivebot
+    ? 'ACTIVEBOT'
+    : textoComando;
+
+
+// Ecuador: 0999999999 / 999999999 / +593 99 999 9999 -> 593999999999
+function telefonoEcuador(valor) {
+  const digitos =
+    limpiarTelefono(valor);
+
+  if (!digitos) {
+    return null;
+  }
+
+  if (digitos.startsWith('593')) {
+    return digitos;
+  }
+
+  if (digitos.startsWith('0')) {
+    return '593' + digitos.substring(1);
+  }
+
+  if (digitos.length === 9) {
+    return '593' + digitos;
+  }
+
+  return digitos;
+}
 
 
 // ======================================================
@@ -139,10 +179,25 @@ if (
 
 if (
   comando !== 'STOP' &&
-  comando !== 'START'
+  comando !== 'START' &&
+  comando !== 'ACTIVEBOT'
 ) {
   throw new Error(
     `PROCESAR COMANDO BOT: comando no soportado: ${comando ?? 'NULL'}.`
+  );
+}
+
+const telefonoObjetivo =
+  coincidenciaActivebot
+    ? telefonoEcuador(coincidenciaActivebot[1])
+    : null;
+
+if (
+  comando === 'ACTIVEBOT' &&
+  !/^\d{11,15}$/.test(telefonoObjetivo ?? '')
+) {
+  throw new Error(
+    `PROCESAR COMANDO BOT: teléfono inválido en ACTIVEBOT: ${coincidenciaActivebot?.[1] ?? 'NULL'}.`
   );
 }
 
@@ -156,6 +211,12 @@ const modoPruebaNuevo =
 
 const botHabilitado =
   comando === 'START';
+
+const MOTIVOS = {
+  STOP: 'COMANDO_ADMIN_STOP',
+  START: 'COMANDO_ADMIN_START',
+  ACTIVEBOT: 'COMANDO_ADMIN_ACTIVEBOT'
+};
 
 
 // ======================================================
@@ -177,10 +238,11 @@ return [
       bot_habilitado:
         botHabilitado,
 
+      telefono_objetivo:
+        telefonoObjetivo,
+
       motivo_cambio:
-        comando === 'STOP'
-          ? 'COMANDO_ADMIN_STOP'
-          : 'COMANDO_ADMIN_START',
+        MOTIVOS[comando],
 
       mensaje_externo_id:
         evento.mensaje_id ??

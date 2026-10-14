@@ -1,9 +1,9 @@
 {
   "workflowId": "09OF22FOxihypeeh",
   "workflowName": "SISTEMA AUTOMATIZADO PEGASO",
-  "workflowUpdatedAt": "2026-10-14T03:52:35.968Z",
-  "extractedAt": "2026-10-14T03:52:41.355Z",
-  "workflowNodeCount": 184,
+  "workflowUpdatedAt": "2026-10-14T04:15:29.136Z",
+  "extractedAt": "2026-10-14T04:20:06.961Z",
+  "workflowNodeCount": 186,
   "codeNodeCount": 69,
   "nodes": [
     {
@@ -140,7 +140,7 @@
       "fileName": "preparar-contexto-ia.js",
       "relativeFile": "code/_extraidos/preparar-contexto-ia.js",
       "typeVersion": 2,
-      "lines": 2485
+      "lines": 2491
     },
     {
       "nodeId": "f207ef1c-d7ff-4fae-9910-486f2ba24c0a",
@@ -436,7 +436,7 @@
       "fileName": "resolver-turno-conversacional.js",
       "relativeFile": "code/_extraidos/resolver-turno-conversacional.js",
       "typeVersion": 2,
-      "lines": 864
+      "lines": 883
     },
     {
       "nodeId": "d465be4f-6506-4e95-9a8e-ae6fd0ee84a9",
@@ -540,7 +540,7 @@
       "fileName": "procesar-comando-bot.js",
       "relativeFile": "code/_extraidos/procesar-comando-bot.js",
       "typeVersion": 2,
-      "lines": 183
+      "lines": 245
     },
     {
       "nodeId": "f7e4c5f2-8a86-458b-b4d0-6e6d79b97bb9",

@@ -3,7 +3,7 @@
 Recorrido completo del workflow de producción: qué hace cada nodo, de quién recibe datos y a quién los envía.
 
 > **Fuente:** versión de producción con `updatedAt 2026-10-13T16:28:08.664Z` (`versionId 3e62b91c…`), descargada vía Node (sin mojibake).
-> **Contenido:** 184 nodos, 221 conexiones (209 de flujo `main`, 9 de modelo de lenguaje `ai_languageModel`, 3 de parser `ai_outputParser`).
+> **Contenido:** 186 nodos, 223 conexiones (211 de flujo `main`, 9 de modelo de lenguaje `ai_languageModel`, 3 de parser `ai_outputParser`).
 > Si el workflow cambia, este documento debe actualizarse a mano (ver §17).
 
 Documentos relacionados: [ARQUITECTURA-PEGASO-N8N.md](ARQUITECTURA-PEGASO-N8N.md) (repo y scripts) · [GUIA-USO-PEGASO-N8N.md](GUIA-USO-PEGASO-N8N.md) (runbook).
@@ -16,7 +16,7 @@ Documentos relacionados: [ARQUITECTURA-PEGASO-N8N.md](ARQUITECTURA-PEGASO-N8N.md
 2. [Vista general](#2-vista-general)
 3. [Disparadores y verificación Meta](#3-disparadores-y-verificación-meta)
 4. [Entrada WhatsApp y enrutamiento inicial](#4-entrada-whatsapp-y-enrutamiento-inicial)
-5. [Comandos de administrador (MODO_PRUEBA)](#5-comandos-de-administrador-modo_prueba)
+5. [Comandos de administrador (MODO_PRUEBA y ACTIVEBOT)](#5-comandos-de-administrador-modo_prueba-y-activebot)
 6. [Intervención humana desde WhatsApp de Pegaso](#6-intervención-humana-desde-whatsapp-de-pegaso)
 7. [Contacto, prospecto y conversación](#7-contacto-prospecto-y-conversación)
 8. [Guardado, permiso del bot y ventana de turno](#8-guardado-permiso-del-bot-y-ventana-de-turno)
@@ -131,7 +131,7 @@ flowchart TD
 | Nodo | Tipo | Qué hace | Recibe de | Envía a |
 |---|---|---|---|---|
 | Normalizar evento WhatsApp | Code | Detecta el origen del webhook (YCloud inbound `whatsapp.inbound_message.received`, YCloud eco de WhatsApp Business `whatsapp.smb.message.echoes`, Meta Cloud API `body.entry`) y produce un `evento_whatsapp` uniforme: teléfono, nombre, id, tipo, texto, multimedia. Clasifica `clasificacion_mensaje`: `ENTRANTE_CLIENTE` (inbound), `SALIENTE_AUTOMATICO` (eco cuyo texto coincide con una automatización de WhatsApp Business de la lista `AUTOMATIZACIONES_WHATSAPP_BUSINESS`; expone `accion_equivalente`, por ejemplo `PEDIR_MEDIDAS` o `SALUDO`) o `SALIENTE_HUMANO` (cualquier otro eco). Todo eco tiene `direccion = SALIENTE`. Expone `es_lead_anuncio` y `anuncio` desde `referral` del inbound (anuncios click-to-WhatsApp). No guarda nada | Webhook YCloud | IF: ¿Comando administrador? |
-| IF: ¿Comando administrador? | IF (expresión sobre teléfono y texto del evento) | Detecta comandos de administración | Normalizar evento WhatsApp | [T] Procesar comando BOT · [F] IF: ¿Mensaje humano de Pegaso? |
+| IF: ¿Comando administrador? | IF (expresión sobre teléfono y texto del evento) | Detecta comandos de administración desde teléfonos administradores: `STOP`, `START` o `ACTIVEBOT <teléfono>` (§5) | Normalizar evento WhatsApp | [T] Procesar comando BOT · [F] IF: ¿Mensaje humano de Pegaso? |
 | IF: ¿Mensaje humano de Pegaso? | IF `evento_whatsapp.direccion === 'SALIENTE'` o `es_mensaje_humano_pegaso` | Separa **todo** eco saliente de WhatsApp Business (humano o automático): un eco nunca entra como mensaje del cliente ni llega al cerebro | IF: ¿Comando administrador? [F] | [T] Normalizar intervención humana · [F] If: ¿Evento WhatsApp procesable? |
 | If: ¿Evento WhatsApp procesable? | IF `evento_whatsapp.procesable` | Descarta eventos que no son mensajes procesables (por ejemplo estados) | IF: ¿Mensaje humano de Pegaso? [F] | [T] Preparar entrada WhatsApp · [F] **fin** |
 | Preparar entrada WhatsApp | Code | Valida teléfono e id; traduce el tipo a enum interno (`TEXTO`, `IMAGEN`, `AUDIO`, `VIDEO`, `DOCUMENTO`, `STICKER`, …). Para imagen/audio crea un descriptor `[IMAGEN]/[AUDIO]` + `[MEDIA_PENDIENTE] {json}` que se guarda en `mensajes.contenido`. Emite `apto_para_flujo_conversacional` | If: ¿Evento WhatsApp procesable? [T] | IF: ¿Entrada soportada por el flujo? |
@@ -141,17 +141,31 @@ flowchart TD
 
 ---
 
-## 5. Comandos de administrador (MODO_PRUEBA)
+## 5. Comandos de administrador (MODO_PRUEBA y ACTIVEBOT)
+
+Se envían por WhatsApp al número del bot desde un teléfono administrador (`IF: ¿Comando administrador?` y `Procesar comando BOT` tienen la misma lista). Mayúsculas o minúsculas da igual.
+
+| Comando | Efecto |
+|---|---|
+| `STOP` | Activa MODO_PRUEBA (el bot solo responde a teléfonos autorizados) |
+| `START` | Desactiva MODO_PRUEBA |
+| `ACTIVEBOT 0999999999` | El bot vuelve a atender a ese prospecto: `requiere_humano = FALSE` y deja de contar la guardia humana de 10 minutos. Acepta `0999999999`, `999999999`, `593999999999` o `+593 99 999 9999` |
 
 ```mermaid
 flowchart LR
-    CMD{IF: ¿Comando administrador?} -->|T| PCB[Procesar comando BOT] --> UPD[(Actualizar configuración MODO_PRUEBA)] --> FIN((fin))
+    CMD{IF: ¿Comando administrador?} -->|T| PCB[Procesar comando BOT] --> CRB{IF: ¿Comando reactivar bot?}
+    CRB -->|T| RBP[(Reactivar bot prospecto)] --> FIN((fin))
+    CRB -->|F| UPD[(Actualizar configuración MODO_PRUEBA)] --> FIN
 ```
 
 | Nodo | Tipo | Qué hace | Recibe de | Envía a |
 |---|---|---|---|---|
-| Procesar comando BOT | Code | Interpreta comandos de teléfonos administradores autorizados: `STOP` activa MODO_PRUEBA, `START` lo desactiva. Emite `modo_prueba_nuevo` | IF: ¿Comando administrador? [T] | Actualizar configuración MODO_PRUEBA |
-| Actualizar configuración MODO_PRUEBA | Postgres (SQL) | `UPDATE pegaso.configuracion_bot` → `valor_json.activo` de la clave `MODO_PRUEBA` | Procesar comando BOT | — (**fin**, no responde al administrador) |
+| Procesar comando BOT | Code | Interpreta comandos de teléfonos administradores autorizados: `STOP` activa MODO_PRUEBA, `START` lo desactiva, `ACTIVEBOT <teléfono>` reactiva el bot para un prospecto. Emite `comando_bot`, `modo_prueba_nuevo` y `telefono_objetivo` (solo dígitos con prefijo 593; con un teléfono inválido lanza error) | IF: ¿Comando administrador? [T] | IF: ¿Comando reactivar bot? |
+| IF: ¿Comando reactivar bot? | IF `comando_bot === 'ACTIVEBOT'` | Separa ACTIVEBOT de STOP/START | Procesar comando BOT | [T] Reactivar bot prospecto · [F] Actualizar configuración MODO_PRUEBA |
+| Reactivar bot prospecto | Postgres (SQL) | En una sola sentencia: `requiere_humano = FALSE` en el prospecto WHATSAPP activo con ese teléfono (comparando solo dígitos) e inserta en su conversación (la ACTIVA, si no la más reciente) el SALIENTE interno `[BOT REACTIVADO POR ADMINISTRADOR]` sin `mensaje_externo_id`. No toca `ultima_accion`. Devuelve `prospectos_reactivados` (0 si el teléfono no existe), `prospecto_id`, `conversacion_id`, `marcador_id` | IF: ¿Comando reactivar bot? [T] | — (**fin**, no responde al administrador) |
+| Actualizar configuración MODO_PRUEBA | Postgres (SQL) | `UPDATE pegaso.configuracion_bot` → `valor_json.activo` de la clave `MODO_PRUEBA` | IF: ¿Comando reactivar bot? [F] | — (**fin**, no responde al administrador) |
+
+El marcador `[BOT REACTIVADO POR ADMINISTRADOR]` es lo que permite al bot responder de inmediato: `Resolver turno conversacional` ignora los SALIENTE humanos anteriores a él, y `Preparar contexto IA` lo excluye del historial y de `ultimo_saliente`. Si un humano de Pegaso vuelve a escribir después del comando, la bandera y la guardia se activan otra vez como siempre.
 
 ---
 
@@ -267,7 +281,7 @@ flowchart TD
 
 | Nodo | Tipo | Qué hace | Recibe de | Envía a |
 |---|---|---|---|---|
-| Resolver turno conversacional | Code | Decide si esta ejecución corresponde al **último** mensaje ENTRANTE (gana el último). Si llegó uno posterior, devuelve `continuar_procesamiento = false` (`DEBOUNCE_SUPERSEDED`). Guardia humana posterior a la espera: si hay un SALIENTE humano posterior a este mensaje o de hace menos de 10 minutos, no procesa (`ATENCION_HUMANA`). Si es el último, arma el turno con los ENTRANTES no procesados posteriores al último SALIENTE (los ecos automáticos de WhatsApp Business no cortan el turno). Ignora reenvíos del mismo id externo. Lee además: Guardar mensaje entrante, Unificar conversación, Preparar conversación, Unificar prospecto, Resolver prospecto, Resolver permiso automatización | Recuperar historial conversación | IF: ¿Procesar turno? |
+| Resolver turno conversacional | Code | Decide si esta ejecución corresponde al **último** mensaje ENTRANTE (gana el último). Si llegó uno posterior, devuelve `continuar_procesamiento = false` (`DEBOUNCE_SUPERSEDED`). Guardia humana posterior a la espera: si hay un SALIENTE humano posterior a este mensaje o de hace menos de 10 minutos, no procesa (`ATENCION_HUMANA`); los humanos anteriores al último marcador `[BOT REACTIVADO POR ADMINISTRADOR]` (comando ACTIVEBOT, §5) no cuentan. Si es el último, arma el turno con los ENTRANTES no procesados posteriores al último SALIENTE (los ecos automáticos de WhatsApp Business no cortan el turno). Ignora reenvíos del mismo id externo. Lee además: Guardar mensaje entrante, Unificar conversación, Preparar conversación, Unificar prospecto, Resolver prospecto, Resolver permiso automatización | Recuperar historial conversación | IF: ¿Procesar turno? |
 | IF: ¿Procesar turno? | IF `continuar_procesamiento` | | Resolver turno conversacional | [T] Preparar media del turno · [F] **fin** |
 | Preparar media del turno | Code | Busca imágenes `[MEDIA_PENDIENTE]` del turno; revalida MIME (JPEG/PNG/WebP) y que el enlace sea de YCloud (anti-SSRF); límite por turno. Emite un item por imagen (`analizar_imagen = true`) o uno solo con `false`. Lee además: Resolver turno conversacional, Preparar conversación | IF: ¿Procesar turno? [T] | IF: ¿Hay imágenes por analizar? |
 | IF: ¿Hay imágenes por analizar? | IF `analizar_imagen` | | Preparar media del turno | [T] Descargar imagen YCloud · [F] Preparar audio del turno |
@@ -347,7 +361,7 @@ flowchart TD
 
 | Nodo | Tipo | Qué hace | Recibe de | Envía a |
 |---|---|---|---|---|
-| Preparar contexto IA | Code | Construye el contexto final del cerebro: identidad y memoria comercial (de Preparar conversación), turno enriquecido (audios transcritos, análisis de imagen válido, medidas detectadas en imágenes) e historial (sin marcadores de respuesta omitida). Expone `ultimo_saliente` (origen BOT / AUTOMATICO / HUMANO, `accion_equivalente`, `posterior_al_turno`) y `medidas_ya_solicitadas`. Reglas pre-IA solo para texto sin multimedia: `SALUDO_SIMPLE` (todas las palabras son de saludo; respuesta fija "Buenas tardes 🤗 ¿En qué podemos ayudarle?" según el saludo del cliente o la hora de Ecuador) y `PRODUCTO_NO_P4` (tarjetas de presentación, flyers/volantes, carpetas, talonarios, boletos, entradas, formularios, hojas membretadas, trípticos, afiches, brochures, sin mencionar etiquetas/stickers/adhesivos) y `DIVISION_MINIMO_DISENOS` (el cliente quiere repartir una cantidad entre varios diseños, sabores, nombres, modelos, marcas o productos con menos de 1000 por diseño o cantidades por diseño que no son múltiplo de 1000: `INFORMAR_MINIMO` sin derivar, con respuesta determinística que explica el mínimo, cuánto necesitaría y para cuántos diseños alcanza; expone `division_disenos`). Si una regla aplica emite `decision` con el contrato del cerebro y `requiere_cerebro_comercial = false`. Lee además: Preparar conversación, Resolver turno conversacional, Recuperar historial conversación | IF: ¿Hay audios…? [F] · IF: ¿Audio listo para cerebro? [T] | IF: ¿Requiere cerebro comercial? |
+| Preparar contexto IA | Code | Construye el contexto final del cerebro: identidad y memoria comercial (de Preparar conversación), turno enriquecido (audios transcritos, análisis de imagen válido, medidas detectadas en imágenes) e historial (sin marcadores internos: respuesta omitida y `[BOT REACTIVADO POR ADMINISTRADOR]`). Expone `ultimo_saliente` (origen BOT / AUTOMATICO / HUMANO, `accion_equivalente`, `posterior_al_turno`) y `medidas_ya_solicitadas`. Reglas pre-IA solo para texto sin multimedia: `SALUDO_SIMPLE` (todas las palabras son de saludo; respuesta fija "Buenas tardes 🤗 ¿En qué podemos ayudarle?" según el saludo del cliente o la hora de Ecuador) y `PRODUCTO_NO_P4` (tarjetas de presentación, flyers/volantes, carpetas, talonarios, boletos, entradas, formularios, hojas membretadas, trípticos, afiches, brochures, sin mencionar etiquetas/stickers/adhesivos) y `DIVISION_MINIMO_DISENOS` (el cliente quiere repartir una cantidad entre varios diseños, sabores, nombres, modelos, marcas o productos con menos de 1000 por diseño o cantidades por diseño que no son múltiplo de 1000: `INFORMAR_MINIMO` sin derivar, con respuesta determinística que explica el mínimo, cuánto necesitaría y para cuántos diseños alcanza; expone `division_disenos`). Si una regla aplica emite `decision` con el contrato del cerebro y `requiere_cerebro_comercial = false`. Lee además: Preparar conversación, Resolver turno conversacional, Recuperar historial conversación | IF: ¿Hay audios…? [F] · IF: ¿Audio listo para cerebro? [T] | IF: ¿Requiere cerebro comercial? |
 | IF: ¿Requiere cerebro comercial? | IF `requiere_cerebro_comercial !== false` | Salta los tres proveedores de IA cuando una regla pre-IA ya decidió | Preparar contexto IA | [T] Cerebro comercial Groq · [F] Normalizar decisión IA |
 | Cerebro comercial Groq | Information Extractor (modelo: Groq Chat Model1; schema manual) | Interpreta la conversación y decide intención, acción, datos de cotización, clasificación y respuesta sugerida | IF: ¿Requiere cerebro comercial? [T] | Validar extracción Cerebro comercial |
 | Validar extracción Cerebro comercial | Code | Valida el contrato del cerebro: enums, tipos, respuesta sugerida (tono, anti-repetición), cotización P4, medidas no producibles (lado ≤ 1 cm), derivación, clasificación A/B/C, motivo y notificación. Emite `valid`. Lee además: Preparar contexto IA | Cerebro comercial Groq | If GROQ1 |
@@ -583,6 +597,7 @@ flowchart LR
 |---|---|
 | Responder challenge Meta / Rechazar verificación Meta | Verificación del webhook de Meta |
 | Actualizar configuración MODO_PRUEBA | Comando STOP/START de administrador |
+| Reactivar bot prospecto | Comando ACTIVEBOT de administrador |
 | Actualizar conversación por intervención humana | Mensaje de un humano de Pegaso registrado |
 | If: ¿Evento WhatsApp procesable? [F] | Evento que no es un mensaje |
 | ¿Cliente existente? [T] | Cliente registrado (sin rama implementada) |
@@ -625,4 +640,4 @@ Detectados al documentar. Son hechos del workflow actual; **no se ha cambiado na
 16. **Eco automático tardío.** El debounce de primer contacto espera 10 s (máximo configurable 15 s). Si la respuesta automática de WhatsApp Business llega después, el bot ya respondió y puede duplicar el saludo o la pregunta de medidas.
 17. **Huellas de automatizaciones.** `AUTOMATIZACIONES_WHATSAPP_BUSINESS` (en `Normalizar evento WhatsApp`) compara el texto de los ecos con las plantillas actuales de WhatsApp Business. Si se cambia una plantilla en la app, hay que actualizar la lista; si no, ese eco se tratará como humano y bloqueará al bot.
 18. **Humano que escribe primero a un número sin prospecto.** `IF: ¿Prospecto encontrado?` [F] termina sin registrar el eco; cuando el cliente responda, el bot no sabrá que hubo un humano.
-19. **Reactivación manual del bot.** Si alguien pone `requiere_humano = FALSE` a mano, el bot vuelve a responder solo cuando han pasado 10 minutos desde el último mensaje humano (guardia de `Resolver turno conversacional`).
+19. **Reactivación manual del bot.** Si alguien pone `requiere_humano = FALSE` a mano en la base, el bot vuelve a responder solo cuando han pasado 10 minutos desde el último mensaje humano (guardia de `Resolver turno conversacional`). Para reactivar al instante usar el comando `ACTIVEBOT <teléfono>` (§5), que además inserta el marcador que anula la guardia.
