@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Preparar contexto IA
 // ARCHIVO: code/03-conversacion/preparar-contexto-ia.js
-// VERSION: 4.2
+// VERSION: 4.3
 // ======================================================
 //
 // RESPONSABILIDAD:
@@ -46,8 +46,11 @@
 //   acción equivalente, si llegó después del inicio del turno)
 //   y medidas_ya_solicitadas para el anti-duplicado.
 // - Reglas pre-IA solo para texto sin multimedia:
-//   SALUDO_SIMPLE (respuesta corta fija) y PRODUCTO_NO_P4
-//   (DERIVAR_HUMANO + COTIZACION_ESPECIAL). Cuando aplican se
+//   SALUDO_SIMPLE (respuesta corta fija), PRODUCTO_NO_P4
+//   (DERIVAR_HUMANO + COTIZACION_ESPECIAL) y
+//   DIVISION_MINIMO_DISENOS (INFORMAR_MINIMO: no se puede
+//   repartir la cantidad con menos de 1000 por diseño; nunca
+//   deriva). Cuando aplican se
 //   emite decision con el contrato del cerebro y
 //   requiere_cerebro_comercial = false para saltar la IA.
 // - NO llamar a IA.
@@ -1825,6 +1828,13 @@ const contextoComercial = {
 // PRODUCTO_NO_P4: el texto nombra un impreso que no es
 // etiqueta adhesiva y NO menciona etiquetas/stickers/adhesivos.
 //
+// DIVISION_MINIMO_DISENOS: el cliente quiere repartir una
+// cantidad entre varios diseños (sabores, nombres, modelos)
+// y la división es imposible: menos de 1000 por diseño o
+// cantidades por diseño que no son múltiplo de 1000. Se
+// explica el mínimo sin derivar. "3000 para 3 diseños" es
+// posible y lo decide el cerebro.
+//
 // ======================================================
 
 const VOCABULARIO_SALUDO = new Set([
@@ -1861,6 +1871,196 @@ const MENCIONA_ETIQUETA =
 
 const RESPUESTA_TRANSICION_NO_P4 =
   'Permítame un momento por favor, verificamos su requerimiento.';
+
+
+const MINIMO_POR_DISENO = 1000;
+
+const PALABRA_DISENO =
+  '(?:disenos?|modelos?|sabor(?:es)?|nombres?|variedad(?:es)?|version(?:es)?|textos?|tipos?|referencias?|artes?|marcas?|color(?:es)?|productos?|presentacion(?:es)?)';
+
+const CANTIDAD_DISENOS =
+  '(\\d{1,2}|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|varios|varias|diferentes|distintos|distintas)';
+
+const NUMEROS_PALABRA = {
+  un: 1, uno: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5,
+  seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10
+};
+
+// Como normalizarTexto, pero conserva cantidades:
+// "1.500" -> 1500, "dos mil" -> 2000, "mil" -> 1000.
+function textoCantidades(valor) {
+  return String(valor ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/(\d)[.,](?=\d{3}\b)/g, '$1')
+    .replace(
+      /\b(\d{1,3}|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez) mil\b/g,
+      (_, n) => String((NUMEROS_PALABRA[n] ?? Number(n)) * 1000)
+    )
+    .replace(/\bmil\b/g, '1000')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// null = "varios / diferentes": al menos 2, número desconocido.
+function numeroDisenos(token) {
+  if (/^\d+$/.test(token)) {
+    return Number(token);
+  }
+
+  return NUMEROS_PALABRA[token] ?? null;
+}
+
+function cantidadValidaPorDiseno(q) {
+  return q >= MINIMO_POR_DISENO && q % MINIMO_POR_DISENO === 0;
+}
+
+function ajustarCantidadPorDiseno(q) {
+  return Math.max(
+    MINIMO_POR_DISENO,
+    Math.ceil(q / MINIMO_POR_DISENO) * MINIMO_POR_DISENO
+  );
+}
+
+function detectarDivisionDisenos(textoOriginal) {
+  const t = textoCantidades(textoOriginal);
+
+  const nombraDisenos =
+    new RegExp(`\\b${PALABRA_DISENO}\\b`).test(t);
+
+  if (!nombraDisenos && !/\b(otro|otra)\b/.test(t)) {
+    return null;
+  }
+
+  // "1500 de un diseño y 1000 de otro y 500 de otro"
+  const porDiseno =
+    [...t.matchAll(
+      /\b(\d{3,})\b (?:(?:etiquetas|unidades|stickers) )?(?:de|del|para|con|en) (?:un|una|uno|otro|otra|el otro|la otra|el primero?|el segundo|el tercero?)\b/g
+    )].map(m => Number(m[1]));
+
+  if (porDiseno.length >= 2) {
+    return porDiseno.every(cantidadValidaPorDiseno)
+      ? null
+      : { tipo: 'CANTIDADES_POR_DISENO', cantidades: porDiseno };
+  }
+
+  // "500 de cada diseño" / "5 diseños de 500"
+  const deCada = t.match(
+    new RegExp(`\\b(\\d{3,})\\b (?:(?:etiquetas|unidades|stickers) )?(?:de|para|por|en) cada (?:uno|una|${PALABRA_DISENO})\\b`)
+  );
+
+  const nDisenosDe = t.match(
+    new RegExp(`\\b${CANTIDAD_DISENOS} ${PALABRA_DISENO} (?:\\w+ )?de (\\d{3,})\\b`)
+  );
+
+  if (deCada || nDisenosDe) {
+    const q = Number(deCada ? deCada[1] : nDisenosDe[2]);
+
+    return cantidadValidaPorDiseno(q)
+      ? null
+      : {
+          tipo: 'CANTIDAD_POR_CADA_DISENO',
+          cantidad_por_diseno: q,
+          disenos: nDisenosDe ? numeroDisenos(nDisenosDe[1]) : null
+        };
+  }
+
+  // "las 3000 para 5 diseños" / "5 diseños pero solo 3000 etiquetas"
+  // "1000 etiquetas, mitad de un diseño y mitad de otro"
+  let total = null;
+  let disenos = null;
+
+  const totalAntes = t.match(
+    new RegExp(`\\b(\\d{3,})\\b (?:\\w+ ){0,3}?(?:para|en|de|con|entre) (?:los |las )?${CANTIDAD_DISENOS} (?:\\w+ )?${PALABRA_DISENO}\\b`)
+  );
+
+  const totalDespues = t.match(
+    new RegExp(`\\b${CANTIDAD_DISENOS} ${PALABRA_DISENO}\\b (?:\\w+ ){0,4}?(\\d{3,}) (?:etiquetas|unidades|stickers|en total)\\b`)
+  );
+
+  if (nombraDisenos && /\bmitad\b/.test(t)) {
+    const primera = t.match(/\b(\d{3,})\b/);
+    total = primera ? Number(primera[1]) : null;
+    disenos = 2;
+  } else if (totalAntes) {
+    total = Number(totalAntes[1]);
+    disenos = numeroDisenos(totalAntes[2]);
+  } else if (totalDespues) {
+    total = Number(totalDespues[2]);
+    disenos = numeroDisenos(totalDespues[1]);
+  }
+
+  if (total === null || disenos === 1) {
+    return null;
+  }
+
+  const minimoNecesario =
+    (disenos ?? 2) * MINIMO_POR_DISENO;
+
+  return total < minimoNecesario
+    ? { tipo: 'TOTAL_ENTRE_DISENOS', total, disenos }
+    : null;
+}
+
+function formatoMiles(n) {
+  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+function respuestaDivisionDisenos(division) {
+  const base =
+    'No es posible dividir la cantidad entre varios diseños: ' +
+    'cada diseño requiere mínimo 1.000 etiquetas y trabajamos en múltiplos de 1.000. ' +
+    'Si cambia una letra o palabra ya se considera otro diseño.';
+
+  let detalle = '';
+
+  if (division.tipo === 'CANTIDADES_POR_DISENO') {
+    const partes = division.cantidades.map(q => {
+      const ajustada = ajustarCantidadPorDiseno(q);
+      return ajustada === q
+        ? formatoMiles(q)
+        : `${formatoMiles(q)} → ${formatoMiles(ajustada)}`;
+    });
+
+    const lista =
+      partes.slice(0, -1).join(', ') + ' y ' + partes[partes.length - 1];
+
+    const totalAjustado = division.cantidades
+      .map(ajustarCantidadPorDiseno)
+      .reduce((s, q) => s + q, 0);
+
+    detalle =
+      `Para sus ${division.cantidades.length} diseños las cantidades podrían ser: ` +
+      `${lista} (${formatoMiles(totalAjustado)} en total).`;
+  } else if (division.tipo === 'CANTIDAD_POR_CADA_DISENO') {
+    detalle = division.disenos
+      ? `Para ${division.disenos} diseños necesitaría 1.000 de cada uno: ` +
+        `${formatoMiles(division.disenos * MINIMO_POR_DISENO)} etiquetas en total.`
+      : `Cada diseño necesita 1.000 etiquetas, no ${formatoMiles(division.cantidad_por_diseno)}.`;
+  } else {
+    const posibles = Math.floor(division.total / MINIMO_POR_DISENO);
+
+    const necesita = division.disenos
+      ? `Para ${division.disenos} diseños necesitaría mínimo ` +
+        `${formatoMiles(division.disenos * MINIMO_POR_DISENO)} etiquetas (1.000 por diseño).`
+      : '';
+
+    const alcance =
+      posibles >= 2
+        ? `Con ${formatoMiles(division.total)} etiquetas podemos hacerle hasta ${posibles} diseños de 1.000.`
+        : posibles === 1
+          ? `Con ${formatoMiles(division.total)} etiquetas podemos hacerle 1 diseño.`
+          : '';
+
+    detalle = [necesita, alcance].filter(Boolean).join(' ');
+  }
+
+  return `${base} ${detalle} ¿Con cuántos diseños desea que le coticemos?`
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 
 function saludoHorario(textoPlano) {
@@ -1919,6 +2119,8 @@ let decisionPreIA = null;
 
 let productoNoP4Detectado = null;
 
+let divisionDisenosDetectada = null;
+
 const textoTurnoPlano =
   normalizarTexto(textoTurno);
 
@@ -1964,6 +2166,21 @@ if (
       motivo_derivacion: 'COTIZACION_ESPECIAL',
       respuesta_sugerida: RESPUESTA_TRANSICION_NO_P4
     };
+  } else {
+    divisionDisenosDetectada =
+      detectarDivisionDisenos(textoTurno);
+
+    if (divisionDisenosDetectada) {
+      reglaPreIA = 'DIVISION_MINIMO_DISENOS';
+
+      decisionPreIA = {
+        ...decisionBase(),
+        intencion: 'CONSULTAR_MINIMO',
+        accion: 'INFORMAR_MINIMO',
+        respuesta_sugerida:
+          respuestaDivisionDisenos(divisionDisenosDetectada)
+      };
+    }
   }
 }
 
@@ -2269,6 +2486,9 @@ return [
 
       producto_no_p4:
         productoNoP4Detectado,
+
+      division_disenos:
+        divisionDisenosDetectada,
 
       requiere_cerebro_comercial:
         decisionPreIA === null,

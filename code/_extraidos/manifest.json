@@ -1,8 +1,8 @@
 {
   "workflowId": "09OF22FOxihypeeh",
   "workflowName": "SISTEMA AUTOMATIZADO PEGASO",
-  "workflowUpdatedAt": "2026-10-14T03:43:32.908Z",
-  "extractedAt": "2026-10-14T03:43:37.908Z",
+  "workflowUpdatedAt": "2026-10-14T03:52:35.968Z",
+  "extractedAt": "2026-10-14T03:52:41.355Z",
   "workflowNodeCount": 184,
   "codeNodeCount": 69,
   "nodes": [
@@ -140,7 +140,7 @@
       "fileName": "preparar-contexto-ia.js",
       "relativeFile": "code/_extraidos/preparar-contexto-ia.js",
       "typeVersion": 2,
-      "lines": 2265
+      "lines": 2485
     },
     {
       "nodeId": "f207ef1c-d7ff-4fae-9910-486f2ba24c0a",
@@ -260,7 +260,7 @@
       "fileName": "resolver-contexto-comercial.js",
       "relativeFile": "code/_extraidos/resolver-contexto-comercial.js",
       "typeVersion": 2,
-      "lines": 1048
+      "lines": 1051
     },
     {
       "nodeId": "49b907ef-f963-4ccc-b7bb-db921afc5898",

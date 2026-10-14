@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V2.5
+// RESOLVER CONTEXTO COMERCIAL - V2.6
 // ======================================================
 //
 // Objetivo:
@@ -39,6 +39,9 @@
 //   PEDIR_MEDIDAS no se repite si las medidas ya se pidieron (solo lo que falta);
 //   omitir_envio cuando la automatización de WhatsApp Business ya atendió
 //   la misma acción después de iniciado el turno.
+// - V2.6: "para 5 diseños / sabores / nombres..." ya no se toma como fecha
+//   deseada (la aclaración del mínimo por diseño no se reemplaza por la
+//   metodología semanal).
 //
 // ======================================================
 
@@ -692,7 +695,7 @@ const MESES =
 
 const PATRONES_FECHA_DESEADA = [
   new RegExp(`\\b(para|hasta|antes del?) (el )?(dia )?(proximo )?${DIAS_SEMANA}\\b`),
-  /\b(para|hasta|antes del?) (el )?(dia )?\d{1,2}\b(?! ?(x|cm|mm|ml|cc|gr|g|kg|lt|l|litros?|onzas?|oz|unidades|etiquetas|mil|por))/,
+  /\b(para|hasta|antes del?) (el )?(dia )?\d{1,2}\b(?! ?(x|cm|mm|ml|cc|gr|g|kg|lt|l|litros?|onzas?|oz|unidades|etiquetas|mil|por|disenos?|modelos?|sabor(?:es)?|nombres?|variedad(?:es)?|version(?:es)?|textos?|tipos?|referencias?|artes?|marcas?|color(?:es)?|productos?|presentacion(?:es)?|diferentes|distint[oa]s))/,
   new RegExp(`\\b\\d{1,2} de ${MESES}\\b`),
   /\b(para|hasta|antes de) (hoy|manana|pasado manana|esta semana|la proxima semana|el fin de semana|fin de mes)\b/,
   /\b(las|los|la|lo) (necesito|necesitamos|requiero|requerimos|quiero|queremos) (para|hasta|antes)\b/
