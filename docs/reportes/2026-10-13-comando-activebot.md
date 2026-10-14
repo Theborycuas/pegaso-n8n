@@ -66,7 +66,7 @@ flowchart LR
 
 Una sola sentencia con tres pasos:
 
-1. `UPDATE pegaso.prospectos SET requiere_humano = FALSE` para el prospecto WHATSAPP activo cuyo teléfono, comparando solo dígitos, es `telefono_objetivo`. Es la misma comparación que usa `Buscar prospecto intervención humana`.
+1. `UPDATE pegaso.prospectos SET requiere_humano = FALSE` para el o los prospectos WHATSAPP cuyo teléfono, normalizado a `593…`, es `telefono_objetivo` (ver la corrección en §5).
 2. Elige su conversación WHATSAPP: primero la `ACTIVA` (la que lee la ruta del cliente) y, si no hay, la más reciente.
 3. Inserta en esa conversación un mensaje SALIENTE `[BOT REACTIVADO POR ADMINISTRADOR]` sin `mensaje_externo_id`, `procesado = TRUE`.
 
@@ -98,7 +98,27 @@ Se ejecutó el código real de los nodos y la expresión real del IF leída de `
 
 Regresión sin cambios: conversacional, auditoría, mínimo por diseño, cierre de cotizaciones y precios **OK**. `inject-code.mjs`, `validate-workflow.mjs` (186 nodos) y `check-encoding.mjs` **OK**.
 
-## 5. Riesgos y límites
+## 5. Corrección tras la primera prueba en n8n
+
+**Síntoma:** el comando llegó y `Procesar comando BOT` resolvió bien el número, pero `Reactivar bot prospecto` devolvió `prospectos_reactivados = 0` y el prospecto siguió con `requiere_humano = TRUE`.
+
+**Diagnóstico:** se ejecutó la sentencia original en un Postgres en memoria (PGlite) con las tablas de `schema/pegaso_schema.sql`. Las columnas coinciden con el esquema y la sentencia funciona, pero el `WHERE` era demasiado estricto. Devolvía 0 si el teléfono estaba guardado en formato local (`09…` o 9 dígitos) o si el prospecto tenía `activo = FALSE`. El esquema no impone formato a `prospectos.telefono` (`varchar(30)` con unicidad sobre el texto exacto).
+
+**Cambio en `Reactivar bot prospecto`:**
+
+| Antes | Ahora |
+|---|---|
+| `regexp_replace(telefono, '\D', '', 'g') = telefono_objetivo` | El teléfono guardado se normaliza igual que el del comando: solo dígitos con `[^0-9]` (sin backslash), y `09…` o 9 dígitos pasan a `593…` |
+| `AND activo = TRUE` | Sin filtro de `activo`: el administrador nombra el número explícitamente. La salida informa `prospecto_activo` |
+| `canal = 'WHATSAPP'` | `UPPER(TRIM(canal)) = 'WHATSAPP'` |
+| `ORDER BY (estado = 'ACTIVA') DESC` | `COALESCE(estado = 'ACTIVA', FALSE) DESC`: con `estado` NULL, `NULL DESC` quedaba primero |
+| Salida sin datos del prospecto | Agrega `telefono_guardado` y `prospecto_activo` para diagnosticar desde la ejecución |
+
+**Verificación en PGlite (10/10 OK):** reactiva con el teléfono guardado como `593…`, `+593…`, `+593 9x xxx xxxx`, `09…`, 9 dígitos, con `standard_conforming_strings` desactivado, con `activo = FALSE` y con canal en minúsculas. En todos elige la conversación ACTIVA aunque haya otras más recientes cerradas o con estado NULL, e inserta un único marcador SALIENTE sin `mensaje_externo_id`. No toca otro número ni otro canal.
+
+Si después de esta corrección sigue devolviendo 0, el número no existe como prospecto WHATSAPP; por ejemplo, porque es un cliente registrado en `contactos`, una ruta que hoy el bot no atiende.
+
+## 6. Riesgos y límites
 
 - **Sin confirmación al administrador.** Si el número no corresponde a ningún prospecto, no pasa nada y el administrador no se entera. Se puede agregar una respuesta por YCloud con `prospectos_reactivados` si se quiere.
 - **Mensajes del cliente durante la derivación.** El bot no responde a lo que el cliente escribió antes del comando; responde desde su siguiente mensaje.
