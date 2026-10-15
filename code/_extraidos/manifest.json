@@ -1,8 +1,8 @@
 {
   "workflowId": "09OF22FOxihypeeh",
   "workflowName": "SISTEMA AUTOMATIZADO PEGASO",
-  "workflowUpdatedAt": "2026-10-14T04:23:47.977Z",
-  "extractedAt": "2026-10-15T04:36:45.566Z",
+  "workflowUpdatedAt": "2026-10-15T04:57:28.201Z",
+  "extractedAt": "2026-10-15T04:57:33.400Z",
   "workflowNodeCount": 186,
   "codeNodeCount": 69,
   "nodes": [
@@ -260,7 +260,7 @@
       "fileName": "resolver-contexto-comercial.js",
       "relativeFile": "code/_extraidos/resolver-contexto-comercial.js",
       "typeVersion": 2,
-      "lines": 1051
+      "lines": 1288
     },
     {
       "nodeId": "49b907ef-f963-4ccc-b7bb-db921afc5898",
@@ -364,7 +364,7 @@
       "fileName": "normalizar-evento-whatsapp.js",
       "relativeFile": "code/_extraidos/normalizar-evento-whatsapp.js",
       "typeVersion": 2,
-      "lines": 1327
+      "lines": 1334
     },
     {
       "nodeId": "a8c7e996-96eb-40f1-9c73-921195df970d",
@@ -556,7 +556,7 @@
       "fileName": "preparar-mensaje-humano-saliente.js",
       "relativeFile": "code/_extraidos/preparar-mensaje-humano-saliente.js",
       "typeVersion": 2,
-      "lines": 86
+      "lines": 119
     }
   ]
 }

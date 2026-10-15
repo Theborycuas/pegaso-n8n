@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V2.6
+// RESOLVER CONTEXTO COMERCIAL - V2.7
 // ======================================================
 //
 // Objetivo:
@@ -42,6 +42,14 @@
 // - V2.6: "para 5 diseños / sabores / nombres..." ya no se toma como fecha
 //   deseada (la aclaración del mínimo por diseño no se reemplaza por la
 //   metodología semanal).
+// - V2.7: en turnos de solo texto, una cantidad o medida nueva solo cuenta
+//   si el número está escrito en el mensaje ("botella de 500 ml" no es
+//   cantidad). No se recotiza sin un cambio real del turno: con cotización
+//   vigente sin cambios -> RESPONDER_GENERAL; "otras medidas" -> pide las
+//   nuevas medidas; sesión nueva sin datos ni referencia -> no reutiliza la
+//   cotización vieja. Si una automatización de WhatsApp Business ya respondió
+//   la pregunta informativa del turno, el bot solo pregunta las medidas que
+//   faltan (o no envía nada).
 //
 // ======================================================
 
@@ -197,6 +205,105 @@ const formaAnterior =
 // 4. DATOS EXPLÍCITOS DEL MENSAJE ACTUAL
 // ======================================================
 
+// ------------------------------------------------------
+// 4.1 NÚMEROS REALMENTE ESCRITOS EN EL TURNO
+// ------------------------------------------------------
+//
+// La IA conserva datos anteriores y a veces toma como
+// cantidad un número que no lo es ("botella de 500 ml").
+// En un turno de solo texto, cantidad, ancho o alto
+// cuentan como dato del turno solo si el número aparece
+// escrito; la cantidad no puede ser volumen, peso ni
+// medida. Con números en palabras, imagen o audio se
+// confía en la IA.
+//
+// ------------------------------------------------------
+
+const textoTurnoCrudo =
+  String(
+    contextoIA.mensaje_actual ??
+    data.mensaje_actual ??
+    ''
+  );
+
+const planoTurno =
+  textoPlano(textoTurnoCrudo);
+
+const UNIDADES_NO_CANTIDAD = [
+  'ml', 'cc', 'l', 'lt', 'lts', 'litro', 'litros',
+  'g', 'gr', 'grs', 'gramo', 'gramos', 'kg', 'kilo', 'kilos',
+  'oz', 'onza', 'onzas', 'cm', 'mm', 'm', 'mt', 'mts', 'metro', 'metros'
+];
+
+const NUMEROS_EN_PALABRAS =
+  /\b(dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieci\w+|veinte|veinti\w+|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien|ciento|\w+cientos|mil)\b/;
+
+function numerosEscritos(valor) {
+  const encontrados = [];
+
+  const patron =
+    /(\d{1,3}(?:[.,]\d{3})+(?!\d)|\d+(?:[.,]\d+)?)\s*(mil\b|ml\b|cc\b|lts?\b|litros?\b|l\b|grs?\b|gramos?\b|g\b|kg\b|kilos?\b|oz\b|onzas?\b|cm\b|mm\b|mts?\b|metros?\b|m\b)?/g;
+
+  for (const m of String(valor ?? '').toLowerCase().matchAll(patron)) {
+    const crudo = m[1];
+
+    const valorNumero =
+      /^\d{1,3}(?:[.,]\d{3})+$/.test(crudo)
+        ? Number(crudo.replace(/[.,]/g, ''))
+        : Number(crudo.replace(',', '.'));
+
+    const unidad = m[2] ?? null;
+
+    if (!Number.isFinite(valorNumero)) {
+      continue;
+    }
+
+    encontrados.push(
+      unidad === 'mil'
+        ? { valor: valorNumero * 1000, unidad: null }
+        : { valor: valorNumero, unidad }
+    );
+  }
+
+  return encontrados;
+}
+
+const numerosTurno =
+  numerosEscritos(textoTurnoCrudo);
+
+const turnoSoloTexto =
+  numero(contextoIA.media_turno?.cantidad_media) === null ||
+  numero(contextoIA.media_turno?.cantidad_media) === 0;
+
+const verificarNumerosTurno =
+  turnoSoloTexto &&
+  planoTurno !== '' &&
+  !NUMEROS_EN_PALABRAS.test(planoTurno);
+
+function cantidadEscrita(valor) {
+  return numerosTurno.some(n =>
+    igualesNumero(n.valor, valor) &&
+    !UNIDADES_NO_CANTIDAD.includes(n.unidad)
+  );
+}
+
+function medidaEscrita(valor) {
+  return numerosTurno.some(n =>
+    igualesNumero(n.valor, valor) ||
+    (n.unidad === 'mm' && igualesNumero(n.valor / 10, valor)) ||
+    (['m', 'mt', 'mts', 'metro', 'metros'].includes(n.unidad) && igualesNumero(n.valor * 100, valor))
+  );
+}
+
+function datoDelTurno(valor, escrito) {
+  if (valor === null || !verificarNumerosTurno) {
+    return valor;
+  }
+
+  return escrito(valor) ? valor : null;
+}
+
+
 const productoActual =
   texto(data.producto);
 
@@ -204,13 +311,21 @@ const materialActual =
   texto(data.material);
 
 const cantidadActual =
-  numero(data.cantidad);
+  datoDelTurno(numero(data.cantidad), cantidadEscrita);
 
 const anchoActual =
-  numero(data.ancho_cm);
+  datoDelTurno(numero(data.ancho_cm), medidaEscrita);
 
 const altoActual =
-  numero(data.alto_cm);
+  datoDelTurno(numero(data.alto_cm), medidaEscrita);
+
+const datosDescartadosTurno = [
+  ['cantidad', numero(data.cantidad), cantidadActual],
+  ['ancho_cm', numero(data.ancho_cm), anchoActual],
+  ['alto_cm', numero(data.alto_cm), altoActual]
+]
+  .filter(([, ia, turno]) => ia !== null && turno === null)
+  .map(([campo]) => campo);
 
 let formaActual =
   texto(data.forma);
@@ -258,11 +373,8 @@ let cantidadSolicitada =
 // ------------------------------------------------------
 
 const medidasActualesCompletas =
-  data.medidas_actuales_completas === true ||
-  (
-    anchoActual !== null &&
-    altoActual !== null
-  );
+  anchoActual !== null &&
+  altoActual !== null;
 
 let anchoCm = null;
 let altoCm = null;
@@ -559,6 +671,65 @@ else if (
 
 
 // ------------------------------------------------------
+// J. NO RECOTIZAR SIN UN CAMBIO REAL EN ESTE TURNO
+// ------------------------------------------------------
+//
+// Las medidas guardadas no bastan para volver a cotizar:
+// - "son en otras medidas" sin medidas nuevas -> se piden;
+// - sesión nueva sin datos ni referencia a lo anterior ->
+//   no se reutiliza la cotización vieja;
+// - cotización vigente sin cambios y sin pedir precio ->
+//   se responde lo que preguntó, sin recotizar.
+//
+// ------------------------------------------------------
+
+const PIDE_PRECIO =
+  /\b(precios?|cuanto (cuesta|cuestan|vale|valen|sale|salen|seria|serian|costaria|costarian|me sale|me salen|me cobra|me cobran)|cotiza\w*|cotizacion(es)?|presupuesto|valor)\b/;
+
+const REFIERE_COTIZACION_ANTERIOR =
+  /\b(la cotizacion (que|de|anterior)|lo de (ayer|antes|la otra vez)|las mismas|los mismos|la misma|lo mismo|como (la vez pasada|antes|la anterior)|anterior|seguir con|continuar con)\b/;
+
+const PIDE_OTRAS_MEDIDAS =
+  /\b(otr[ao]s? (medidas?|tamanos?|dimensiones)|no son (esas|esa|estas|esta) medidas?|(cambiar|cambio|modificar) (de |las |la )?(medidas?|tamano)|(diferentes?|distint[ao]s?) (medidas?|tamanos?))\b/;
+
+const cotizacionVigente =
+  cotizacionAnterior.estado === 'COTIZADA' ||
+  numero(cotizacionAnterior.total) !== null ||
+  numero(cotizacionAnterior.cotizacion_id) !== null;
+
+const sesionConversacionalNueva =
+  contextoIA.sesion_conversacional_nueva === true;
+
+let ajusteRecotizacion = null;
+
+if (
+  accion === 'COTIZAR_P4' &&
+  !modificoDatosCotizacion
+) {
+  if (PIDE_OTRAS_MEDIDAS.test(planoTurno)) {
+    ajusteRecotizacion = 'PIDE_OTRAS_MEDIDAS';
+    accion = 'PEDIR_MEDIDAS';
+  } else if (
+    sesionConversacionalNueva &&
+    !REFIERE_COTIZACION_ANTERIOR.test(planoTurno)
+  ) {
+    ajusteRecotizacion = 'SESION_NUEVA_SIN_DATOS';
+    accion =
+      PIDE_PRECIO.test(planoTurno)
+        ? 'PEDIR_MEDIDAS'
+        : 'RESPONDER_GENERAL';
+  } else if (
+    cotizacionVigente &&
+    !PIDE_PRECIO.test(planoTurno) &&
+    !REFIERE_COTIZACION_ANTERIOR.test(planoTurno)
+  ) {
+    ajusteRecotizacion = 'COTIZACION_VIGENTE_SIN_CAMBIOS';
+    accion = 'RESPONDER_GENERAL';
+  }
+}
+
+
+// ------------------------------------------------------
 // H. CANTIDAD MAYORISTA -> HUMANO
 // ------------------------------------------------------
 //
@@ -661,6 +832,22 @@ else if (
     '';
 }
 
+if (ajusteRecotizacion === 'PIDE_OTRAS_MEDIDAS') {
+  respuestaSugerida =
+    'Indíquenos por favor las nuevas medidas de sus etiquetas (ancho y alto en centímetros) para cotizarle.';
+}
+
+else if (
+  accion === 'RESPONDER_GENERAL' &&
+  ajusteRecotizacion !== null &&
+  respuestaSugerida === ''
+) {
+  respuestaSugerida =
+    ajusteRecotizacion === 'SESION_NUEVA_SIN_DATOS'
+      ? '¿En qué podemos ayudarle con sus etiquetas?'
+      : 'Gracias por la información. Si necesita cotizar otra medida o cantidad, indíquenos por favor ancho, alto y cantidad.';
+}
+
 
 // ------------------------------------------------------
 // 12.1 FECHA DESEADA POR EL CLIENTE
@@ -755,7 +942,8 @@ let preguntaMedidasFaltantes = null;
 
 if (
   accion === 'PEDIR_MEDIDAS' &&
-  medidasYaSolicitadas
+  medidasYaSolicitadas &&
+  ajusteRecotizacion !== 'PIDE_OTRAS_MEDIDAS'
 ) {
   if (turnoAportaInformacion) {
     const faltante =
@@ -823,27 +1011,67 @@ if (aplicaMetodologia) {
 // ------------------------------------------------------
 //
 // El eco automático de WhatsApp Business (por ejemplo la
-// respuesta de anuncio que pide medidas) puede llegar
-// después de iniciado el turno. Si ya cubrió la misma
-// acción, el bot no repite.
+// respuesta de anuncio que pide medidas o explica el
+// material) puede llegar después de iniciado el turno. Si
+// ya cubrió la misma acción, el bot no la repite. Una
+// respuesta automática sin acción reconocida (detectada
+// por velocidad en la apertura) cubre las preguntas
+// informativas del turno.
+//
+// Si lo que respondió la automatización es informativo y
+// aún faltan medidas, el bot solo continúa con la pregunta
+// de medidas para no dejar la conversación sin siguiente
+// paso.
 //
 // ------------------------------------------------------
 
-if (
+const ACCIONES_ATENDIBLES_POR_AUTOMATIZACION = [
+  'INFORMAR_MATERIAL',
+  'INFORMAR_MINIMO',
+  'INFORMAR_UBICACION',
+  'INFORMAR_METODOLOGIA',
+  'INFORMAR_METODOLOGIA_PAGO',
+  'INFORMAR_ENTREGA',
+  'INFORMAR_DISENO',
+  'RESPONDER_GENERAL'
+];
+
+const accionAutomatizacion =
+  texto(ultimoSaliente.accion_equivalente);
+
+const automatizacionAtendioTurno =
   !omitirEnvio &&
   !aplicaMetodologia &&
   ultimoSaliente.posterior_al_turno === true &&
   ultimoSaliente.origen === 'AUTOMATICO' &&
   (
-    ultimoSaliente.accion_equivalente === accion ||
+    accionAutomatizacion === accion ||
     (
       reglaPreIA === 'SALUDO_SIMPLE' &&
-      texto(ultimoSaliente.accion_equivalente) !== null
+      accionAutomatizacion !== null
+    ) ||
+    (
+      accionAutomatizacion === null &&
+      ACCIONES_ATENDIBLES_POR_AUTOMATIZACION.includes(accion)
     )
-  )
-) {
-  omitirEnvio = true;
-  motivoOmisionEnvio = 'ACCION_YA_ATENDIDA_POR_AUTOMATIZACION';
+  );
+
+let seguimientoTrasAutomatizacion = false;
+
+if (automatizacionAtendioTurno) {
+  seguimientoTrasAutomatizacion =
+    reglaPreIA !== 'SALUDO_SIMPLE' &&
+    ACCIONES_ATENDIBLES_POR_AUTOMATIZACION.includes(accion) &&
+    faltaMedidas &&
+    !medidasYaSolicitadas;
+
+  if (seguimientoTrasAutomatizacion) {
+    respuestaSugerida =
+      '¿En qué medidas necesita sus etiquetas? Indíquenos ancho y alto por favor.';
+  } else {
+    omitirEnvio = true;
+    motivoOmisionEnvio = 'ACCION_YA_ATENDIDA_POR_AUTOMATIZACION';
+  }
 }
 
 
@@ -1055,6 +1283,15 @@ return [
 
       motivo_omision_envio:
         motivoOmisionEnvio,
+
+      ajuste_recotizacion:
+        ajusteRecotizacion,
+
+      datos_descartados_turno:
+        datosDescartadosTurno,
+
+      seguimiento_tras_automatizacion:
+        seguimientoTrasAutomatizacion,
 
       datos_suficientes_para_cotizar:
         datosSuficientes,

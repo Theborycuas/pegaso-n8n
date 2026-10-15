@@ -19,14 +19,21 @@
 // ======================================================
 // PREPARAR MENSAJE HUMANO SALIENTE
 // PEGASO ADHESIVOS
-// VERSION 1.1
+// VERSION 1.2
 // RESPONSABILIDAD:
 // - Armar la fila SALIENTE del echo de WhatsApp Business
 //   (humano o automatización) para "Guardar mensaje humano
 //   saliente", conservando mensaje_externo_id.
 // - origen_mensaje / intervencion_humana vienen de
-//   "Normalizar intervención humana".
+//   "Normalizar intervención humana", salvo que "Buscar
+//   prospecto intervención humana" marque
+//   respuesta_rapida_apertura: el eco es la respuesta
+//   automática de una pregunta rápida del anuncio y se
+//   guarda como AUTOMATICO (no humano).
 // ======================================================
+
+const PREFIJO_AUTOMATICO =
+  '[AUTOMATICO WHATSAPP BUSINESS';
 
 const conversacion =
   $input.first()?.json ?? {};
@@ -35,6 +42,26 @@ const evento =
   $('Normalizar intervención humana')
     .first()
     .json ?? {};
+
+let respuestaRapidaApertura = false;
+
+try {
+  respuestaRapidaApertura =
+    $('Buscar prospecto intervención humana')
+      .first()
+      .json
+      ?.respuesta_rapida_apertura === true;
+} catch (_) {
+  respuestaRapidaApertura = false;
+}
+
+const automaticoPorApertura =
+  evento.intervencion_humana !== false &&
+  respuestaRapidaApertura;
+
+const contenidoBase =
+  evento.contenido ??
+  '[MENSAJE ENVIADO MANUALMENTE]';
 
 
 const conversacionId =
@@ -78,8 +105,9 @@ return [
         'TEXTO',
 
       contenido:
-        evento.contenido ??
-        '[MENSAJE ENVIADO MANUALMENTE]',
+        automaticoPorApertura
+          ? `${PREFIJO_AUTOMATICO} · accion=NINGUNA · motivo=RESPUESTA_RAPIDA_APERTURA] ${contenidoBase}`
+          : contenidoBase,
 
       mensaje_externo_id:
         evento.mensaje_externo_id ??
@@ -93,11 +121,16 @@ return [
         true,
 
       origen_mensaje:
-        evento.origen_mensaje ??
-        'HUMANO',
+        automaticoPorApertura
+          ? 'AUTOMATICO_WHATSAPP_BUSINESS'
+          : evento.origen_mensaje ?? 'HUMANO',
 
       intervencion_humana:
-        evento.intervencion_humana !== false
+        evento.intervencion_humana !== false &&
+        !automaticoPorApertura,
+
+      respuesta_rapida_apertura:
+        automaticoPorApertura
 
     }
   }

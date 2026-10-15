@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Normalizar evento WhatsApp
 // ARCHIVO: code/01-entrada/normalizar-evento-whatsapp.js
-// VERSION: 2.1
+// VERSION: 2.2
 // RESPONSABILIDAD:
 // - Detectar el origen del webhook:
 //      1. YCloud inbound:
@@ -60,8 +60,9 @@
 //   Todo echo es direccion SALIENTE y va a la ruta de
 //   salida; nunca entra como mensaje del cliente.
 //   SALIENTE_AUTOMATICO = automatización de la app
-//   WhatsApp Business (bienvenida / respuesta de anuncio):
-//   se registra pero NO marca atención humana.
+//   WhatsApp Business (bienvenida / respuestas de las
+//   preguntas rápidas del anuncio): se registra pero NO
+//   marca atención humana.
 //
 // - Exponer el contexto de anuncio (referral CTWA) del
 //   mensaje entrante: es_lead_anuncio y anuncio.
@@ -116,6 +117,12 @@ const AUTOMATIZACIONES_WHATSAPP_BUSINESS = [
     texto: 'hola le saluda borys espinoza como puedo ayudarle',
     exacto: true,
     accion_equivalente: 'SALUDO'
+  },
+  {
+    codigo: 'RESPUESTA_ANUNCIO_MATERIAL',
+    texto: 'trabajamos con plastico polipropileno de alta adherencia',
+    exacto: false,
+    accion_equivalente: 'INFORMAR_MATERIAL'
   }
 ];
 
