@@ -1,9 +1,9 @@
 {
   "workflowId": "09OF22FOxihypeeh",
   "workflowName": "SISTEMA AUTOMATIZADO PEGASO",
-  "workflowUpdatedAt": "2026-10-15T13:26:10.570Z",
-  "extractedAt": "2026-10-15T13:26:15.623Z",
-  "workflowNodeCount": 188,
+  "workflowUpdatedAt": "2026-10-15T13:34:38.587Z",
+  "extractedAt": "2026-10-15T13:34:43.747Z",
+  "workflowNodeCount": 189,
   "codeNodeCount": 69,
   "nodes": [
     {
@@ -260,7 +260,7 @@
       "fileName": "resolver-contexto-comercial.js",
       "relativeFile": "code/_extraidos/resolver-contexto-comercial.js",
       "typeVersion": 2,
-      "lines": 1364
+      "lines": 1406
     },
     {
       "nodeId": "49b907ef-f963-4ccc-b7bb-db921afc5898",
@@ -380,7 +380,7 @@
       "fileName": "preparar-envio-whatsapp.js",
       "relativeFile": "code/_extraidos/preparar-envio-whatsapp.js",
       "typeVersion": 2,
-      "lines": 978
+      "lines": 988
     },
     {
       "nodeId": "bc2e3649-a530-43b4-be61-72665ab148cf",

@@ -12,7 +12,7 @@ Un reporte por intervención sobre el workflow **SISTEMA AUTOMATIZADO PEGASO**: 
 | 2026-10-13 | [Mínimo por diseño: no se reparte la cantidad entre diseños y no se deriva](2026-10-13-minimo-por-diseno.md) | Implementado en local, sin publicar en n8n ni commit |
 | 2026-10-13 | [Comando ACTIVEBOT: reactivar el bot para un prospecto derivado a humano](2026-10-13-comando-activebot.md) | Implementado en local, sin publicar en n8n ni commit |
 | 2026-10-13 | [Diseño sin creación de marca, no recotizar sin contexto y respuestas rápidas de anuncios](2026-10-13-diseno-recotizacion-ecos-anuncio.md) | Implementado en local, sin publicar en n8n ni commit |
-| 2026-10-15 | [Foto del material en la respuesta del bot](2026-10-15-foto-material.md) | Implementado en local, sin publicar en n8n ni commit; requiere crear `IMAGEN_MATERIAL` en `configuracion_bot` |
+| 2026-10-15 | [Imágenes informativas: material y metodología de producción](2026-10-15-foto-material.md) | Primera versión (material) publicada; imagen antes del texto y metodología en local, sin publicar ni commit; requiere crear `IMAGEN_METODOLOGIA` en `configuracion_bot` |
 
 ## Convenciones
 

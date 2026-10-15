@@ -19,7 +19,7 @@
 // ======================================================
 // PREPARAR ENVÍO WHATSAPP - YCLOUD
 // PEGASO ADHESIVOS
-// VERSION: 2.2
+// VERSION: 3.0
 // ======================================================
 //
 // V2.1: no envía si el texto persistido es el marcador
@@ -30,6 +30,11 @@
 // emite enviar_imagen y ycloud_request_imagen (foto del
 // material) para "YCloud Enviar imagen material", que se
 // envía después del texto.
+//
+// V3.0: lee enviar_imagen_informativa / imagen_informativa_url
+// (material o metodología) y expone imagen_informativa. La
+// imagen se envía ANTES del texto ("YCloud Enviar imagen" →
+// "Esperar antes del texto" → "YCloud Enviar Wts").
 //
 // Puede recibir datos desde distintas rutas:
 //
@@ -59,7 +64,7 @@
 // 5. Resolver número emisor Pegaso.
 // 6. Construir request compatible con YCloud.
 // 7. Evitar envíos físicos durante TEST/manual.
-// 8. Construir el request de la foto del material, si aplica.
+// 8. Construir el request de la imagen informativa, si aplica.
 //
 // ======================================================
 
@@ -736,24 +741,24 @@ const bodyYCloud = {
 
 
 // ======================================================
-// 13.1 FOTO DEL MATERIAL (SEGUNDO MENSAJE)
+// 13.1 IMAGEN INFORMATIVA (ANTES DEL TEXTO)
 // ======================================================
 //
 // Solo cuando "Resolver contexto comercial" marcó
-// enviar_imagen_material y el texto sí se envía. Si la
-// foto falla, el cliente ya recibió el texto.
+// enviar_imagen_informativa (material o metodología) y el
+// texto sí se envía. "YCloud Enviar imagen" continúa ante
+// error, así que el texto sale aunque la imagen falle.
 //
 // ======================================================
 
-const urlImagenMaterial =
-  decision.accion === 'INFORMAR_MATERIAL' &&
-  decision.enviar_imagen_material === true
-    ? textoONull(decision.imagen_material_url)
+const urlImagenInformativa =
+  decision.enviar_imagen_informativa === true
+    ? textoONull(decision.imagen_informativa_url)
     : null;
 
 const enviarImagen =
   enviarWhatsApp &&
-  urlImagenMaterial !== null;
+  urlImagenInformativa !== null;
 
 const bodyYCloudImagen =
   enviarImagen
@@ -773,7 +778,7 @@ const bodyYCloudImagen =
 
         image: {
           link:
-            urlImagenMaterial
+            urlImagenInformativa
         }
       }
     : null;
@@ -967,6 +972,11 @@ return [
 
       enviar_imagen:
         enviarImagen,
+
+      imagen_informativa:
+        enviarImagen
+          ? textoONull(decision.imagen_informativa)
+          : null,
 
       ycloud_request_imagen: {
         body:

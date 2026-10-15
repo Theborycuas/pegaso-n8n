@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V2.8
+// RESOLVER CONTEXTO COMERCIAL - V3.0
 // ======================================================
 //
 // Objetivo:
@@ -54,6 +54,12 @@
 //   imagen_material_url) la primera vez por conversación, si la
 //   configuración IMAGEN_MATERIAL está activa con un enlace https;
 //   guarda contexto_comercial.imagen_material.enviada_at.
+// - V3.0: imagen informativa genérica. Material (IMAGEN_MATERIAL) y
+//   metodología de producción (IMAGEN_METODOLOGIA: INFORMAR_ENTREGA,
+//   INFORMAR_METODOLOGIA o fecha pedida respondida con la metodología),
+//   una vez por conversación cada una. La salida cambia a
+//   enviar_imagen_informativa / imagen_informativa / imagen_informativa_url
+//   (antes enviar_imagen_material / imagen_material_url).
 //
 // ======================================================
 
@@ -1080,17 +1086,45 @@ if (automatizacionAtendioTurno) {
 
 
 // ------------------------------------------------------
-// 12.5 FOTO DEL MATERIAL
+// 12.5 IMAGEN INFORMATIVA (MATERIAL / METODOLOGÍA)
 // ------------------------------------------------------
 //
-// La respuesta de material va acompañada de la foto
-// configurada en configuracion_bot (clave IMAGEN_MATERIAL,
-// valor_json { activo, url }), una sola vez por
-// conversación: contexto_comercial.imagen_material guarda
-// cuándo se envió. "Preparar envío WhatsApp" la manda
-// como segundo mensaje después del texto.
+// Las respuestas de material y de metodología de
+// producción van acompañadas de una imagen configurada en
+// configuracion_bot (valor_json { activo, url }), una sola
+// vez por conversación y por imagen: el contexto comercial
+// guarda cuándo se envió cada una. "Preparar envío
+// WhatsApp" la manda antes del texto.
+//
+// METODOLOGIA cubre INFORMAR_ENTREGA (tiempos, despacho),
+// INFORMAR_METODOLOGIA y la respuesta de metodología que
+// reemplaza a una fecha pedida (12.3).
 //
 // ------------------------------------------------------
+
+const IMAGENES_INFORMATIVAS = {
+  MATERIAL: {
+    clave: 'IMAGEN_MATERIAL',
+    contexto: 'imagen_material'
+  },
+  METODOLOGIA: {
+    clave: 'IMAGEN_METODOLOGIA',
+    contexto: 'imagen_metodologia'
+  }
+};
+
+const temaImagenInformativa =
+  aplicaMetodologia ||
+  ['INFORMAR_ENTREGA', 'INFORMAR_METODOLOGIA'].includes(accion)
+    ? 'METODOLOGIA'
+    : accion === 'INFORMAR_MATERIAL'
+      ? 'MATERIAL'
+      : null;
+
+const imagenInformativa =
+  temaImagenInformativa !== null
+    ? IMAGENES_INFORMATIVAS[temaImagenInformativa]
+    : null;
 
 let filasConfiguracion = [];
 
@@ -1103,33 +1137,36 @@ try {
   filasConfiguracion = [];
 }
 
-const configImagenMaterial =
-  objeto(
-    filasConfiguracion.find(
-      fila => fila.clave === 'IMAGEN_MATERIAL'
-    )?.valor_json
-  );
+const configImagenInformativa =
+  imagenInformativa !== null
+    ? objeto(
+        filasConfiguracion.find(
+          fila => fila.clave === imagenInformativa.clave
+        )?.valor_json
+      )
+    : {};
 
-const urlConfiguradaImagenMaterial =
-  texto(configImagenMaterial.url);
+const urlConfiguradaImagenInformativa =
+  texto(configImagenInformativa.url);
 
-const urlImagenMaterial =
-  configImagenMaterial.activo === true &&
-  urlConfiguradaImagenMaterial !== null &&
-  /^https:\/\/\S+$/i.test(urlConfiguradaImagenMaterial)
-    ? urlConfiguradaImagenMaterial
+const urlImagenInformativa =
+  configImagenInformativa.activo === true &&
+  urlConfiguradaImagenInformativa !== null &&
+  /^https:\/\/\S+$/i.test(urlConfiguradaImagenInformativa)
+    ? urlConfiguradaImagenInformativa
     : null;
 
-const imagenMaterialYaEnviada =
+const imagenInformativaYaEnviada =
+  imagenInformativa !== null &&
   texto(
-    objeto(contextoAnterior.imagen_material).enviada_at
+    objeto(contextoAnterior[imagenInformativa.contexto]).enviada_at
   ) !== null;
 
-const enviarImagenMaterial =
-  accion === 'INFORMAR_MATERIAL' &&
+const enviarImagenInformativa =
+  imagenInformativa !== null &&
   !omitirEnvio &&
-  urlImagenMaterial !== null &&
-  !imagenMaterialYaEnviada;
+  urlImagenInformativa !== null &&
+  !imagenInformativaYaEnviada;
 
 
 // ======================================================
@@ -1211,10 +1248,10 @@ const contextoComercialNuevo = {
   ),
 
   ...(
-    enviarImagenMaterial
+    enviarImagenInformativa
       ? {
-          imagen_material: {
-            url: urlImagenMaterial,
+          [imagenInformativa.contexto]: {
+            url: urlImagenInformativa,
             enviada_at: new Date().toISOString()
           }
         }
@@ -1361,12 +1398,17 @@ return [
       seguimiento_tras_automatizacion:
         seguimientoTrasAutomatizacion,
 
-      enviar_imagen_material:
-        enviarImagenMaterial,
+      enviar_imagen_informativa:
+        enviarImagenInformativa,
 
-      imagen_material_url:
-        enviarImagenMaterial
-          ? urlImagenMaterial
+      imagen_informativa:
+        enviarImagenInformativa
+          ? temaImagenInformativa
+          : null,
+
+      imagen_informativa_url:
+        enviarImagenInformativa
+          ? urlImagenInformativa
           : null,
 
       datos_suficientes_para_cotizar:
