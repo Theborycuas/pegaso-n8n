@@ -19,12 +19,17 @@
 // ======================================================
 // PREPARAR ENVÍO WHATSAPP - YCLOUD
 // PEGASO ADHESIVOS
-// VERSION: 2.1
+// VERSION: 2.2
 // ======================================================
 //
 // V2.1: no envía si el texto persistido es el marcador
 // [RESPUESTA AUTOMÁTICA OMITIDA ...] de "Preparar respuesta
 // comercial" (motivo_no_envio = RESPUESTA_OMITIDA_DUPLICADA).
+//
+// V2.2: si la decisión comercial trae enviar_imagen_material,
+// emite enviar_imagen y ycloud_request_imagen (foto del
+// material) para "YCloud Enviar imagen material", que se
+// envía después del texto.
 //
 // Puede recibir datos desde distintas rutas:
 //
@@ -54,6 +59,7 @@
 // 5. Resolver número emisor Pegaso.
 // 6. Construir request compatible con YCloud.
 // 7. Evitar envíos físicos durante TEST/manual.
+// 8. Construir el request de la foto del material, si aplica.
 //
 // ======================================================
 
@@ -730,6 +736,50 @@ const bodyYCloud = {
 
 
 // ======================================================
+// 13.1 FOTO DEL MATERIAL (SEGUNDO MENSAJE)
+// ======================================================
+//
+// Solo cuando "Resolver contexto comercial" marcó
+// enviar_imagen_material y el texto sí se envía. Si la
+// foto falla, el cliente ya recibió el texto.
+//
+// ======================================================
+
+const urlImagenMaterial =
+  decision.accion === 'INFORMAR_MATERIAL' &&
+  decision.enviar_imagen_material === true
+    ? textoONull(decision.imagen_material_url)
+    : null;
+
+const enviarImagen =
+  enviarWhatsApp &&
+  urlImagenMaterial !== null;
+
+const bodyYCloudImagen =
+  enviarImagen
+    ? {
+        from:
+          telefonoE164(
+            telefonoEmisor
+          ),
+
+        to:
+          telefonoE164(
+            telefonoDestino
+          ),
+
+        type:
+          'image',
+
+        image: {
+          link:
+            urlImagenMaterial
+        }
+      }
+    : null;
+
+
+// ======================================================
 // 14. DIAGNÓSTICO DE ORIGEN
 // ======================================================
 //
@@ -913,6 +963,14 @@ return [
       ycloud_request: {
         body:
           bodyYCloud
+      },
+
+      enviar_imagen:
+        enviarImagen,
+
+      ycloud_request_imagen: {
+        body:
+          bodyYCloudImagen
       },
 
 

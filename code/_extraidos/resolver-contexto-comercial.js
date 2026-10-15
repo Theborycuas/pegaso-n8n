@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V2.7
+// RESOLVER CONTEXTO COMERCIAL - V2.8
 // ======================================================
 //
 // Objetivo:
@@ -50,6 +50,10 @@
 //   cotización vieja. Si una automatización de WhatsApp Business ya respondió
 //   la pregunta informativa del turno, el bot solo pregunta las medidas que
 //   faltan (o no envía nada).
+// - V2.8: INFORMAR_MATERIAL marca enviar_imagen_material (con
+//   imagen_material_url) la primera vez por conversación, si la
+//   configuración IMAGEN_MATERIAL está activa con un enlace https;
+//   guarda contexto_comercial.imagen_material.enviada_at.
 //
 // ======================================================
 
@@ -1075,6 +1079,59 @@ if (automatizacionAtendioTurno) {
 }
 
 
+// ------------------------------------------------------
+// 12.5 FOTO DEL MATERIAL
+// ------------------------------------------------------
+//
+// La respuesta de material va acompañada de la foto
+// configurada en configuracion_bot (clave IMAGEN_MATERIAL,
+// valor_json { activo, url }), una sola vez por
+// conversación: contexto_comercial.imagen_material guarda
+// cuándo se envió. "Preparar envío WhatsApp" la manda
+// como segundo mensaje después del texto.
+//
+// ------------------------------------------------------
+
+let filasConfiguracion = [];
+
+try {
+  filasConfiguracion =
+    $('Obtener configuración MODO_PRUEBA')
+      .all()
+      .map(item => item.json ?? {});
+} catch (_) {
+  filasConfiguracion = [];
+}
+
+const configImagenMaterial =
+  objeto(
+    filasConfiguracion.find(
+      fila => fila.clave === 'IMAGEN_MATERIAL'
+    )?.valor_json
+  );
+
+const urlConfiguradaImagenMaterial =
+  texto(configImagenMaterial.url);
+
+const urlImagenMaterial =
+  configImagenMaterial.activo === true &&
+  urlConfiguradaImagenMaterial !== null &&
+  /^https:\/\/\S+$/i.test(urlConfiguradaImagenMaterial)
+    ? urlConfiguradaImagenMaterial
+    : null;
+
+const imagenMaterialYaEnviada =
+  texto(
+    objeto(contextoAnterior.imagen_material).enviada_at
+  ) !== null;
+
+const enviarImagenMaterial =
+  accion === 'INFORMAR_MATERIAL' &&
+  !omitirEnvio &&
+  urlImagenMaterial !== null &&
+  !imagenMaterialYaEnviada;
+
+
 // ======================================================
 // 13. CONTEXTO COMERCIAL NUEVO
 // ======================================================
@@ -1148,6 +1205,17 @@ const contextoComercialNuevo = {
           producto_no_p4: {
             producto: productoNoP4,
             detectado_at: new Date().toISOString()
+          }
+        }
+      : {}
+  ),
+
+  ...(
+    enviarImagenMaterial
+      ? {
+          imagen_material: {
+            url: urlImagenMaterial,
+            enviada_at: new Date().toISOString()
           }
         }
       : {}
@@ -1292,6 +1360,14 @@ return [
 
       seguimiento_tras_automatizacion:
         seguimientoTrasAutomatizacion,
+
+      enviar_imagen_material:
+        enviarImagenMaterial,
+
+      imagen_material_url:
+        enviarImagenMaterial
+          ? urlImagenMaterial
+          : null,
 
       datos_suficientes_para_cotizar:
         datosSuficientes,
