@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Preparar mensaje transición humano
 // ARCHIVO: code/06-derivacion-humana/preparar-mensaje-transicion-humano.js
-// VERSION: 3.1
+// VERSION: 3.2
 // RESPONSABILIDAD:
 // - Recibir la salida del UPDATE "Guardar contexto handoff" y recuperar el contrato de "Preparar contexto handoff"
 // - Elegir el texto fijo de transición al prospecto según el motivo (pago, reporte de pago o comprobante, pedido, llamada, imagen, archivo, negociación, reclamo)
@@ -151,7 +151,7 @@ if (
 ) {
 
   mensaje =
-    'En breve le pasamos nuestros datos personales y números de cuenta.';
+    'Le adjunto nuestros datos personales 📃 y números de cuentas 🏦';
 
 }
 
@@ -170,7 +170,7 @@ else if (
 ) {
 
   mensaje =
-    'Gracias. Permítame un momento por favor, ya verificamos su pago para continuar con el pedido.';
+    'En este momento le verificamos su pago.';
 
 }
 

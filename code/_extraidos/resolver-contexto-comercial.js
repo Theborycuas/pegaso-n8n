@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.2
+// RESOLVER CONTEXTO COMERCIAL - V3.3
 // ======================================================
 //
 // Objetivo:
@@ -66,6 +66,8 @@
 // - V3.2: si las medidas ya se pidieron (bot o publicidad) y el
 //   cliente vuelve a escribir sin darlas, no se omite el envío: se
 //   acota pidiendo ancho y alto en cm para poder cotizar.
+// - V3.3: ENVIAR_DATOS_PAGO envía IMAGEN_DATOS_PAGO (datos bancarios)
+//   + texto fijo, una vez por conversación. No deriva a humano.
 //
 // ======================================================
 
@@ -603,6 +605,7 @@ else if (
     'INFORMAR_METODOLOGIA_PAGO',
     'INFORMAR_ENTREGA',
     'INFORMAR_DISENO',
+    'ENVIAR_DATOS_PAGO',
     'REGISTRAR_ACEPTACION',
     'RESPONDER_GENERAL'
   ].includes(accionIA)
@@ -1080,6 +1083,13 @@ else if (
 }
 
 else if (
+  accion === 'ENVIAR_DATOS_PAGO'
+) {
+  respuestaSugerida =
+    'Le adjunto nuestros datos personales 📃 y números de cuentas 🏦';
+}
+
+else if (
   accion === 'COTIZAR_P4' ||
   derivacionPorCantidad
 ) {
@@ -1350,12 +1360,12 @@ if (automatizacionAtendioTurno) {
 
 
 // ------------------------------------------------------
-// 12.5 IMAGEN INFORMATIVA (MATERIAL / METODOLOGÍA)
+// 12.5 IMAGEN INFORMATIVA (MATERIAL / METODOLOGÍA / DATOS PAGO)
 // ------------------------------------------------------
 //
-// Las respuestas de material y de metodología de
-// producción van acompañadas de una imagen configurada en
-// configuracion_bot (valor_json { activo, url }), una sola
+// Las respuestas de material, metodología de producción y
+// datos bancarios van acompañadas de una imagen configurada
+// en configuracion_bot (valor_json { activo, url }), una sola
 // vez por conversación y por imagen: el contexto comercial
 // guarda cuándo se envió cada una. "Preparar envío
 // WhatsApp" la manda antes del texto.
@@ -1363,6 +1373,8 @@ if (automatizacionAtendioTurno) {
 // METODOLOGIA cubre INFORMAR_ENTREGA (tiempos, despacho),
 // INFORMAR_METODOLOGIA y la respuesta de metodología que
 // reemplaza a una fecha pedida (12.3).
+//
+// DATOS_PAGO cubre ENVIAR_DATOS_PAGO (números de cuenta).
 //
 // ------------------------------------------------------
 
@@ -1374,6 +1386,10 @@ const IMAGENES_INFORMATIVAS = {
   METODOLOGIA: {
     clave: 'IMAGEN_METODOLOGIA',
     contexto: 'imagen_metodologia'
+  },
+  DATOS_PAGO: {
+    clave: 'IMAGEN_DATOS_PAGO',
+    contexto: 'imagen_datos_pago'
   }
 };
 
@@ -1383,7 +1399,9 @@ const temaImagenInformativa =
     ? 'METODOLOGIA'
     : accion === 'INFORMAR_MATERIAL'
       ? 'MATERIAL'
-      : null;
+      : accion === 'ENVIAR_DATOS_PAGO'
+        ? 'DATOS_PAGO'
+        : null;
 
 const imagenInformativa =
   temaImagenInformativa !== null

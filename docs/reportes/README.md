@@ -15,6 +15,7 @@ Un reporte por intervención sobre el workflow **SISTEMA AUTOMATIZADO PEGASO**: 
 | 2026-10-15 | [Imágenes informativas: material y metodología de producción](2026-10-15-foto-material.md) | Primera versión (material) publicada; imagen antes del texto y metodología en local, sin publicar ni commit; requiere crear `IMAGEN_METODOLOGIA` en `configuracion_bot` |
 | 2026-10-15 | [Confirmación de medidas grandes antes de cotizar](2026-10-15-confirmacion-medidas-grandes.md) | Implementado en local, sin publicar en n8n ni commit |
 | 2026-10-15 | [Tras la publicidad que pide medidas: acotar, no callar](2026-10-15-medidas-ya-solicitadas-no-callar.md) | Implementado en local, sin publicar en n8n ni commit |
+| 2026-10-15 | [Datos bancarios por imagen y handoff solo con comprobante](2026-10-15-datos-pago-comprobante.md) | Implementado en local, sin publicar ni commit; requiere crear `IMAGEN_DATOS_PAGO` en `configuracion_bot` |
 
 ## Convenciones
 

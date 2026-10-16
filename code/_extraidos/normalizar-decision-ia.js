@@ -19,13 +19,16 @@
 // ======================================================
 // NODO N8N: Normalizar decisión IA
 // ARCHIVO: code/04-cerebro-comercial/normalizar-decision-ia.js
-// VERSION: 2.2
+// VERSION: 2.3
 // RESPONSABILIDAD:
 // - Convertir la decisión YA VALIDADA (de cualquier proveedor) en un contrato único Pegaso con tipos normalizados.
 // - Unir la decisión con el contexto de "Preparar contexto IA" (IDs, prospecto, tipo_actor, contexto_comercial) y resolver ciudad/provincia.
-// - Aplicar la evidencia multimedia del turno (media_turno): comprobante detectado -> REPORTAR_PAGO + DERIVAR_HUMANO + ENVIA_COMPROBANTE;
+// - Aplicar la evidencia multimedia del turno (media_turno): comprobante detectado -> REPORTAR_PAGO + DERIVAR_HUMANO + ENVIA_COMPROBANTE
+//   con mensaje de verificación (nunca "gracias por su pago" / "pago confirmado");
 //   imagen/archivo que requiere revisión -> DERIVAR_HUMANO + IMAGEN_REQUIERE_REVISION / ARCHIVO_NO_PROCESABLE.
 //   Si la IA ya derivó por otro motivo, se respeta (salvo comprobante frente a motivos no prioritarios).
+// - Convertir solicitud de cuenta/datos bancarios (SOLICITA_DATOS_PAGO o ENVIAR_DATOS_PAGO) en ENVIAR_DATOS_PAGO
+//   sin handoff: el bot envía la imagen de datos bancarios; la derivación humana queda para el comprobante.
 // - Impedir degradar la clasificación A/B/C: máximo entre anterior, IA y mínimo por intención/motivo.
 // - Calcular etiqueta_grande (lado corto > 10 o lado largo > 15 cm) y banderas de continuidad.
 // - Forzar requiere_notificacion=requiere_humano y calcular prioridad_derivacion (ALTA/MEDIA/NORMAL).
@@ -322,6 +325,12 @@ const MOTIVOS_QUE_PREVALECEN_SOBRE_COMPROBANTE = [
 
 let derivacionPorMedia = null;
 
+const TEXTO_DATOS_PAGO =
+  'Le adjunto nuestros datos personales 📃 y números de cuentas 🏦';
+
+const TEXTO_VERIFICAR_PAGO =
+  'En este momento le verificamos su pago.';
+
 if (
   mediaTurno.comprobante_detectado === true &&
   !MOTIVOS_QUE_PREVALECEN_SOBRE_COMPROBANTE.includes(motivoDerivacion)
@@ -331,8 +340,7 @@ if (
   accion = 'DERIVAR_HUMANO';
   requiereHumano = true;
   motivoDerivacion = 'ENVIA_COMPROBANTE';
-  respuestaSugerida =
-    'Muchas gracias. En breve verificamos la información para continuar con su pedido.';
+  respuestaSugerida = TEXTO_VERIFICAR_PAGO;
 } else if (
   mediaTurno.requiere_revision_humana === true &&
   requiereHumano !== true &&
@@ -346,6 +354,40 @@ if (
     motivoDerivacion === 'IMAGEN_REQUIERE_REVISION'
       ? 'Permítame un momento por favor, ya revisamos la imagen que nos envió.'
       : 'Permítame un momento por favor, ya revisamos el archivo que nos envió.';
+}
+
+// ------------------------------------------------------
+// Solicitud de cuenta / datos bancarios: NO deriva.
+// El bot envía la imagen de datos; el humano entra cuando
+// llega un comprobante (arriba) o un reporte de pago.
+// ------------------------------------------------------
+
+const esSolicitudDatosPago =
+  derivacionPorMedia !== 'COMPROBANTE_PAGO' &&
+  derivacionPorMedia !== 'REVISION_MEDIA' &&
+  (
+    accion === 'ENVIAR_DATOS_PAGO' ||
+    motivoDerivacion === 'SOLICITA_DATOS_PAGO' ||
+    (
+      intencion === 'CONSULTAR_PAGO' &&
+      accion === 'DERIVAR_HUMANO' &&
+      motivoDerivacion === 'SOLICITA_DATOS_PAGO'
+    )
+  );
+
+if (esSolicitudDatosPago) {
+  intencion = 'CONSULTAR_PAGO';
+  accion = 'ENVIAR_DATOS_PAGO';
+  requiereHumano = false;
+  motivoDerivacion = 'NINGUNO';
+  respuestaSugerida = TEXTO_DATOS_PAGO;
+} else if (
+  [
+    'REPORTA_PAGO',
+    'ENVIA_COMPROBANTE'
+  ].includes(motivoDerivacion)
+) {
+  respuestaSugerida = TEXTO_VERIFICAR_PAGO;
 }
 
 
@@ -548,6 +590,7 @@ if (
   intencion === 'ACEPTAR_COTIZACION' ||
   intencion === 'CONFIRMAR_PEDIDO' ||
   intencion === 'REPORTAR_PAGO' ||
+  accion === 'ENVIAR_DATOS_PAGO' ||
   motivoDerivacion === 'SOLICITA_DATOS_PAGO' ||
   motivoDerivacion === 'ENVIA_COMPROBANTE'
 ) {

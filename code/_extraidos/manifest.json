@@ -1,8 +1,8 @@
 {
   "workflowId": "09OF22FOxihypeeh",
   "workflowName": "SISTEMA AUTOMATIZADO PEGASO",
-  "workflowUpdatedAt": "2026-10-16T02:49:46.997Z",
-  "extractedAt": "2026-10-16T02:49:51.948Z",
+  "workflowUpdatedAt": "2026-10-16T03:31:05.412Z",
+  "extractedAt": "2026-10-16T03:31:10.592Z",
   "workflowNodeCount": 189,
   "codeNodeCount": 69,
   "nodes": [
@@ -148,7 +148,7 @@
       "fileName": "validar-extraccion-cerebro-comercial.js",
       "relativeFile": "code/_extraidos/validar-extraccion-cerebro-comercial.js",
       "typeVersion": 2,
-      "lines": 1137
+      "lines": 1156
     },
     {
       "nodeId": "033b7f46-8a18-4244-9c65-75047b2d6aac",
@@ -156,7 +156,7 @@
       "fileName": "validar-extraccion-deepseek1.js",
       "relativeFile": "code/_extraidos/validar-extraccion-deepseek1.js",
       "typeVersion": 2,
-      "lines": 1137
+      "lines": 1156
     },
     {
       "nodeId": "e79de69f-646a-4449-81a4-725be9a4a6ec",
@@ -164,7 +164,7 @@
       "fileName": "validar-extraccion-openapi1.js",
       "relativeFile": "code/_extraidos/validar-extraccion-openapi1.js",
       "typeVersion": 2,
-      "lines": 1137
+      "lines": 1156
     },
     {
       "nodeId": "6de38fe8-617d-48d0-ad20-5c56b0c06047",
@@ -180,7 +180,7 @@
       "fileName": "normalizar-decision-ia.js",
       "relativeFile": "code/_extraidos/normalizar-decision-ia.js",
       "typeVersion": 2,
-      "lines": 878
+      "lines": 921
     },
     {
       "nodeId": "29a9ba73-a457-44ed-88e2-71ffd76be125",
@@ -260,7 +260,7 @@
       "fileName": "resolver-contexto-comercial.js",
       "relativeFile": "code/_extraidos/resolver-contexto-comercial.js",
       "typeVersion": 2,
-      "lines": 1683
+      "lines": 1701
     },
     {
       "nodeId": "49b907ef-f963-4ccc-b7bb-db921afc5898",
@@ -388,7 +388,7 @@
       "fileName": "peparar-notificacion-humano.js",
       "relativeFile": "code/_extraidos/peparar-notificacion-humano.js",
       "typeVersion": 2,
-      "lines": 488
+      "lines": 506
     },
     {
       "nodeId": "c6bc9d87-8c34-4847-9cf5-a89b113c1381",

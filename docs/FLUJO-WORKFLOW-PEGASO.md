@@ -252,7 +252,7 @@ flowchart TD
 |---|---|---|---|---|
 | Guardar mensaje entrante | Postgres insert `mensajes` | Guarda el mensaje ENTRANTE (`procesado`, conversación, cliente, dirección, tipo, contenido, id externo, fecha) | Preparar conversación | IF: ¿Derivación directa por entrada? |
 | IF: ¿Derivación directa por entrada? | IF `$json.puede_responder_bot` | Pretende enviar directo a humano las entradas no soportadas. **Ver §18: la condición parece incorrecta** | Guardar mensaje entrante | [T] Preparar handoff entrada no soportada · [F] Obtener configuración MODO_PRUEBA |
-| Obtener configuración MODO_PRUEBA | Postgres (SQL) | `SELECT` en `configuracion_bot` de las claves `MODO_PRUEBA`, `DEBOUNCE_WHATSAPP`, `IMAGEN_MATERIAL` e `IMAGEN_METODOLOGIA` (las dos últimas las lee `Resolver contexto comercial`) | IF [F] | Resolver permiso automatización |
+| Obtener configuración MODO_PRUEBA | Postgres (SQL) | `SELECT` en `configuracion_bot` de las claves `MODO_PRUEBA`, `DEBOUNCE_WHATSAPP`, `IMAGEN_MATERIAL`, `IMAGEN_METODOLOGIA` e `IMAGEN_DATOS_PAGO` (las tres de imagen las lee `Resolver contexto comercial`) | IF [F] | Resolver permiso automatización |
 | Resolver permiso automatización | Code | Si MODO_PRUEBA está inactivo, el bot atiende a todos; si está activo, solo a teléfonos autorizados. Ante configuración ausente o inválida asume MODO_PRUEBA activo (seguro). Emite `puede_responder_bot`, `motivo_bloqueo_bot` y la configuración de debounce (`debounce_segundos`, `debounce_motivo`). En primer contacto (lead de anuncio, conversación nueva o sin turno del bot en 24 h) usa `debounce_primer_contacto_ms` de `DEBOUNCE_WHATSAPP` (10 s por defecto, máximo 15 s) para que el eco automático de WhatsApp Business llegue antes de resolver el turno. Lee además: Normalizar mensaje, Preparar conversación, Normalizar evento WhatsApp | Obtener configuración MODO_PRUEBA | IF: ¿Puede responder el BOT? |
 | IF: ¿Puede responder el BOT? | IF `puede_responder_bot` | | Resolver permiso automatización | [T] ¿Requiere atención humana? · [F] Finalizar mensaje modo prueba |
 | Finalizar mensaje modo prueba | Code | Cierre sin IA, sin cotizar y sin responder (el mensaje ya quedó guardado) | IF [F] | — (**fin**) |
@@ -390,7 +390,7 @@ flowchart TD
 | 0 | `COTIZAR_P4` | Extractor → Groq Chat Model (§13) |
 | 1–12 | `PEDIR_MEDIDAS`, `PEDIR_CANTIDAD`, `PEDIR_PRODUCTO`, `PEDIR_FORMA`, `RESPONDER_GENERAL`, `INFORMAR_MATERIAL`, `INFORMAR_MINIMO`, `INFORMAR_UBICACION`, `INFORMAR_METODOLOGIA`, `INFORMAR_METODOLOGIA_PAGO`, `INFORMAR_ENTREGA`, `INFORMAR_DISENO` | Preparar respuesta comercial (§12) |
 | 13, 14 | `REGISTRAR_ACEPTACION` (regla duplicada) | **sin conexión** |
-| 15 | `ENVIAR_DATOS_PAGO` | **sin conexión** |
+| 15 | `ENVIAR_DATOS_PAGO` | Preparar respuesta comercial (§12; imagen `IMAGEN_DATOS_PAGO` + texto fijo) |
 | 16 | `VALIDAR_ABONO` | **sin conexión** |
 | 17, 18 | `RESPONDER_NO_PRODUCIBLE`, `MEDIDA_NO_PRODUCIBLE` | Preparar respuesta comercial |
 | 19 | `DERIVAR_HUMANO` | Preparar derivación humana (§15) |
@@ -540,7 +540,7 @@ flowchart TD
 | Guardar mensaje transición humano | Postgres insert `mensajes` | Guarda el mensaje de transición (SALIENTE) | Preparar mensaje transición humano | Preparar envío WhatsApp |
 | Finalizar derivación humana | Code | Contrato final del handoff (no cambia decisiones ni prioridad). Lee además: Preparar mensaje transición humano | Preparar mensaje transición humano | IF: ¿Requiere notificación? |
 | IF: ¿Requiere notificación? | IF `requiere_notificacion` | **Ambas salidas van al mismo nodo** (ver §18) | Finalizar derivación humana | [T] y [F] Peparar notificacion humano |
-| Peparar notificacion humano | Code | Notificación interna: categoría (`INTERESADO_PAGO`, `PAGO_REPORTADO`, `SOLICITA_CONTACTO`, `ARCHIVO_REQUIERE_REVISION`, `NEGOCIACION`, `RECLAMO`, `REVISION_GENERAL`), prioridad, asunto, texto y HTML del email | IF: ¿Requiere notificación? | Brevo - Enviar notificación humana |
+| Peparar notificacion humano | Code | Notificación interna: categoría (`INTERESADO_PAGO`, `PAGO_REPORTADO`, …), prioridad, asunto (comprobante: `SE RECIBIÓ UN COMPROBANTE DE PAGO`), texto y HTML del email | IF: ¿Requiere notificación? | Brevo - Enviar notificación humana |
 | Brevo - Enviar notificación humana | HTTP POST `api.brevo.com/v3/smtp/email` (credencial Header Auth; `onError: continueErrorOutput`) | Envía el email interno | Peparar notificacion humano | [ok] **fin** · [err] Resend - Enviar notificación humana |
 | Resend - Enviar notificación humana | HTTP POST `api.resend.com/emails` (credencial Header Auth; `onError: continueRegularOutput`) | Respaldo de email si Brevo falla | Brevo [err] | — (**fin**) |
 
@@ -565,7 +565,7 @@ flowchart LR
 |---|---|---|---|---|
 | Preparar envío WhatsApp | Code | Punto único de envío. Resuelve el texto (prioriza el contenido persistido), el teléfono destino, confirma que la ejecución nació de un WhatsApp real (evita envíos en TEST/manual), resuelve proveedor YCloud y número emisor, y construye `ycloud_request`. Si `Recuperar decisión comercial` trae `enviar_imagen_informativa` y el texto se envía, emite `enviar_imagen`, `imagen_informativa` (`MATERIAL` o `METODOLOGIA`) y `ycloud_request_imagen`. Emite `enviar_whatsapp`; nunca envía el marcador de respuesta omitida (`motivo_no_envio = RESPUESTA_OMITIDA_DUPLICADA`). Recupera contexto de las tres rutas con lectura segura (`{}` si un nodo no participó) | Guardar mensaje saliente · Guardar mensaje comercial · Guardar mensaje transición humano | If:¿Enviar por WhatsApp? |
 | If:¿Enviar por WhatsApp? | IF `enviar_whatsapp` | | Preparar envío WhatsApp | [T] IF: ¿Enviar imagen informativa? · [F] **fin** |
-| IF: ¿Enviar imagen informativa? | IF `$('Preparar envío WhatsApp').first().json.enviar_imagen === true` | Pasa cuando la respuesta lleva imagen de material o de metodología (ver `Resolver contexto comercial`, §11) | If:¿Enviar por WhatsApp? [T] | [T] YCloud Enviar imagen · [F] YCloud Enviar Wts |
+| IF: ¿Enviar imagen informativa? | IF `$('Preparar envío WhatsApp').first().json.enviar_imagen === true` | Pasa cuando la respuesta lleva imagen de material, metodología o datos de pago (ver `Resolver contexto comercial`, §11) | If:¿Enviar por WhatsApp? [T] | [T] YCloud Enviar imagen · [F] YCloud Enviar Wts |
 | YCloud Enviar imagen | HTTP POST `api.ycloud.com/v2/whatsapp/messages` (misma credencial), **continúa ante error** | Envía la imagen antes del texto (`ycloud_request_imagen.body`: `type = image`, `image.link`). Si falla, el flujo sigue y el texto se envía igual | IF [T] | Esperar antes del texto |
 | Esperar antes del texto | Wait 3 segundos | Da tiempo a que WhatsApp entregue la imagen antes que el texto (la imagen tarda más en procesarse) | YCloud Enviar imagen | YCloud Enviar Wts |
 | YCloud Enviar Wts | HTTP POST `api.ycloud.com/v2/whatsapp/messages` (credencial Header Auth) | Envía el texto al cliente. Toma el body de `$('Preparar envío WhatsApp').first().json.ycloud_request.body`, porque su entrada puede ser la respuesta de la imagen | IF imagen [F] · Esperar antes del texto | — (**fin**) |
@@ -613,7 +613,7 @@ flowchart LR
 | IF: ¿Procesar turno? [F] | Llegó otro mensaje durante la espera (lo atiende la ejecución más reciente) o un humano de Pegaso escribió hace menos de 10 minutos (`ATENCION_HUMANA`) |
 | IF: ¿Audio listo para cerebro? [F] | Sin conexión |
 | Error ninguna IA funciono cerebro / Error ninguna IA funciono | Fallaron los 3 proveedores (sin respuesta al cliente) |
-| Enrutar acción comercial salidas 13–16 | `REGISTRAR_ACEPTACION`, `ENVIAR_DATOS_PAGO`, `VALIDAR_ABONO` (sin respuesta) |
+| Enrutar acción comercial salidas 13–14, 16 | `REGISTRAR_ACEPTACION`, `VALIDAR_ABONO` (sin respuesta; `ENVIAR_DATOS_PAGO` ya cableada a §12) |
 | EXECUTOR MOMENTANEP | Fin de respuesta comercial |
 | Finalizar cotización comercial | Fin de cotización |
 | Brevo (ok) / Resend | Fin de notificación interna |
@@ -631,7 +631,7 @@ Detectados al documentar. Son hechos del workflow actual; **no se ha cambiado na
 
 1. **`IF: ¿Derivación directa por entrada?` evalúa `$json.puede_responder_bot`.** Su entrada es la fila devuelta por `Guardar mensaje entrante` y ese campo se crea más tarde, en `Resolver permiso automatización`. `Preparar entrada no soportada` marca `requiere_humano_entrada`, no `puede_responder_bot`. Probablemente la rama *true* (handoff directo de entradas no soportadas) nunca se ejecuta y esas entradas siguen hacia el cerebro comercial.
 2. **`¿Cliente existente?` [T] no está conectado**: si el teléfono pertenece a un cliente registrado en `contactos`, la ejecución termina sin guardar el mensaje ni responder. Conectarlo a la ruta de prospectos haría que el bot conteste a clientes (incluidas cotizaciones automáticas) y que la intervención humana, que busca por `prospectos`, no los encuentre: el eco humano no levantaría la bandera ni se registraría. Requiere decidir antes qué debe hacer el bot con clientes.
-3. **`Enrutar acción comercial`**: las acciones `REGISTRAR_ACEPTACION` (regla duplicada en las salidas 13 y 14), `ENVIAR_DATOS_PAGO` y `VALIDAR_ABONO` no tienen destino. Si el cerebro las devuelve, el cliente no recibe respuesta. Ya se guardaron el contexto comercial y el prospecto.
+3. **`Enrutar acción comercial`**: las acciones `REGISTRAR_ACEPTACION` (regla duplicada en las salidas 13 y 14) y `VALIDAR_ABONO` no tienen destino. Si el cerebro las devuelve, el cliente no recibe respuesta. Ya se guardaron el contexto comercial y el prospecto. `ENVIAR_DATOS_PAGO` sí está cableada a Preparar respuesta comercial (imagen de datos bancarios).
 4. **`IF: ¿Requiere notificación?`** envía *true* y *false* al mismo nodo, así que el IF no filtra: siempre se prepara y envía el email (salvo que `Peparar notificacion humano` lo decida internamente).
 5. **Fallo total de IA sin respuesta**: `Error ninguna IA funciono` y `Error ninguna IA funciono cerebro` terminan el flujo sin avisar al cliente ni a Pegaso.
 6. **`IF: ¿Audio listo para cerebro?` [F]** no está conectado.

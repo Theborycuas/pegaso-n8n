@@ -116,6 +116,7 @@ const ACCIONES = [
   'MEDIDA_NO_PRODUCIBLE',
 
   'REGISTRAR_ACEPTACION',
+  'ENVIAR_DATOS_PAGO',
   'DERIVAR_HUMANO',
   'RESPONDER_GENERAL'
 ];
@@ -796,6 +797,9 @@ const REGLAS_INFORMATIVAS = {
   INFORMAR_METODOLOGIA_PAGO:
     'CONSULTAR_PAGO',
 
+  ENVIAR_DATOS_PAGO:
+    'CONSULTAR_PAGO',
+
   INFORMAR_ENTREGA:
     'CONSULTAR_ENTREGA',
 
@@ -1024,11 +1028,15 @@ if (
 // 18. CONSULTA DE PAGO: DOS CASOS
 // ======================================================
 //
-// A) Metodología:
+// A) Metodología (cómo/cuánto abonar):
 //    INFORMAR_METODOLOGIA_PAGO
 //
 // B) Cuenta/datos concretos:
-//    DERIVAR_HUMANO + SOLICITA_DATOS_PAGO
+//    ENVIAR_DATOS_PAGO (imagen + texto; NO deriva)
+//
+// Compatibilidad: DERIVAR_HUMANO + SOLICITA_DATOS_PAGO
+// aún valida; Normalizar decisión IA lo convierte a
+// ENVIAR_DATOS_PAGO.
 //
 // ======================================================
 
@@ -1039,13 +1047,23 @@ if (
   if (
     ![
       'INFORMAR_METODOLOGIA_PAGO',
+      'ENVIAR_DATOS_PAGO',
       'DERIVAR_HUMANO'
     ].includes(
       data.accion
     )
   ) {
     return invalido(
-      'CONSULTAR_PAGO solamente puede usar INFORMAR_METODOLOGIA_PAGO o DERIVAR_HUMANO.'
+      'CONSULTAR_PAGO solamente puede usar INFORMAR_METODOLOGIA_PAGO, ENVIAR_DATOS_PAGO o DERIVAR_HUMANO.'
+    );
+  }
+
+  if (
+    data.accion === 'ENVIAR_DATOS_PAGO' &&
+    data.clasificacion_prospecto !== 'A'
+  ) {
+    return invalido(
+      'Un prospecto que solicita datos concretos para pagar debe clasificarse A.'
     );
   }
 
@@ -1123,6 +1141,7 @@ const CASOS_A_OBLIGATORIOS =
   data.intencion === 'ACEPTAR_COTIZACION' ||
   data.intencion === 'CONFIRMAR_PEDIDO' ||
   data.intencion === 'REPORTAR_PAGO' ||
+  data.accion === 'ENVIAR_DATOS_PAGO' ||
   data.motivo_derivacion === 'SOLICITA_DATOS_PAGO' ||
   data.motivo_derivacion === 'ENVIA_COMPROBANTE';
 

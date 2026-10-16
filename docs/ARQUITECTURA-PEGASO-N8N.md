@@ -10,6 +10,7 @@ Documentos relacionados:
 - [GUIA-USO-PEGASO-N8N.md](GUIA-USO-PEGASO-N8N.md): runbook operativo (qué hacer paso a paso).
 - [REGLAS-PARA-CURSOR.md](REGLAS-PARA-CURSOR.md): reglas para agentes de IA que trabajen en el repo.
 - [FLUJO-WORKFLOW-PEGASO.md](FLUJO-WORKFLOW-PEGASO.md): recorrido del workflow nodo por nodo y sus conexiones.
+- [analisis-razonamiento-vendedor.md](analisis-razonamiento-vendedor.md): qué tan “vendedor” está el bot, huecos, redundancias y si las IAs aprenden.
 
 ---
 

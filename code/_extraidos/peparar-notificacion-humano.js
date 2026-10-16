@@ -19,12 +19,13 @@
 // ======================================================
 // NODO N8N: Peparar notificacion humano
 // ARCHIVO: code/06-derivacion-humana/preparar-notificacion-humano.js
-// VERSION: 2.1
+// VERSION: 2.2
 // RESPONSABILIDAD:
 // - Construir una notificación INTERNA para Pegaso cuando una conversación requiere intervención humana
 // - Clasificar la alerta en una categoría (INTERESADO_PAGO, PAGO_REPORTADO, SOLICITA_CONTACTO, ARCHIVO_REQUIERE_REVISION, NEGOCIACION, RECLAMO, REVISION_GENERAL)
 // - Ajustar la prioridad de la alerta según la categoría
 // - Generar asunto, texto plano y HTML del email con datos del prospecto y su último mensaje
+// - Ante comprobante/reporte de pago: asunto "SE RECIBIÓ UN COMPROBANTE DE PAGO" (sin confirmar autenticidad)
 // - Marcar canal_notificacion = EMAIL (destinos previstos: email Brevo/Resend; WhatsApp interno a futuro)
 // - NO enviar el correo (lo hacen los nodos HTTP "Brevo - Enviar notificación humana" y, como respaldo, "Resend - Enviar notificación humana")
 // - NO enviar nada al prospecto
@@ -349,7 +350,12 @@ else if (
 ) {
 
   asunto =
-    '💰 Pegaso - Prospecto reportó un pago';
+    [
+      'ENVIA_COMPROBANTE',
+      'COMPROBANTE_PAGO'
+    ].includes(motivo)
+      ? 'SE RECIBIÓ UN COMPROBANTE DE PAGO'
+      : 'SE RECIBIÓ UN REPORTE DE PAGO';
 
 }
 
@@ -380,10 +386,22 @@ else if (
 // 6. TEXTO INTERNO
 // ======================================================
 
+const encabezadoAlerta =
+  categoriaNotificacion === 'PAGO_REPORTADO'
+    ? (
+      [
+        'ENVIA_COMPROBANTE',
+        'COMPROBANTE_PAGO'
+      ].includes(motivo)
+        ? 'SE RECIBIÓ UN COMPROBANTE DE PAGO.'
+        : 'SE RECIBIÓ UN REPORTE DE PAGO.'
+    )
+    : 'Nueva conversación requiere atención.';
+
 const lineas = [
   'PEGASO ADHESIVOS',
   '',
-  'Nueva conversación requiere atención.',
+  encabezadoAlerta,
   '',
   `Prioridad: ${prioridadFinal}`,
   `Categoría: ${categoriaNotificacion}`,
@@ -414,7 +432,7 @@ const mensajeNotificacion =
 const htmlEmail = `
 <h2>Pegaso Adhesivos</h2>
 
-<p><strong>Nueva conversación requiere atención.</strong></p>
+<p><strong>${encabezadoAlerta}</strong></p>
 
 <table style="border-collapse:collapse;">
   <tr>
