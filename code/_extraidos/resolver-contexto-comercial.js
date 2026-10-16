@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.1
+// RESOLVER CONTEXTO COMERCIAL - V3.2
 // ======================================================
 //
 // Objetivo:
@@ -63,6 +63,9 @@
 // - V3.1: antes de COTIZAR_P4, si el precio estimado por 1000 supera
 //   $140 (medidas grandes), se pide confirmación de las medidas y no
 //   se envía la cotización hasta que el prospecto confirme o corrija.
+// - V3.2: si las medidas ya se pidieron (bot o publicidad) y el
+//   cliente vuelve a escribir sin darlas, no se omite el envío: se
+//   acota pidiendo ancho y alto en cm para poder cotizar.
 //
 // ======================================================
 
@@ -1219,8 +1222,15 @@ if (
     respuestaSugerida =
       `Gracias. ${preguntaMedidasFaltantes}`;
   } else {
-    omitirEnvio = true;
-    motivoOmisionEnvio = 'MEDIDAS_YA_SOLICITADAS';
+    // La publicidad o el bot ya pidieron medidas. No se calla:
+    // se acota qué falta (ancho y alto) para poder cotizar.
+    // Si el texto queda idéntico al último saliente,
+    // "Preparar respuesta comercial" sí lo omite.
+    preguntaMedidasFaltantes =
+      'el ancho y el alto';
+
+    respuestaSugerida =
+      'Para enviarle el precio indíquenos por favor el ancho y el alto de sus etiquetas en centímetros. Con esos datos le cotizamos de inmediato.';
   }
 }
 
