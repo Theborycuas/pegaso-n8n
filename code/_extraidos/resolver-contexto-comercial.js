@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.0
+// RESOLVER CONTEXTO COMERCIAL - V3.1
 // ======================================================
 //
 // Objetivo:
@@ -60,6 +60,9 @@
 //   una vez por conversación cada una. La salida cambia a
 //   enviar_imagen_informativa / imagen_informativa / imagen_informativa_url
 //   (antes enviar_imagen_material / imagen_material_url).
+// - V3.1: antes de COTIZAR_P4, si el precio estimado por 1000 supera
+//   $140 (medidas grandes), se pide confirmación de las medidas y no
+//   se envía la cotización hasta que el prospecto confirme o corrija.
 //
 // ======================================================
 
@@ -818,6 +821,224 @@ if (derivacionPorProductoNoP4) {
 }
 
 
+// ------------------------------------------------------
+// K. CONFIRMAR MEDIDAS GRANDES (precio / 1000 > $140)
+// ------------------------------------------------------
+//
+// Medidas muy grandes (p. ej. 20x30, 15x30, 100x100)
+// generan precios altos. Antes de cotizar se confirma
+// con el prospecto. La estimación sigue la misma lógica
+// comercial de "Calcular precio detalle" (precio por
+// 1000); la fuente de verdad del cobro sigue siendo ese
+// nodo en la ruta de cotización.
+//
+// ------------------------------------------------------
+
+const LIMITE_CONFIRMACION_PRECIO_1000 = 140;
+
+function formatoMedidaCm(valor) {
+  const n = numero(valor);
+  if (n === null) {
+    return '';
+  }
+  return Number.isInteger(n)
+    ? String(n)
+    : String(n);
+}
+
+function estimarPrecio1000Comercial(
+  anchoValor,
+  altoValor,
+  formaValor,
+  cantidadValor
+) {
+  const ancho = numero(anchoValor);
+  const alto = numero(altoValor);
+  const cantidad = numero(cantidadValor);
+
+  if (
+    ancho === null ||
+    alto === null ||
+    cantidad === null ||
+    cantidad < 1000
+  ) {
+    return null;
+  }
+
+  if (
+    ancho >= 2 && ancho < 4 &&
+    alto >= 2 && alto < 4
+  ) {
+    return 18;
+  }
+
+  if (ancho === 4 && alto === 4) {
+    return 20;
+  }
+
+  let anchoCalc = ancho;
+  let altoCalc = alto;
+
+  if (ancho === 5 && alto === 5) {
+    anchoCalc += 1;
+    altoCalc += 1;
+  }
+
+  const formaNorm =
+    String(formaValor ?? '')
+      .trim()
+      .toUpperCase();
+
+  if (
+    formaNorm === 'CIRCULAR' ||
+    formaNorm === 'TROQUELADA' ||
+    formaNorm === 'REDONDEADA'
+  ) {
+    anchoCalc += 1;
+    altoCalc += 1;
+  }
+
+  const factorRango =
+    cantidad <= 2000
+      ? 0.75
+      : cantidad <= 5000
+        ? 0.67
+        : null;
+
+  if (factorRango === null) {
+    return null;
+  }
+
+  const precio1000Rango =
+    anchoCalc * altoCalc * factorRango;
+
+  const factor =
+    precio1000Rango > 130 && 0.67 < factorRango
+      ? 0.67
+      : factorRango;
+
+  return Math.ceil(anchoCalc * altoCalc * factor);
+}
+
+const confirmacionMedidasAnterior =
+  objeto(contextoAnterior.confirmacion_medidas_grandes);
+
+const precio1000Estimado =
+  datosSuficientes
+    ? estimarPrecio1000Comercial(
+        anchoCm,
+        altoCm,
+        forma,
+        cantidadCotizable
+      )
+    : null;
+
+const medidasGrandesYaConfirmadas =
+  confirmacionMedidasAnterior.confirmadas === true &&
+  igualesNumero(
+    confirmacionMedidasAnterior.ancho_cm,
+    anchoCm
+  ) &&
+  igualesNumero(
+    confirmacionMedidasAnterior.alto_cm,
+    altoCm
+  );
+
+const AFIRMA_MEDIDAS =
+  /^(si|ok|okay)\b|\b(correct[oa]s?|confirmo|confirmad[oa]s?|estan bien|estan correctas|asi es|exacto|afirmativo|dale|de acuerdo|esas? (son|es)|son (esas|correctas|asi)|si(,| )?(confirmo|estan bien|son correctas|son esas)|confirmo( las)? medidas|medidas? correctas)\b/;
+
+const NIEGA_MEDIDAS =
+  /^(no)\b|\b(incorrect[oa]s?|estan mal|esta mal|equivocad|error|no (son|es)( las)?( esas)?( correctas)?|otras medidas|me equivoque)\b/;
+
+let confirmacionMedidasGrandes =
+  Object.keys(confirmacionMedidasAnterior).length > 0
+    ? { ...confirmacionMedidasAnterior }
+    : null;
+
+let pideConfirmacionMedidasGrandes = false;
+let niegaMedidasGrandes = false;
+
+if (
+  confirmacionMedidasAnterior.pendiente === true &&
+  !derivacionPorCantidad &&
+  !derivacionPorProductoNoP4
+) {
+  const mismasMedidasPendientes =
+    igualesNumero(
+      confirmacionMedidasAnterior.ancho_cm,
+      anchoCm
+    ) &&
+    igualesNumero(
+      confirmacionMedidasAnterior.alto_cm,
+      altoCm
+    );
+
+  const aportoMedidasDistintas =
+    modificoParMedidas &&
+    !mismasMedidasPendientes;
+
+  if (aportoMedidasDistintas) {
+    confirmacionMedidasGrandes = null;
+  } else if (
+    AFIRMA_MEDIDAS.test(planoTurno) &&
+    !NIEGA_MEDIDAS.test(planoTurno)
+  ) {
+    accion = 'COTIZAR_P4';
+    confirmacionMedidasGrandes = {
+      pendiente: false,
+      confirmadas: true,
+      ancho_cm: anchoCm,
+      alto_cm: altoCm,
+      forma,
+      cantidad: cantidadCotizable,
+      precio_1000_estimado:
+        precio1000Estimado ??
+        confirmacionMedidasAnterior.precio_1000_estimado ??
+        null,
+      confirmada_at: new Date().toISOString()
+    };
+  } else if (NIEGA_MEDIDAS.test(planoTurno)) {
+    accion = 'PEDIR_MEDIDAS';
+    confirmacionMedidasGrandes = null;
+    niegaMedidasGrandes = true;
+  } else if (
+    !modificoDatosCotizacion &&
+    accion !== 'DERIVAR_HUMANO'
+  ) {
+    pideConfirmacionMedidasGrandes = true;
+    accion = 'RESPONDER_GENERAL';
+  }
+}
+
+const medidasGrandesConfirmadasEsteTurno =
+  confirmacionMedidasGrandes?.confirmadas === true &&
+  igualesNumero(confirmacionMedidasGrandes.ancho_cm, anchoCm) &&
+  igualesNumero(confirmacionMedidasGrandes.alto_cm, altoCm);
+
+if (
+  accion === 'COTIZAR_P4' &&
+  !derivacionPorCantidad &&
+  !derivacionPorProductoNoP4 &&
+  precio1000Estimado !== null &&
+  precio1000Estimado > LIMITE_CONFIRMACION_PRECIO_1000 &&
+  !medidasGrandesYaConfirmadas &&
+  !medidasGrandesConfirmadasEsteTurno
+) {
+  pideConfirmacionMedidasGrandes = true;
+  accion = 'RESPONDER_GENERAL';
+  confirmacionMedidasGrandes = {
+    pendiente: true,
+    confirmadas: false,
+    ancho_cm: anchoCm,
+    alto_cm: altoCm,
+    forma,
+    cantidad: cantidadCotizable,
+    precio_1000_estimado: precio1000Estimado,
+    solicitada_at: new Date().toISOString()
+  };
+}
+
+
 // ======================================================
 // 12. RESPUESTA SUGERIDA
 // ======================================================
@@ -827,7 +1048,28 @@ let respuestaSugerida =
     data.respuesta_sugerida
   ) ?? '';
 
-if (
+if (pideConfirmacionMedidasGrandes) {
+  const anchoTxt =
+    formatoMedidaCm(
+      confirmacionMedidasGrandes?.ancho_cm ?? anchoCm
+    );
+  const altoTxt =
+    formatoMedidaCm(
+      confirmacionMedidasGrandes?.alto_cm ?? altoCm
+    );
+
+  respuestaSugerida =
+    `Solo por confirmar: ¿requiere sus etiquetas de ${anchoTxt}x${altoTxt} cm? ` +
+    `Le consulto porque son medidas grandes y el precio se calcula en base a ellas. ` +
+    `Confírmenos por favor si esas son las medidas correctas en las que necesita sus etiquetas.`;
+}
+
+else if (niegaMedidasGrandes) {
+  respuestaSugerida =
+    'Entendido. Indíquenos por favor las medidas correctas de sus etiquetas (ancho y alto en centímetros) para cotizarle.';
+}
+
+else if (
   accion === 'PEDIR_MEDIDAS'
 ) {
   respuestaSugerida =
@@ -842,12 +1084,18 @@ else if (
     '';
 }
 
-if (ajusteRecotizacion === 'PIDE_OTRAS_MEDIDAS') {
+if (
+  !pideConfirmacionMedidasGrandes &&
+  !niegaMedidasGrandes &&
+  ajusteRecotizacion === 'PIDE_OTRAS_MEDIDAS'
+) {
   respuestaSugerida =
     'Indíquenos por favor las nuevas medidas de sus etiquetas (ancho y alto en centímetros) para cotizarle.';
 }
 
 else if (
+  !pideConfirmacionMedidasGrandes &&
+  !niegaMedidasGrandes &&
   accion === 'RESPONDER_GENERAL' &&
   ajusteRecotizacion !== null &&
   respuestaSugerida === ''
@@ -953,7 +1201,9 @@ let preguntaMedidasFaltantes = null;
 if (
   accion === 'PEDIR_MEDIDAS' &&
   medidasYaSolicitadas &&
-  ajusteRecotizacion !== 'PIDE_OTRAS_MEDIDAS'
+  ajusteRecotizacion !== 'PIDE_OTRAS_MEDIDAS' &&
+  !pideConfirmacionMedidasGrandes &&
+  !niegaMedidasGrandes
 ) {
   if (turnoAportaInformacion) {
     const faltante =
@@ -990,6 +1240,8 @@ let fechaDeseadaCliente =
 const aplicaMetodologia =
   (coincidenciaFecha !== null || respuestaPrometeFecha) &&
   !omitirEnvio &&
+  !pideConfirmacionMedidasGrandes &&
+  !niegaMedidasGrandes &&
   !['COTIZAR_P4', 'DERIVAR_HUMANO'].includes(accion);
 
 if (coincidenciaFecha !== null) {
@@ -1052,6 +1304,8 @@ const accionAutomatizacion =
 const automatizacionAtendioTurno =
   !omitirEnvio &&
   !aplicaMetodologia &&
+  !pideConfirmacionMedidasGrandes &&
+  !niegaMedidasGrandes &&
   ultimoSaliente.posterior_al_turno === true &&
   ultimoSaliente.origen === 'AUTOMATICO' &&
   (
@@ -1286,6 +1540,13 @@ const contextoComercialNuevo = {
   }
 };
 
+if (confirmacionMedidasGrandes !== null) {
+  contextoComercialNuevo.confirmacion_medidas_grandes =
+    confirmacionMedidasGrandes;
+} else {
+  delete contextoComercialNuevo.confirmacion_medidas_grandes;
+}
+
 
 // ======================================================
 // 14. SALIDA
@@ -1397,6 +1658,12 @@ return [
 
       seguimiento_tras_automatizacion:
         seguimientoTrasAutomatizacion,
+
+      pide_confirmacion_medidas_grandes:
+        pideConfirmacionMedidasGrandes,
+
+      precio_1000_estimado:
+        precio1000Estimado,
 
       enviar_imagen_informativa:
         enviarImagenInformativa,
