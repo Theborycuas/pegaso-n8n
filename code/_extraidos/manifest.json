@@ -1,8 +1,8 @@
 {
   "workflowId": "09OF22FOxihypeeh",
   "workflowName": "SISTEMA AUTOMATIZADO PEGASO",
-  "workflowUpdatedAt": "2026-10-16T03:31:05.412Z",
-  "extractedAt": "2026-10-16T03:31:10.592Z",
+  "workflowUpdatedAt": "2026-10-16T03:50:17.888Z",
+  "extractedAt": "2026-10-16T03:50:22.890Z",
   "workflowNodeCount": 189,
   "codeNodeCount": 69,
   "nodes": [
@@ -140,7 +140,7 @@
       "fileName": "preparar-contexto-ia.js",
       "relativeFile": "code/_extraidos/preparar-contexto-ia.js",
       "typeVersion": 2,
-      "lines": 2491
+      "lines": 2579
     },
     {
       "nodeId": "f207ef1c-d7ff-4fae-9910-486f2ba24c0a",
@@ -180,7 +180,7 @@
       "fileName": "normalizar-decision-ia.js",
       "relativeFile": "code/_extraidos/normalizar-decision-ia.js",
       "typeVersion": 2,
-      "lines": 921
+      "lines": 948
     },
     {
       "nodeId": "29a9ba73-a457-44ed-88e2-71ffd76be125",
@@ -260,7 +260,7 @@
       "fileName": "resolver-contexto-comercial.js",
       "relativeFile": "code/_extraidos/resolver-contexto-comercial.js",
       "typeVersion": 2,
-      "lines": 1701
+      "lines": 1800
     },
     {
       "nodeId": "49b907ef-f963-4ccc-b7bb-db921afc5898",
@@ -308,7 +308,7 @@
       "fileName": "preparar-mensaje-transicion-humano.js",
       "relativeFile": "code/_extraidos/preparar-mensaje-transicion-humano.js",
       "typeVersion": 2,
-      "lines": 361
+      "lines": 387
     },
     {
       "nodeId": "ebb48494-a503-4619-8523-aecbae62a80b",
@@ -412,7 +412,7 @@
       "fileName": "preparar-mensaje-cotizacion.js",
       "relativeFile": "code/_extraidos/preparar-mensaje-cotizacion.js",
       "typeVersion": 2,
-      "lines": 848
+      "lines": 861
     },
     {
       "nodeId": "d942cfd8-ee3a-4f2b-8e50-4778b26e5bdb",
@@ -452,7 +452,7 @@
       "fileName": "validar-analisis-imagen-groq.js",
       "relativeFile": "code/_extraidos/validar-analisis-imagen-groq.js",
       "typeVersion": 2,
-      "lines": 1219
+      "lines": 1267
     },
     {
       "nodeId": "771b9b13-a594-4d57-aab3-a7ec3526b9e2",
@@ -460,7 +460,7 @@
       "fileName": "validar-analisis-imagen-deepseek.js",
       "relativeFile": "code/_extraidos/validar-analisis-imagen-deepseek.js",
       "typeVersion": 2,
-      "lines": 1219
+      "lines": 1267
     },
     {
       "nodeId": "cac07c7b-5251-40d5-a127-6c972b3113c7",
@@ -468,7 +468,7 @@
       "fileName": "analizar-imagen-openai.js",
       "relativeFile": "code/_extraidos/analizar-imagen-openai.js",
       "typeVersion": 2,
-      "lines": 1219
+      "lines": 1267
     },
     {
       "nodeId": "397a709e-9177-4c15-b89a-6bf1f4266e81",
@@ -476,7 +476,7 @@
       "fileName": "preparar-derivacion-imagen-fallida.js",
       "relativeFile": "code/_extraidos/preparar-derivacion-imagen-fallida.js",
       "typeVersion": 2,
-      "lines": 571
+      "lines": 598
     },
     {
       "nodeId": "b3f929c7-f9a4-4f39-9508-11d8b1d0c96f",

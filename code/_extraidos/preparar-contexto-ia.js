@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Preparar contexto IA
 // ARCHIVO: code/03-conversacion/preparar-contexto-ia.js
-// VERSION: 4.4
+// VERSION: 4.5
 // ======================================================
 //
 // RESPONSABILIDAD:
@@ -46,6 +46,10 @@
 // - Exponer ultimo_saliente (origen BOT / AUTOMATICO / HUMANO,
 //   acción equivalente, si llegó después del inicio del turno)
 //   y medidas_ya_solicitadas para el anti-duplicado.
+// - V4.5: si el cliente escribe que adjunta abono/comprobante/pago
+//   (o el análisis trae señales de transferencia) y hay imagen en el
+//   turno, fuerza comprobante_detectado para handoff de pago — no
+//   "revisamos la imagen".
 // - Reglas pre-IA solo para texto sin multimedia:
 //   SALUDO_SIMPLE (respuesta corta fija), PRODUCTO_NO_P4
 //   (DERIVAR_HUMANO + COTIZACION_ESPECIAL) y
@@ -850,6 +854,84 @@ if (
 }
 
 
+// ------------------------------------------------------
+// COMPROBANTE: señal del análisis + texto del cliente
+// ------------------------------------------------------
+//
+// Una captura de transferencia a veces llega como
+// CAPTURA_DE_PANTALLA o con revision=SI. Si el cliente
+// dice "adjunto el abono" o el validador marcó
+// comprobante, priorizamos la ruta de pago.
+//
+// ------------------------------------------------------
+
+const TEXTO_SUGIERE_COMPROBANTE =
+  /\b(abono|comprobante|voucher|transfer[ií](encia|í|i)|ya\s+pag(u[eé]|o|amos)|adjunt[oa]\s+(el\s+)?(abono|comprobante|pago|transfer)|pagu[eé]|deposit[eéo]|dep[oó]sito|pago\s+(realizado|enviado|hecho))\b/i;
+
+const VISUAL_SUGIERE_COMPROBANTE =
+  /transferencia\s+exitosa|proceso\s+exitoso|comprobante\s+nro|n\.?\s*de\s+comprobante|banco\s+pichincha|produbanco|banco\s+guayaquil|deuna|monto\s+enviado|valor\s+transferido|pago\s+inmediato|jard[ií]n\s+azuayo/i;
+
+for (const analisis of analisisImagenes) {
+  if (analisis.analisis_valido === false) {
+    continue;
+  }
+
+  if (analisis.comprobante_detectado === true) {
+    comprobanteDetectado = true;
+  }
+
+  if (
+    String(analisis.contenido_detectado ?? '')
+      .toUpperCase() === 'COMPROBANTE_PAGO'
+  ) {
+    comprobanteDetectado = true;
+  }
+
+  const blobVisual = [
+    analisis.contenido_detectado,
+    analisis.analisis?.texto_visible_relevante,
+    analisis.analisis?.resumen_para_cerebro,
+    analisis.contenido_actualizado
+  ].join(' ');
+
+  if (VISUAL_SUGIERE_COMPROBANTE.test(blobVisual)) {
+    comprobanteDetectado = true;
+  }
+}
+
+const hayImagenEnTurno =
+  mensajesTurno.some(m => m.tipo === 'IMAGEN') ||
+  imagenesAnalizadas > 0;
+
+const textoClienteTurno = mensajesTurno
+  .filter(m => m.tipo === 'TEXTO' || m.tipo === 'IMAGEN')
+  .map(m => {
+    if (m.tipo === 'TEXTO') {
+      return String(m.contenido ?? '');
+    }
+
+    // Caption real del cliente, sin el bloque [CONTEXTO DE IMAGEN...]
+    return String(m.contenido ?? '')
+      .split('\n')
+      .filter(l => !/^\[CONTEXTO DE IMAGEN/i.test(l.trim()))
+      .join(' ');
+  })
+  .join(' ');
+
+if (
+  hayImagenEnTurno &&
+  TEXTO_SUGIERE_COMPROBANTE.test(textoClienteTurno)
+) {
+  comprobanteDetectado = true;
+}
+
+// Comprobante: el humano verifica el pago; no usar el
+// mensaje genérico de "revisamos la imagen".
+if (comprobanteDetectado) {
+  revisionImagen = false;
+}
+
+
 const mediaTurno = {
 
   cantidad_media:
@@ -887,7 +969,10 @@ const mediaTurno = {
 
   requiere_revision_humana:
     (
-      revisionImagen ||
+      (
+        revisionImagen &&
+        !comprobanteDetectado
+      ) ||
       revisionAudio ||
       archivoNoProcesable
     ),
@@ -895,6 +980,9 @@ const mediaTurno = {
   motivo_derivacion:
     archivoNoProcesable
       ? 'ARCHIVO_NO_PROCESABLE'
+
+      : comprobanteDetectado
+        ? 'ENVIA_COMPROBANTE'
 
       : revisionImagen
         ? 'IMAGEN_REQUIERE_REVISION'

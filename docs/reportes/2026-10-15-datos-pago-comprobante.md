@@ -83,3 +83,11 @@ Pruebas sobre el código real (`%TEMP%/pegaso-tests/pago-datos.mjs`): **todas OK
 - **Sin fila `IMAGEN_DATOS_PAGO`:** el texto de datos se envía igual, pero sin imagen.
 - **“Ya pagué” solo texto (sin imagen):** sigue derivando con `REPORTA_PAGO` y el mismo tono de verificación; el asunto del email es reporte, no comprobante.
 - **`REGISTRAR_ACEPTACION` y `VALIDAR_ABONO`** siguen sin destino en el switch.
+
+## 7. Corrección (misma fecha): “ya revisamos la imagen”
+
+En prueba real, tras “Adjunto el abono” + captura de transferencia Pichincha, el bot respondió *Permítame un momento… ya revisamos la imagen…* (ruta `IMAGEN_REQUIERE_REVISION`), no la de comprobante.
+
+**Causa:** la IA visual a veces marca el voucher como `CAPTURA_DE_PANTALLA` o `revision=SI`, y no como `COMPROBANTE_PAGO`.
+
+**Ajuste:** si el cliente escribe abono/comprobante/pago **o** el análisis muestra señales de transferencia, se fuerza `ENVIA_COMPROBANTE` y el mensaje *En este momento le verificamos su pago.* (también si falla el análisis de imagen). Captura bancaria en el prompt = `COMPROBANTE_PAGO`.

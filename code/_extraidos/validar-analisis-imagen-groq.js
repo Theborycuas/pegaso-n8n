@@ -749,7 +749,7 @@ const resultados =
         lectura.datos;
 
 
-      const contenido =
+      let contenido =
         datos.contenido_detectado;
 
 
@@ -946,6 +946,47 @@ const resultados =
       };
 
 
+
+      // --------------------------------------------------
+      // Comprobante: captura de transferencia = COMPROBANTE
+      // (no CAPTURA_DE_PANTALLA). Caption "abono/comprobante"
+      // también fuerza la clasificación.
+      // --------------------------------------------------
+
+      let captionCliente = '';
+      try {
+        captionCliente = String(
+          $('Preparar media del turno').first().json?.caption ??
+          $('Preparar media del turno').first().json?.texto_turno_cliente ??
+          ''
+        );
+      } catch (_) {
+        captionCliente = '';
+      }
+
+      const TEXTO_SUGIERE_COMPROBANTE =
+        /\b(abono|comprobante|voucher|transfer[ií](encia|í|i)|ya\s+pag(u[eé]|o|amos)|adjunt[oa]\s+(el\s+)?(abono|comprobante|pago|transfer)|pagu[eé]|deposit[eéo]|dep[oó]sito)\b/i;
+
+      const VISUAL_SUGIERE_COMPROBANTE =
+        /transferencia\s+exitosa|proceso\s+exitoso|comprobante\s+nro|n\.?\s*de\s+comprobante|banco\s+pichincha|produbanco|banco\s+guayaquil|deuna|monto\s+enviado|valor\s+transferido|pago\s+inmediato/i;
+
+      const blobVisual = [
+        datos.texto_visible_relevante,
+        datos.resumen_para_cerebro,
+        captionCliente
+      ].join(' ');
+
+      if (
+        contenido !== 'COMPROBANTE_PAGO' &&
+        (
+          TEXTO_SUGIERE_COMPROBANTE.test(captionCliente) ||
+          VISUAL_SUGIERE_COMPROBANTE.test(blobVisual)
+        )
+      ) {
+        contenido = 'COMPROBANTE_PAGO';
+        analisis.contenido_detectado = 'COMPROBANTE_PAGO';
+      }
+
       // ==================================================
       // 10. DETERMINAR REVISIÓN HUMANA
       // ======================================================
@@ -990,9 +1031,16 @@ const resultados =
       }
 
 
-      const requiereRevision =
+      let requiereRevision =
         motivoRevision !==
         null;
+
+      // El handoff de pago ya deriva a humano; no usar
+      // el mensaje genérico de "revisamos la imagen".
+      if (contenido === 'COMPROBANTE_PAGO') {
+        motivoRevision = null;
+        requiereRevision = false;
+      }
 
 
       // ==================================================

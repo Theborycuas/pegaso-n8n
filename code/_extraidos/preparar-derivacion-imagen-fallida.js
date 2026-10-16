@@ -424,8 +424,23 @@ const detalleError =
 //
 // ======================================================
 
+const TEXTO_SUGIERE_COMPROBANTE =
+  /\b(abono|comprobante|voucher|transfer[ií](encia|í|i)|ya\s+pag(u[eé]|o|amos)|adjunt[oa]\s+(el\s+)?(abono|comprobante|pago|transfer)|pagu[eé]|deposit[eéo]|dep[oó]sito|pago\s+(realizado|enviado|hecho))\b/i;
+
+const esComprobantePorTexto =
+  TEXTO_SUGIERE_COMPROBANTE.test(
+    String(mensajeCliente ?? '')
+  );
+
 const mensajeTransicion =
-  'Permítame un momento por favor, vamos a revisar la imagen que nos envió.';
+  esComprobantePorTexto
+    ? 'En este momento le verificamos su pago.'
+    : 'Permítame un momento por favor, vamos a revisar la imagen que nos envió.';
+
+const motivoHandoffImagen =
+  esComprobantePorTexto
+    ? 'ENVIA_COMPROBANTE'
+    : 'IMAGEN_REQUIERE_REVISION';
 
 
 // ======================================================
@@ -469,7 +484,9 @@ return [
       // ==================================================
 
       intencion:
-        'OTRO',
+        esComprobantePorTexto
+          ? 'REPORTAR_PAGO'
+          : 'OTRO',
 
       accion:
         'DERIVAR_HUMANO',
@@ -483,28 +500,38 @@ return [
       // ==================================================
 
       handoff_motivo:
-        'IMAGEN_REQUIERE_REVISION',
+        motivoHandoffImagen,
 
       motivo_derivacion:
-        'IMAGEN_REQUIERE_REVISION',
+        motivoHandoffImagen,
 
       motivo:
-        'IMAGEN_REQUIERE_REVISION',
+        motivoHandoffImagen,
 
       handoff_clasificacion:
-        'REVISION_IMAGEN',
+        esComprobantePorTexto
+          ? 'CIERRE_COMERCIAL'
+          : 'REVISION_IMAGEN',
 
       clasificacion_handoff:
-        'REVISION_IMAGEN',
+        esComprobantePorTexto
+          ? 'CIERRE_COMERCIAL'
+          : 'REVISION_IMAGEN',
 
       handoff_prioridad:
-        'MEDIA',
+        esComprobantePorTexto
+          ? 'ALTA'
+          : 'MEDIA',
 
       prioridad_derivacion:
-        'MEDIA',
+        esComprobantePorTexto
+          ? 'ALTA'
+          : 'MEDIA',
 
       prioridad:
-        'MEDIA',
+        esComprobantePorTexto
+          ? 'ALTA'
+          : 'MEDIA',
 
 
       // ==================================================

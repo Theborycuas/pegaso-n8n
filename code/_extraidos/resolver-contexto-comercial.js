@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.3
+// RESOLVER CONTEXTO COMERCIAL - V3.4
 // ======================================================
 //
 // Objetivo:
@@ -68,6 +68,9 @@
 //   acota pidiendo ancho y alto en cm para poder cotizar.
 // - V3.3: ENVIAR_DATOS_PAGO envía IMAGEN_DATOS_PAGO (datos bancarios)
 //   + texto fijo, una vez por conversación. No deriva a humano.
+// - V3.4: "si hago 5000 baja el precio" / "en cuanto me queda con X"
+//   no es NEGOCIAR: es recotización por cantidad (o mayorista si
+//   >= 6000). Prefijo de explicación al recotizar por cantidad.
 //
 // ======================================================
 
@@ -328,8 +331,22 @@ const productoActual =
 const materialActual =
   texto(data.material);
 
-const cantidadActual =
+let cantidadActual =
   datoDelTurno(numero(data.cantidad), cantidadEscrita);
+
+// Si la IA no extrajo cantidad pero el mensaje trae un solo
+// número típico de pedido (>= 1000, sin unidad de medida),
+// se toma como cantidad del turno (p. ej. "si hago 5000").
+if (cantidadActual === null && verificarNumerosTurno) {
+  const candidatasCantidad = numerosTurno.filter(n =>
+    n.unidad === null &&
+    n.valor >= 1000
+  );
+
+  if (candidatasCantidad.length === 1) {
+    cantidadActual = candidatasCantidad[0].valor;
+  }
+}
 
 const anchoActual =
   datoDelTurno(numero(data.ancho_cm), medidaEscrita);
@@ -568,8 +585,51 @@ const intencion =
   texto(data.intencion) ??
   'OTRO';
 
+const motivoDerivacionIA =
+  texto(data.motivo_derivacion) ??
+  'NINGUNO';
+
 let accion =
   accionIA;
+
+// Umbral mayorista (misma constante que la regla H).
+const CANTIDAD_DERIVACION_HUMANA = 6000;
+
+// ------------------------------------------------------
+// A0. CANTIDAD NUEVA NO ES NEGOCIACIÓN
+// ------------------------------------------------------
+//
+// "¿Con 5000 baja el precio?" / "si hago 10000 en cuanto
+// me queda" traen cantidad concreta. Con medidas ya
+// conocidas se recotiza (o se deriva mayorista si
+// >= 6000). No se trata como NEGOCIAR/descuento.
+//
+// ------------------------------------------------------
+
+const MOTIVOS_NEGOCIACION = [
+  'NEGOCIACION',
+  'NEGOCIACION_COMERCIAL',
+  'NEGOCIAR_PRECIO',
+  'DESCUENTO',
+  'PRECIO_ESPECIAL'
+];
+
+const recotizacionPorCantidadNueva =
+  cantidadActual !== null &&
+  datosSuficientes &&
+  (
+    intencion === 'NEGOCIAR' ||
+    MOTIVOS_NEGOCIACION.includes(motivoDerivacionIA) ||
+    (
+      accionIA === 'DERIVAR_HUMANO' &&
+      [
+        'CONSULTAR_PRECIO',
+        'APORTAR_DATOS',
+        'SOLICITAR_COTIZACION',
+        'NEGOCIAR'
+      ].includes(intencion)
+    )
+  );
 
 
 // ------------------------------------------------------
@@ -577,6 +637,20 @@ let accion =
 // ------------------------------------------------------
 
 if (
+  recotizacionPorCantidadNueva &&
+  cantidadCotizable !== null &&
+  cantidadCotizable < CANTIDAD_DERIVACION_HUMANA
+) {
+  accion =
+    'COTIZAR_P4';
+} else if (
+  recotizacionPorCantidadNueva &&
+  cantidadCotizable !== null &&
+  cantidadCotizable >= CANTIDAD_DERIVACION_HUMANA
+) {
+  accion =
+    'DERIVAR_HUMANO';
+} else if (
   data.requiere_humano === true ||
   accionIA === 'DERIVAR_HUMANO'
 ) {
@@ -763,8 +837,6 @@ if (
 //
 // ------------------------------------------------------
 
-const CANTIDAD_DERIVACION_HUMANA = 6000;
-
 const ACCIONES_RUTA_COTIZACION = [
   'COTIZAR_P4',
   'PEDIR_MEDIDAS',
@@ -784,14 +856,19 @@ const cantidadMayorista =
   cantidadCotizable >=
     CANTIDAD_DERIVACION_HUMANA;
 
-const derivacionPorCantidad =
+let derivacionPorCantidad =
   cantidadMayorista &&
-  accion !== 'DERIVAR_HUMANO' &&
   (
-    ACCIONES_RUTA_COTIZACION.includes(accion) ||
+    recotizacionPorCantidadNueva ||
     (
-      cantidadActual !== null &&
-      INTENCIONES_PRECIO.includes(intencion)
+      accion !== 'DERIVAR_HUMANO' &&
+      (
+        ACCIONES_RUTA_COTIZACION.includes(accion) ||
+        (
+          cantidadActual !== null &&
+          INTENCIONES_PRECIO.includes(intencion)
+        )
+      )
     )
   );
 
@@ -1637,8 +1714,30 @@ return [
               regla_derivacion:
                 'CANTIDAD_MAYORISTA'
             }
-          : {}
+          : (
+            accion === 'COTIZAR_P4' &&
+            recotizacionPorCantidadNueva
+              ? {
+                  requiere_humano:
+                    false,
+
+                  motivo_derivacion:
+                    'NINGUNO',
+
+                  requiere_notificacion:
+                    false,
+
+                  intencion:
+                    'APORTAR_DATOS'
+                }
+              : {}
+          )
       ),
+
+      explicar_calculo_precio_cantidad:
+        accion === 'COTIZAR_P4' &&
+        modificoCantidad &&
+        cotizacionVigente,
 
       ...(
         derivacionPorProductoNoP4

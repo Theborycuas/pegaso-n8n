@@ -18,8 +18,13 @@
 
 // ======================================================
 // PREPARAR MENSAJE COTIZACIÓN
-// PEGASO ADHESIVOS - V2.8
+// PEGASO ADHESIVOS - V2.9
 // ======================================================
+//
+// V2.9: si se recotiza por cambio de cantidad (p. ej.
+// "¿con 5000 baja el precio?"), el mensaje abre con
+// "Así es, el precio se calcula en base a las medidas
+// y cantidades." antes de la cotización.
 //
 // V2.8: el cierre "Veo que estamos comparando varias
 // alternativas..." se envía una sola vez. Si ya está en
@@ -616,7 +621,15 @@ const huboAjusteCantidad =
 // 12. CONSTRUIR MENSAJE PRINCIPAL
 // ======================================================
 
+const explicarCalculoPrecioCantidad =
+  decision.explicar_calculo_precio_cantidad === true;
+
 let mensaje =
+  (
+    explicarCalculoPrecioCantidad
+      ? 'Así es, el precio se calcula en base a las medidas y cantidades.\n\n'
+      : ''
+  ) +
   `Le adjunto la cotización:\n\n`;
 
 

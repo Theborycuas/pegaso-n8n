@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Preparar mensaje transición humano
 // ARCHIVO: code/06-derivacion-humana/preparar-mensaje-transicion-humano.js
-// VERSION: 3.2
+// VERSION: 3.4
 // RESPONSABILIDAD:
 // - Recibir la salida del UPDATE "Guardar contexto handoff" y recuperar el contrato de "Preparar contexto handoff"
 // - Elegir el texto fijo de transición al prospecto según el motivo (pago, reporte de pago o comprobante, pedido, llamada, imagen, archivo, negociación, reclamo)
@@ -127,6 +127,13 @@ const mensajeClienteOriginal =
     input.mensaje_actual
   );
 
+const TEXTO_SUGIERE_COMPROBANTE =
+  /\b(abono|comprobante|voucher|transfer[ií](encia|í|i)|ya\s+pag(u[eé]|o|amos)|adjunt[oa]\s+(el\s+)?(abono|comprobante|pago|transfer)|pagu[eé]|deposit[eéo]|dep[oó]sito|pago\s+(realizado|enviado|hecho))\b/i;
+
+const clienteHablaDeComprobante =
+  TEXTO_SUGIERE_COMPROBANTE.test(
+    String(mensajeClienteOriginal ?? '')
+  );
 
 // ======================================================
 // 6. MENSAJE AL PROSPECTO
@@ -220,7 +227,9 @@ else if (
 ) {
 
   mensaje =
-    'Permítame un momento por favor, ya revisamos la imagen que nos envió.';
+    clienteHablaDeComprobante
+      ? 'En este momento le verificamos su pago.'
+      : 'Permítame un momento por favor, ya revisamos la imagen que nos envió.';
 
 }
 
@@ -241,6 +250,23 @@ else if (
 
   mensaje =
     'Permítame un momento por favor, ya revisamos el archivo que nos envió.';
+
+}
+
+
+// ------------------------------------------------------
+// CANTIDAD MAYORISTA / COTIZACIÓN ESPECIAL
+// ------------------------------------------------------
+
+else if (
+  [
+    'COTIZACION_ESPECIAL',
+    'CANTIDAD_MAYORISTA'
+  ].includes(motivo)
+) {
+
+  mensaje =
+    'Para cantidades desde 6.000 etiquetas le damos una atención personalizada. Permítame un momento por favor.';
 
 }
 

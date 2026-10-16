@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Normalizar decisión IA
 // ARCHIVO: code/04-cerebro-comercial/normalizar-decision-ia.js
-// VERSION: 2.3
+// VERSION: 2.4
 // RESPONSABILIDAD:
 // - Convertir la decisión YA VALIDADA (de cualquier proveedor) en un contrato único Pegaso con tipos normalizados.
 // - Unir la decisión con el contexto de "Preparar contexto IA" (IDs, prospecto, tipo_actor, contexto_comercial) y resolver ciudad/provincia.
@@ -306,12 +306,16 @@ let motivoDerivacion =
 // ======================================================
 
 let mediaTurno = {};
+let contextoIAMedia = {};
 
 try {
+  contextoIAMedia =
+    $('Preparar contexto IA').first().json ?? {};
   mediaTurno =
-    $('Preparar contexto IA').first().json?.media_turno ?? {};
+    contextoIAMedia.media_turno ?? {};
 } catch (e) {
   mediaTurno = {};
+  contextoIAMedia = {};
 }
 
 const MOTIVOS_QUE_PREVALECEN_SOBRE_COMPROBANTE = [
@@ -331,8 +335,31 @@ const TEXTO_DATOS_PAGO =
 const TEXTO_VERIFICAR_PAGO =
   'En este momento le verificamos su pago.';
 
+const TEXTO_SUGIERE_COMPROBANTE =
+  /\b(abono|comprobante|voucher|transfer[ií](encia|í|i)|ya\s+pag(u[eé]|o|amos)|adjunt[oa]\s+(el\s+)?(abono|comprobante|pago|transfer)|pagu[eé]|deposit[eéo]|dep[oó]sito|pago\s+(realizado|enviado|hecho))\b/i;
+
+const textoTurnoCliente =
+  String(
+    contextoIAMedia.mensaje_actual ??
+    decision.mensaje_actual ??
+    ''
+  );
+
+const hayImagenTurno =
+  Number(mediaTurno.imagenes_analizadas ?? 0) > 0 ||
+  Number(mediaTurno.cantidad_media ?? 0) > 0;
+
+const comprobantePorTexto =
+  hayImagenTurno &&
+  TEXTO_SUGIERE_COMPROBANTE.test(textoTurnoCliente);
+
+const comprobanteDetectado =
+  mediaTurno.comprobante_detectado === true ||
+  mediaTurno.motivo_derivacion === 'ENVIA_COMPROBANTE' ||
+  comprobantePorTexto;
+
 if (
-  mediaTurno.comprobante_detectado === true &&
+  comprobanteDetectado &&
   !MOTIVOS_QUE_PREVALECEN_SOBRE_COMPROBANTE.includes(motivoDerivacion)
 ) {
   derivacionPorMedia = 'COMPROBANTE_PAGO';
