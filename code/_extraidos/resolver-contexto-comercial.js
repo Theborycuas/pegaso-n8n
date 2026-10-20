@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.8
+// RESOLVER CONTEXTO COMERCIAL - V3.9
 // ======================================================
 //
 // Objetivo:
@@ -81,6 +81,12 @@
 //   está en catálogo deriva a humano.
 // - V3.8: tras el catálogo de tarjetas o flyers se envía
 //   "*Los precios adjuntos no incluyen IVA*".
+// - V3.9: el saludo horario de catálogo (tarjetas/flyers) solo
+//   en sesión nueva (sin historial en 24 h). Si ya hay
+//   conversación en curso, se envía imagen/videos + texto.
+//   CATALOGO_FLYERS.valor_json null usa la URL por defecto;
+//   el link de WhatsApp pasa por i0.wp.com (JPEG ~190 KB)
+//   porque Meta no siempre descarga el original de Hostinger.
 //
 // ======================================================
 
@@ -1747,6 +1753,40 @@ const RESPUESTA_CIERRE_CATALOGO_FLYERS =
   '• 1 lado: $32\n' +
   '• 2 lados: $41';
 
+function urlPublicaHttps(valor) {
+  const cruda =
+    texto(valor);
+
+  if (cruda === null) {
+    return null;
+  }
+
+  const sinEspacios =
+    cruda.replace(/\s+/g, '');
+
+  return /^https:\/\/\S+$/i.test(sinEspacios)
+    ? sinEspacios
+    : null;
+}
+
+function urlImagenParaWhatsApp(url) {
+  const prefijoOrigen =
+    'https://pegasoadhesivos.com/wp-content/uploads/';
+
+  if (url.indexOf(prefijoOrigen) !== 0) {
+    return url;
+  }
+
+  const ruta =
+    url.slice('https://'.length).split('?')[0];
+
+  return (
+    'https://i0.wp.com/' +
+    ruta +
+    '?fit=1600,1600&ssl=1'
+  );
+}
+
 const configCatalogoFlyers =
   objeto(
     filasConfiguracion.find(
@@ -1754,15 +1794,14 @@ const configCatalogoFlyers =
     )?.valor_json
   );
 
-const urlFlyersConfigurada =
-  texto(configCatalogoFlyers.url) ??
+const urlFlyersOrigen =
+  urlPublicaHttps(configCatalogoFlyers.url) ??
   IMAGEN_FLYERS_DEFAULT;
 
 const urlImagenFlyers =
   configCatalogoFlyers.activo !== false &&
-  urlFlyersConfigurada !== null &&
-  /^https:\/\/\S+$/i.test(urlFlyersConfigurada)
-    ? urlFlyersConfigurada
+  urlFlyersOrigen !== null
+    ? urlImagenParaWhatsApp(urlFlyersOrigen)
     : null;
 
 const catalogoFlyersYaEnviado =
@@ -1846,8 +1885,10 @@ let textoSaludoTarjetas = null;
 let derivacionPorFlyerDesconocido = false;
 
 if (enviarVideosTarjetas || enviarImagenFlyers) {
-  textoSaludoTarjetas =
-    `${saludoHorarioTarjetas(mensajeTurnoPlano)}. Con gusto atenderemos su requerimiento`;
+  if (sesionConversacionalNueva) {
+    textoSaludoTarjetas =
+      `${saludoHorarioTarjetas(mensajeTurnoPlano)}. Con gusto atenderemos su requerimiento`;
+  }
 
   if (enviarVideosTarjetas) {
     respuestaSugerida =
@@ -2121,7 +2162,7 @@ const contextoComercialNuevo = {
     enviarImagenFlyers
       ? {
           catalogo_flyers: {
-            url: urlImagenFlyers,
+            url: urlFlyersOrigen,
             enviada_at: new Date().toISOString()
           }
         }

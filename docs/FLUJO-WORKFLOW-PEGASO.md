@@ -391,9 +391,9 @@ flowchart TD
 | 0 | `COTIZAR_P4` | Extractor → Groq Chat Model (§13) |
 | 1–12 | `PEDIR_MEDIDAS`, `PEDIR_CANTIDAD`, `PEDIR_PRODUCTO`, `PEDIR_FORMA`, `RESPONDER_GENERAL`, `INFORMAR_MATERIAL`, `INFORMAR_MINIMO`, `INFORMAR_UBICACION`, `INFORMAR_METODOLOGIA`, `INFORMAR_METODOLOGIA_PAGO`, `INFORMAR_ENTREGA`, `INFORMAR_DISENO` | Preparar respuesta comercial (§12) |
 | 13 | `REGISTRAR_ACEPTACION` | **sin conexión** |
-| 14 | `INFORMAR_FLYERS` | Preparar respuesta comercial (§12; saludo + imagen de volantes + lista de precios) |
+| 14 | `INFORMAR_FLYERS` | Preparar respuesta comercial (§12; imagen de volantes + lista de precios; saludo horario solo si la sesión es nueva) |
 | 15 | `ENVIAR_DATOS_PAGO` | Preparar respuesta comercial (§12; imagen `IMAGEN_DATOS_PAGO` + texto fijo) |
-| 16 | `INFORMAR_TARJETAS` | Preparar respuesta comercial (§12; saludo + 4 videos + “Le adjunto videos y precios…”) |
+| 16 | `INFORMAR_TARJETAS` | Preparar respuesta comercial (§12; 4 videos + “Le adjunto videos y precios…”; saludo horario solo si la sesión es nueva) |
 | 17, 18 | `RESPONDER_NO_PRODUCIBLE`, `MEDIDA_NO_PRODUCIBLE` | Preparar respuesta comercial |
 | 19 | `DERIVAR_HUMANO` | Preparar derivación humana (§15) |
 | 20 | *fallback* (cualquier otra acción) | Preparar respuesta comercial |
@@ -571,13 +571,13 @@ flowchart LR
 |---|---|---|---|---|
 | Preparar envío WhatsApp | Code | Punto único de envío. Resuelve el texto (prioriza el contenido persistido), el teléfono destino, confirma que la ejecución nació de un WhatsApp real (evita envíos en TEST/manual), resuelve proveedor YCloud y número emisor, y construye `ycloud_request`. Si `Recuperar decisión comercial` trae `enviar_imagen_informativa` y el texto se envía, emite `enviar_imagen`, `imagen_informativa` (`MATERIAL` o `METODOLOGIA`) y `ycloud_request_imagen`. Si trae `enviar_saludo`, emite `ycloud_request_saludo`. Si trae `enviar_videos_tarjetas`, emite hasta 4 bodies `type=video` con `caption`. Si trae imagen de flyers o informativa, emite `ycloud_request_imagen`. Emite `enviar_whatsapp`; nunca envía el marcador de respuesta omitida (`motivo_no_envio = RESPUESTA_OMITIDA_DUPLICADA`). Recupera contexto de las tres rutas con lectura segura (`{}` si un nodo no participó) | Guardar mensaje saliente · Guardar mensaje comercial · Guardar mensaje transición humano | If:¿Enviar por WhatsApp? |
 | If:¿Enviar por WhatsApp? | IF `enviar_whatsapp` | | Preparar envío WhatsApp | [T] IF: ¿Enviar saludo? · [F] **fin** |
-| IF: ¿Enviar saludo? | IF `enviar_saludo === true` | Saludo horario de tarjetas o flyers | If:¿Enviar por WhatsApp? [T] | [T] YCloud Enviar saludo tarjetas · [F] IF: ¿Enviar videos tarjetas? |
+| IF: ¿Enviar saludo? | IF `enviar_saludo === true` | Saludo horario de tarjetas o flyers **solo en sesión nueva** (sin historial en 24 h). Si ya hay conversación, se salta | If:¿Enviar por WhatsApp? [T] | [T] YCloud Enviar saludo tarjetas · [F] IF: ¿Enviar videos tarjetas? |
 | YCloud Enviar saludo tarjetas | HTTP POST (misma credencial), **continúa ante error** | Texto inmediato: “Buenos días/tardes/noches. Con gusto atenderemos su requerimiento” | IF saludo [T] | Esperar saludo tarjetas |
 | Esperar saludo tarjetas | Wait 2 segundos | Deja que el saludo llegue antes de videos o imagen | YCloud Enviar saludo tarjetas | IF: ¿Enviar videos tarjetas? |
 | IF: ¿Enviar videos tarjetas? | IF `enviar_videos_tarjetas === true` | Catálogo de acabados de tarjetas (`INFORMAR_TARJETAS`) | IF saludo [F] · Esperar saludo | [T] YCloud Enviar video tarjetas 1 · [F] IF: ¿Enviar imagen informativa? |
 | YCloud Enviar video tarjetas 1–4 | HTTP POST (misma credencial), **continúa ante error** | Envía cada video con caption (`videos_tarjetas[N].body`) | Cadena video/espera | Esperar video tarjetas N → siguiente video; tras el 4 → YCloud Enviar Wts |
 | Esperar video tarjetas 1–4 | Wait 2 segundos | Espacio entre videos (y antes del texto final) | Video N | Video N+1 o texto |
-| IF: ¿Enviar imagen informativa? | IF `$('Preparar envío WhatsApp').first().json.enviar_imagen === true` | Pasa cuando la respuesta lleva imagen de material, metodología o datos de pago (ver `Resolver contexto comercial`, §11) | IF videos [F] | [T] YCloud Enviar imagen · [F] YCloud Enviar Wts |
+| IF: ¿Enviar imagen informativa? | IF `$('Preparar envío WhatsApp').first().json.enviar_imagen === true` | Pasa cuando la respuesta lleva imagen de material, metodología, datos de pago o catálogo de flyers | IF videos [F] | [T] YCloud Enviar imagen · [F] YCloud Enviar Wts |
 | YCloud Enviar imagen | HTTP POST `api.ycloud.com/v2/whatsapp/messages` (misma credencial), **continúa ante error** | Envía la imagen antes del texto (`ycloud_request_imagen.body`: `type = image`, `image.link`). Si falla, el flujo sigue y el texto se envía igual | IF [T] | Esperar antes del texto |
 | Esperar antes del texto | Wait 3 segundos | Da tiempo a que WhatsApp entregue la imagen antes que el texto (la imagen tarda más en procesarse) | YCloud Enviar imagen | YCloud Enviar Wts |
 | YCloud Enviar Wts | HTTP POST `api.ycloud.com/v2/whatsapp/messages` (credencial Header Auth) | Envía el texto al cliente. Toma el body de `$('Preparar envío WhatsApp').first().json.ycloud_request.body`, porque su entrada puede ser la respuesta de imagen o videos | IF imagen [F] · Esperar antes del texto · Esperar video tarjetas 4 | — (**fin**) |

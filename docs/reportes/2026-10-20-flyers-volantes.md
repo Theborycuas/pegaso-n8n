@@ -3,7 +3,7 @@
 **Fecha:** 20 de octubre de 2026 · **Workflow:** SISTEMA AUTOMATIZADO PEGASO (`09OF22FOxihypeeh`)
 **Estado:** Implementado en local (build + edit). **No** publicado en n8n, sin commit ni `git push`. Afiches siguen derivando a humano.
 
-Cuando el prospecto pide **flyers, flayers o volantes** (y no etiquetas ni tarjetas), el bot saluda según la hora, envía la **imagen del catálogo** y luego el texto con tamaños y precios. Si la imagen falla, el texto igual llega con los precios. Al final: *Los precios adjuntos no incluyen IVA*.
+Cuando el prospecto pide **flyers, flayers o volantes** (y no etiquetas ni tarjetas), el bot envía la **imagen del catálogo** y luego el texto con tamaños y precios. El saludo horario (“Buenos días. Con gusto atenderemos su requerimiento”) **solo** si es el primer contacto de la sesión (sin historial en 24 h). Si ya estaban hablando de tarjetas u otro tema, no se vuelve a saludar. Al final: *Los precios adjuntos no incluyen IVA*.
 
 ---
 
@@ -25,14 +25,17 @@ Cuando el prospecto pide **flyers, flayers o volantes** (y no etiquetas ni tarje
 ```mermaid
 flowchart TD
   A[Pide flyers / volantes] --> B{Catálogo ya enviado?}
-  B -->|No| C[Saludo horario]
-  C --> D[Imagen del catálogo]
-  D --> E[Texto con precios A5/A6]
-  B -->|Sí| F{Qué pregunta?}
-  F -->|Material| G[Couche 115 gr]
-  F -->|Entrega| H[Lun-mar → mié / mié-jue → vie]
-  F -->|Tamaño / caras / precio| I[Lista A5/A6]
-  F -->|Algo fuera de catálogo| J[DERIVAR_HUMANO]
+  B -->|No| C{Sesión nueva?}
+  C -->|Sí| D[Saludo horario]
+  C -->|No| E[Sin saludo]
+  D --> IMG[Imagen del catálogo]
+  E --> IMG
+  IMG --> PRE[Texto con precios A5/A6]
+  B -->|Sí| Q{Qué pregunta?}
+  Q -->|Material| MAT[Couche 115 gr]
+  Q -->|Entrega| ENT[Lun-mar → mié / mié-jue → vie]
+  Q -->|Tamaño / caras / precio| LST[Lista A5/A6]
+  Q -->|Algo fuera de catálogo| HUM[DERIVAR_HUMANO]
 ```
 
 ## 3. Qué se cambió
@@ -42,28 +45,24 @@ flowchart TD
 | Preparar contexto IA 4.8 | Pre-IA `FLYERS_VOLANTES` → `INFORMAR_FLYERS`. Flyers salen de `PRODUCTO_NO_P4` |
 | Cerebro ×3 | Prompt §27B + enum `INFORMAR_FLYERS` |
 | Validadores ×3 V2.5 | Aceptan `INFORMAR_FLYERS` |
-| Resolver 3.7 | `producto_linea = FLYERS_VOLANTES`; imagen + precios; FAQs; desconocido → humano |
+| Resolver 3.9 | `producto_linea = FLYERS_VOLANTES`; imagen + precios; saludo solo en sesión nueva; `CATALOGO_FLYERS` null usa URL por defecto; WhatsApp recibe JPEG vía i0.wp.com (~190 KB) |
 | Switch salida 14 | `INFORMAR_FLYERS` → Preparar respuesta comercial |
-| Preparar envío 3.3 | Saludo genérico (`enviar_saludo`) + imagen de flyers en `ycloud_request_imagen` |
+| Preparar envío 3.5 | `enviar_saludo` solo si hay `texto_saludo_tarjetas`; imagen de flyers en `ycloud_request_imagen` |
 | Nodos | `IF: ¿Enviar saludo?` delante de videos/imagen (tarjetas y flyers) |
 
 ## 4. Cómo activarlo
 
-1. Publicar el workflow.
-2. Opcional — fila de catálogo (si no existe, el código usa la URL por defecto):
+1. Publicar el workflow (este arreglo está solo en local hasta el push).
+2. La fila `CATALOGO_FLYERS` con `valor_json` NULL no trae URL. El código usa la URL por defecto, pero conviene cargarla:
 
 ```sql
-INSERT INTO pegaso.configuracion_bot (clave, valor_json)
-VALUES (
-  'CATALOGO_FLYERS',
-  '{
-    "activo": true,
-    "url": "https://pegasoadhesivos.com/wp-content/uploads/2026/10/Volantes_Mesa-de-trabajo-1-copia-scaled.jpg"
-  }'::jsonb
-)
-ON CONFLICT (clave) DO UPDATE
-SET valor_json = EXCLUDED.valor_json,
-    actualizado_at = NOW();
+UPDATE pegaso.configuracion_bot
+SET valor_json = '{
+  "activo": true,
+  "url": "https://pegasoadhesivos.com/wp-content/uploads/2026/10/Volantes_Mesa-de-trabajo-1-copia-scaled.jpg"
+}'::jsonb,
+    actualizado_at = NOW()
+WHERE clave = 'CATALOGO_FLYERS';
 ```
 
-3. Probar: “necesito volantes A6” / “flyers publicitarios”.
+3. Probar en una conversación **sin** `catalogo_flyers.enviada_at` (si el intento anterior guardó el catálogo como enviado aunque la foto no llegó, ese chat no reenvía la imagen). “Y disculpe, trabajan con flyers?” en el hilo de tarjetas: precios + foto, **sin** “Buenos días…”. Primer contacto del día pidiendo solo flyers: sí saluda.
