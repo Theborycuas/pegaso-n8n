@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Preparar contexto IA
 // ARCHIVO: code/03-conversacion/preparar-contexto-ia.js
-// VERSION: 4.13
+// VERSION: 4.14
 // ======================================================
 //
 // RESPONSABILIDAD:
@@ -67,6 +67,10 @@
 //   resolver suma. Tarejtes y similares cuentan como tarjetas.
 // - V4.13: FAQ P4: circular y cuadrada cuestan lo mismo
 //   hasta 5 cm (troquel).
+// - V4.14: afiches, trípticos y hojas membretadas salen
+//   de PRODUCTO_NO_P4. Primer contacto INFORMAR_* con
+//   imagen + precios (producción rápida, 2-3 días hábiles).
+//   Dípticos y brochures siguen a humano.
 // - Reglas pre-IA solo para texto sin multimedia:
 //   SALUDO_SIMPLE (respuesta corta fija), PRODUCTO_NO_P4
 //   (DERIVAR_HUMANO + COTIZACION_ESPECIAL) y
@@ -2057,15 +2061,46 @@ const PRODUCTOS_FLYERS = [
   }
 ];
 
+const LEMAS_AFICHES = [
+  'afiche', 'afiches', 'afishes'
+];
+
+const LEMAS_TRIPTICOS = [
+  'triptico', 'tripticos', 'tryptico', 'trypticos'
+];
+
+const LEMAS_MEMBRETADAS = [
+  'membretada', 'membretadas', 'membrete', 'membretes'
+];
+
+const PRODUCTOS_AFICHES = [
+  {
+    patron: /\bafiches?\b/,
+    producto: 'afiches'
+  }
+];
+
+const PRODUCTOS_TRIPTICOS = [
+  {
+    patron: /\btripticos?\b/,
+    producto: 'trípticos'
+  }
+];
+
+const PRODUCTOS_MEMBRETADAS = [
+  {
+    patron: /\bhojas? membretadas?\b|\bmembretadas?\b|\bmembretes?\b/,
+    producto: 'hojas membretadas'
+  }
+];
+
 const PRODUCTOS_NO_P4 = [
   { patron: /\bcarpetas?\b/, producto: 'carpetas' },
   { patron: /\btalonarios?\b/, producto: 'talonarios' },
   { patron: /\bboletos?\b/, producto: 'boletos' },
   { patron: /\bentradas? (para|de)\b/, producto: 'entradas' },
   { patron: /\bformularios?\b/, producto: 'formularios' },
-  { patron: /\bhojas? membretadas?\b|\bmembretes?\b/, producto: 'hojas membretadas' },
-  { patron: /\b(tripticos?|dipticos?)\b/, producto: 'trípticos / dípticos' },
-  { patron: /\bafiches?\b/, producto: 'afiches' },
+  { patron: /\bdipticos?\b/, producto: 'dípticos' },
   { patron: /\bbrochures?\b/, producto: 'brochures' }
 ];
 
@@ -2093,6 +2128,26 @@ const RESPUESTA_CIERRE_FLYERS =
   'A5 (21 x 14.8 cm)\n' +
   '• 1 lado: $32\n' +
   '• 2 lados: $41\n\n' +
+  '*Precios no incluyen IVA*';
+
+const RESPUESTA_CIERRE_AFICHES =
+  'Le adjunto tamaños y precios de afiches:\n\n' +
+  '1000 afiches A3 (29.7 x 42 cm)\n' +
+  '• Full color, 1 lado, Couche 150 gr: $100\n' +
+  '• Si ya tiene el diseño listo para imprimir: $90\n\n' +
+  '*Precios no incluyen IVA*';
+
+const RESPUESTA_CIERRE_TRIPTICOS =
+  'Le adjunto tamaños y precios de trípticos:\n\n' +
+  '1000 trípticos A4 (21 x 29.7 cm)\n' +
+  '• Full color, ambos lados, doblados y cortados: $85\n' +
+  '• Debe enviarnos el diseño listo. Si no tiene diseño, el diseño es $15 adicionales.\n\n' +
+  '*Precios no incluyen IVA*';
+
+const RESPUESTA_CIERRE_MEMBRETADAS =
+  'Le adjunto tamaños y precios de hojas membretadas:\n\n' +
+  '1000 hojas membretadas A4 (21 x 29.7 cm)\n' +
+  '• Full color, 1 lado, papel Bond 75 gr: $65\n\n' +
   '*Precios no incluyen IVA*';
 
 
@@ -2346,6 +2401,12 @@ let productoTarjetasDetectado = null;
 
 let productoFlyersDetectado = null;
 
+let productoAfichesDetectado = null;
+
+let productoTripticosDetectado = null;
+
+let productoMembretadasDetectado = null;
+
 let divisionDisenosDetectada = null;
 
 const textoTurnoPlano =
@@ -2387,9 +2448,67 @@ const catalogoFlyersYaEnviado =
     objeto(contextoComercial.catalogo_flyers).enviada_at ?? ''
   ).trim() !== '';
 
+function productoCatalogoRapido(productos, lemas, nombre) {
+  if (textoTurnoPlano === '' || MENCIONA_ETIQUETA.test(textoTurnoPlano)) {
+    return null;
+  }
+
+  return productos.find(p => p.patron.test(textoTurnoPlano)) ??
+    (
+      mencionaLemas(textoTurnoPlano, lemas)
+        ? { producto: nombre }
+        : null
+    );
+}
+
+const productoAfiches =
+  productoCatalogoRapido(
+    PRODUCTOS_AFICHES,
+    LEMAS_AFICHES,
+    'afiches'
+  );
+
+const productoTripticos =
+  productoCatalogoRapido(
+    PRODUCTOS_TRIPTICOS,
+    LEMAS_TRIPTICOS,
+    'trípticos'
+  );
+
+const productoMembretadas =
+  productoCatalogoRapido(
+    PRODUCTOS_MEMBRETADAS,
+    LEMAS_MEMBRETADAS,
+    'hojas membretadas'
+  );
+
+const catalogoAfichesYaEnviado =
+  String(
+    objeto(contextoComercial.catalogo_afiches).enviada_at ?? ''
+  ).trim() !== '';
+
+const catalogoTripticosYaEnviado =
+  String(
+    objeto(contextoComercial.catalogo_tripticos).enviada_at ?? ''
+  ).trim() !== '';
+
+const catalogoMembretadasYaEnviado =
+  String(
+    objeto(contextoComercial.catalogo_membretadas).enviada_at ?? ''
+  ).trim() !== '';
+
 const mezclaTarjetasYFlyers =
   productoTarjetas !== null &&
   productoFlyers !== null;
+
+const mezclaCatalogoImpreso =
+  [
+    productoTarjetas,
+    productoFlyers,
+    productoAfiches,
+    productoTripticos,
+    productoMembretadas
+  ].filter(Boolean).length > 1;
 
 const PIDE_PRECIO_CATALOGO =
   /\b(precios?|total|cuanto |a como|vale|valor|cotiz|suma)\b/.test(
@@ -2419,9 +2538,12 @@ const pideTotalCatalogoCompleto =
 // Si el catálogo ya salió, no se salta el cerebro.
 // Si pide el total con datos, el resolver suma: no INFORMAR_*.
 // Si nombra tarjetas y flyers juntos, el cerebro no salta.
-if (mezclaTarjetasYFlyers) {
-  productoTarjetasDetectado = productoTarjetas.producto;
-  productoFlyersDetectado = productoFlyers.producto;
+if (mezclaCatalogoImpreso) {
+  productoTarjetasDetectado = productoTarjetas?.producto ?? null;
+  productoFlyersDetectado = productoFlyers?.producto ?? null;
+  productoAfichesDetectado = productoAfiches?.producto ?? null;
+  productoTripticosDetectado = productoTripticos?.producto ?? null;
+  productoMembretadasDetectado = productoMembretadas?.producto ?? null;
 } else if (
   productoTarjetas &&
   !catalogoTarjetasYaEnviado &&
@@ -2460,6 +2582,60 @@ if (mezclaTarjetasYFlyers) {
   };
 } else if (productoFlyers) {
   productoFlyersDetectado = productoFlyers.producto;
+} else if (
+  productoAfiches &&
+  !catalogoAfichesYaEnviado
+) {
+  reglaPreIA = 'AFICHES';
+  productoAfichesDetectado = productoAfiches.producto;
+
+  decisionPreIA = {
+    ...decisionBase(),
+    intencion: 'CONSULTAR_PRECIO',
+    accion: 'INFORMAR_AFICHES',
+    producto: 'afiches',
+    requiere_humano: false,
+    motivo_derivacion: 'NINGUNO',
+    respuesta_sugerida: RESPUESTA_CIERRE_AFICHES
+  };
+} else if (productoAfiches) {
+  productoAfichesDetectado = productoAfiches.producto;
+} else if (
+  productoTripticos &&
+  !catalogoTripticosYaEnviado
+) {
+  reglaPreIA = 'TRIPTICOS';
+  productoTripticosDetectado = productoTripticos.producto;
+
+  decisionPreIA = {
+    ...decisionBase(),
+    intencion: 'CONSULTAR_PRECIO',
+    accion: 'INFORMAR_TRIPTICOS',
+    producto: 'trípticos',
+    requiere_humano: false,
+    motivo_derivacion: 'NINGUNO',
+    respuesta_sugerida: RESPUESTA_CIERRE_TRIPTICOS
+  };
+} else if (productoTripticos) {
+  productoTripticosDetectado = productoTripticos.producto;
+} else if (
+  productoMembretadas &&
+  !catalogoMembretadasYaEnviado
+) {
+  reglaPreIA = 'HOJAS_MEMBRETADAS';
+  productoMembretadasDetectado = productoMembretadas.producto;
+
+  decisionPreIA = {
+    ...decisionBase(),
+    intencion: 'CONSULTAR_PRECIO',
+    accion: 'INFORMAR_MEMBRETADAS',
+    producto: 'hojas membretadas',
+    requiere_humano: false,
+    motivo_derivacion: 'NINGUNO',
+    respuesta_sugerida: RESPUESTA_CIERRE_MEMBRETADAS
+  };
+} else if (productoMembretadas) {
+  productoMembretadasDetectado = productoMembretadas.producto;
 }
 
 if (
@@ -2498,7 +2674,10 @@ if (
       textoTurnoPlano
     ) &&
     productoTarjetas === null &&
-    productoFlyers === null;
+    productoFlyers === null &&
+    productoAfiches === null &&
+    productoTripticos === null &&
+    productoMembretadas === null;
 
   if (esSaludoSimple) {
     reglaPreIA = 'SALUDO_SIMPLE';
@@ -2864,6 +3043,15 @@ return [
 
       producto_flyers:
         productoFlyersDetectado,
+
+      producto_afiches:
+        productoAfichesDetectado,
+
+      producto_tripticos:
+        productoTripticosDetectado,
+
+      producto_membretadas:
+        productoMembretadasDetectado,
 
       division_disenos:
         divisionDisenosDetectada,

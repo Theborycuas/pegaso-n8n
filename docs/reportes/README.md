@@ -18,7 +18,8 @@ Un reporte por intervención sobre el workflow **SISTEMA AUTOMATIZADO PEGASO**: 
 | 2026-10-15 | [Datos bancarios por imagen y handoff solo con comprobante](2026-10-15-datos-pago-comprobante.md) | Implementado en local, sin publicar ni commit; requiere crear `IMAGEN_DATOS_PAGO` en `configuracion_bot` |
 | 2026-10-15 | [Recotización por cantidad (no negociar)](2026-10-15-recotizacion-por-cantidad.md) | Implementado en local, sin publicar ni commit |
 | 2026-10-19 | [Tarjetas de presentación: catálogo de acabados con videos](2026-10-19-tarjetas-presentacion.md) | Implementado en local, sin publicar ni commit |
-| 2026-10-20 | [Volantes / flyers: imagen de catálogo y precios](2026-10-20-flyers-volantes.md) | Implementado en local, sin publicar ni commit; afiches siguen a humano |
+| 2026-10-20 | [Volantes / flyers: imagen de catálogo y precios](2026-10-20-flyers-volantes.md) | Implementado en local, sin publicar ni commit |
+| 2026-10-20 | [Producción rápida: afiches, trípticos y hojas membretadas](2026-10-20-produccion-rapida.md) | Implementado en local, sin publicar ni commit |
 
 ## Convenciones
 

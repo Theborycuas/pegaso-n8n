@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.15
+// RESOLVER CONTEXTO COMERCIAL - V3.17
 // ======================================================
 //
 // Objetivo:
@@ -106,6 +106,14 @@
 // - V3.15: etiquetas P4: circular/cuadrada/troquel ≤ 5 cm
 //   mismo precio (FAQ fija, no deriva). Varias medidas
 //   del turno se cotizan juntas.
+// - V3.16: producción rápida: afiches A3, trípticos A4 y
+//   hojas membretadas A4 (imagen + precios 1000/500,
+//   diseño, entrega 2-3 días hábiles). Reutiliza el
+//   envío de imagen de flyers. Dípticos siguen a humano.
+// - V3.17: el total de varios productos de catálogo se
+//   acumula (pedido actualizado). Si falta un dato, se
+//   pregunta. Si el envío es a otra ciudad fuera de
+//   Quito, se suman $5 de transporte.
 //
 // ======================================================
 
@@ -782,6 +790,9 @@ else if (
     'INFORMAR_DISENO',
     'INFORMAR_TARJETAS',
     'INFORMAR_FLYERS',
+    'INFORMAR_AFICHES',
+    'INFORMAR_TRIPTICOS',
+    'INFORMAR_MEMBRETADAS',
     'ENVIAR_DATOS_PAGO',
     'REGISTRAR_ACEPTACION',
     'RESPONDER_GENERAL'
@@ -987,7 +998,8 @@ if (derivacionPorCantidad) {
 //
 // TARJETAS_PRESENTACION: catálogo de acabados (videos).
 // FLYERS_VOLANTES: imagen + precios A5/A6.
-// PRODUCTO_NO_P4: otro impreso (afiches, etc.) → humano.
+// AFICHES / TRIPTICOS / HOJAS_MEMBRETADAS: producción rápida.
+// PRODUCTO_NO_P4: otro impreso (dípticos, brochures, etc.) → humano.
 //
 // ------------------------------------------------------
 
@@ -1003,6 +1015,23 @@ const productoTarjetas =
 const productoFlyers =
   texto(contextoIA.producto_flyers);
 
+const productoAfiches =
+  texto(contextoIA.producto_afiches);
+
+const productoTripticos =
+  texto(contextoIA.producto_tripticos);
+
+const productoMembretadas =
+  texto(contextoIA.producto_membretadas);
+
+const ACCIONES_CATALOGO = [
+  'INFORMAR_TARJETAS',
+  'INFORMAR_FLYERS',
+  'INFORMAR_AFICHES',
+  'INFORMAR_TRIPTICOS',
+  'INFORMAR_MEMBRETADAS'
+];
+
 if (
   reglaPreIA === 'TARJETAS_PRESENTACION' ||
   accionIA === 'INFORMAR_TARJETAS'
@@ -1015,12 +1044,29 @@ if (
 ) {
   accion =
     'INFORMAR_FLYERS';
+} else if (
+  reglaPreIA === 'AFICHES' ||
+  accionIA === 'INFORMAR_AFICHES'
+) {
+  accion =
+    'INFORMAR_AFICHES';
+} else if (
+  reglaPreIA === 'TRIPTICOS' ||
+  accionIA === 'INFORMAR_TRIPTICOS'
+) {
+  accion =
+    'INFORMAR_TRIPTICOS';
+} else if (
+  reglaPreIA === 'HOJAS_MEMBRETADAS' ||
+  accionIA === 'INFORMAR_MEMBRETADAS'
+) {
+  accion =
+    'INFORMAR_MEMBRETADAS';
 }
 
 const derivacionPorProductoNoP4 =
   reglaPreIA === 'PRODUCTO_NO_P4' &&
-  accion !== 'INFORMAR_TARJETAS' &&
-  accion !== 'INFORMAR_FLYERS' &&
+  !ACCIONES_CATALOGO.includes(accion) &&
   !derivacionPorCantidad;
 
 if (derivacionPorProductoNoP4) {
@@ -1317,6 +1363,38 @@ else if (
 }
 
 else if (
+  accion === 'INFORMAR_AFICHES'
+) {
+  respuestaSugerida =
+    'Le adjunto tamaños y precios de afiches:\n\n' +
+    '1000 afiches A3 (29.7 x 42 cm)\n' +
+    '• Full color, 1 lado, Couche 150 gr: $100\n' +
+    '• Si ya tiene el diseño listo para imprimir: $90\n\n' +
+    '*Precios no incluyen IVA*';
+}
+
+else if (
+  accion === 'INFORMAR_TRIPTICOS'
+) {
+  respuestaSugerida =
+    'Le adjunto tamaños y precios de trípticos:\n\n' +
+    '1000 trípticos A4 (21 x 29.7 cm)\n' +
+    '• Full color, ambos lados, doblados y cortados: $85\n' +
+    '• Debe enviarnos el diseño listo. Si no tiene diseño, el diseño es $15 adicionales.\n\n' +
+    '*Precios no incluyen IVA*';
+}
+
+else if (
+  accion === 'INFORMAR_MEMBRETADAS'
+) {
+  respuestaSugerida =
+    'Le adjunto tamaños y precios de hojas membretadas:\n\n' +
+    '1000 hojas membretadas A4 (21 x 29.7 cm)\n' +
+    '• Full color, 1 lado, papel Bond 75 gr: $65\n\n' +
+    '*Precios no incluyen IVA*';
+}
+
+else if (
   accion === 'COTIZAR_P4' ||
   derivacionPorCantidad
 ) {
@@ -1489,7 +1567,7 @@ const aplicaMetodologia =
   !omitirEnvio &&
   !pideConfirmacionMedidasGrandes &&
   !niegaMedidasGrandes &&
-  !['COTIZAR_P4', 'DERIVAR_HUMANO', 'INFORMAR_TARJETAS', 'INFORMAR_FLYERS'].includes(accion);
+  !['COTIZAR_P4', 'DERIVAR_HUMANO', ...ACCIONES_CATALOGO].includes(accion);
 
 if (coincidenciaFecha !== null) {
   fechaDeseadaCliente = {
@@ -1607,6 +1685,15 @@ const MENCIONA_TARJETAS_TURNO =
 const MENCIONA_FLYERS_TURNO =
   /\b(flyers?|flayers?|fliers?|volantes?|vonates?|bolantes?|volates?)\b/;
 
+const MENCIONA_AFICHES_TURNO =
+  /\bafiches?\b/;
+
+const MENCIONA_TRIPTICOS_TURNO =
+  /\btripticos?\b/;
+
+const MENCIONA_MEMBRETADAS_TURNO =
+  /\bhojas? membretadas?\b|\bmembretadas?\b|\bmembretes?\b/;
+
 const mencionaEtiquetaTurno =
   MENCIONA_ETIQUETA_TURNO.test(mensajeTurnoPlano);
 
@@ -1627,6 +1714,27 @@ const mencionaFlyersTurno =
     ]
   );
 
+const mencionaAfichesTurno =
+  MENCIONA_AFICHES_TURNO.test(mensajeTurnoPlano) ||
+  mencionaLemas(
+    mensajeTurnoPlano,
+    ['afiche', 'afiches', 'afishes']
+  );
+
+const mencionaTripticosTurno =
+  MENCIONA_TRIPTICOS_TURNO.test(mensajeTurnoPlano) ||
+  mencionaLemas(
+    mensajeTurnoPlano,
+    ['triptico', 'tripticos', 'tryptico', 'trypticos']
+  );
+
+const mencionaMembretadasTurno =
+  MENCIONA_MEMBRETADAS_TURNO.test(mensajeTurnoPlano) ||
+  mencionaLemas(
+    mensajeTurnoPlano,
+    ['membretada', 'membretadas', 'membrete', 'membretes']
+  );
+
 const productoLineaAnterior =
   texto(contextoAnterior.producto_linea);
 
@@ -1637,7 +1745,10 @@ const mezclaLineasTurno =
   [
     mencionaEtiquetaTurno,
     mencionaTarjetasTurno,
-    mencionaFlyersTurno
+    mencionaFlyersTurno,
+    mencionaAfichesTurno,
+    mencionaTripticosTurno,
+    mencionaMembretadasTurno
   ].filter(Boolean).length > 1;
 
 if (mezclaLineasTurno) {
@@ -1660,17 +1771,73 @@ if (mezclaLineasTurno) {
 ) {
   productoLinea =
     'FLYERS_VOLANTES';
+} else if (
+  accion === 'INFORMAR_AFICHES' ||
+  productoAfiches !== null ||
+  mencionaAfichesTurno
+) {
+  productoLinea =
+    'AFICHES';
+} else if (
+  accion === 'INFORMAR_TRIPTICOS' ||
+  productoTripticos !== null ||
+  mencionaTripticosTurno
+) {
+  productoLinea =
+    'TRIPTICOS';
+} else if (
+  accion === 'INFORMAR_MEMBRETADAS' ||
+  productoMembretadas !== null ||
+  mencionaMembretadasTurno
+) {
+  productoLinea =
+    'HOJAS_MEMBRETADAS';
 }
+
+const mencionaOtraLineaCatalogo = (...propias) =>
+  [
+    mencionaEtiquetaTurno,
+    mencionaTarjetasTurno,
+    mencionaFlyersTurno,
+    mencionaAfichesTurno,
+    mencionaTripticosTurno,
+    mencionaMembretadasTurno
+  ].some((m, i) => {
+    const nombres = [
+      'ETIQUETAS',
+      'TARJETAS_PRESENTACION',
+      'FLYERS_VOLANTES',
+      'AFICHES',
+      'TRIPTICOS',
+      'HOJAS_MEMBRETADAS'
+    ];
+    return m && !propias.includes(nombres[i]);
+  });
 
 const esLineaTarjetas =
   productoLinea === 'TARJETAS_PRESENTACION' &&
-  !mencionaEtiquetaTurno &&
-  !mencionaFlyersTurno;
+  !mencionaOtraLineaCatalogo('TARJETAS_PRESENTACION');
 
 const esLineaFlyers =
   productoLinea === 'FLYERS_VOLANTES' &&
-  !mencionaEtiquetaTurno &&
-  !mencionaTarjetasTurno;
+  !mencionaOtraLineaCatalogo('FLYERS_VOLANTES');
+
+const esLineaAfiches =
+  productoLinea === 'AFICHES' &&
+  !mencionaOtraLineaCatalogo('AFICHES');
+
+const esLineaTripticos =
+  productoLinea === 'TRIPTICOS' &&
+  !mencionaOtraLineaCatalogo('TRIPTICOS');
+
+const esLineaMembretadas =
+  productoLinea === 'HOJAS_MEMBRETADAS' &&
+  !mencionaOtraLineaCatalogo('HOJAS_MEMBRETADAS');
+
+const esLineaRapida =
+  esLineaAfiches ||
+  esLineaTripticos ||
+  esLineaMembretadas;
 
 
 // ------------------------------------------------------
@@ -1680,8 +1847,8 @@ const esLineaFlyers =
 // Precios de catálogo (por 1000, mismo diseño). Sumar
 // productos distintos si el prospecto pide el total y
 // ya dio las opciones. No inventar: si falta acabado,
-// tamaño o caras, preguntar. Afiches u otro impreso
-// sin fila de precio sigue en humano.
+// tamaño o caras, preguntar. Afiches, trípticos y
+// hojas membretadas tienen fila de 500 y 1000.
 //
 // ------------------------------------------------------
 
@@ -1705,11 +1872,52 @@ const PRECIOS_FLYERS_1000 = {
   A5: { etiqueta: 'A5 (21 x 14.8 cm)', 1: 32, 2: 41 }
 };
 
+const PRECIOS_RAPIDA = {
+  AFICHES: {
+    etiqueta: 'afiches A3 (29.7 x 42 cm)',
+    500: 85,
+    1000: 100,
+    '1000_diseno_listo': 90
+  },
+  TRIPTICOS: {
+    etiqueta: 'trípticos A4 (21 x 29.7 cm)',
+    500: 69,
+    1000: 85,
+    extra_diseno: 15
+  },
+  HOJAS_MEMBRETADAS: {
+    etiqueta: 'hojas membretadas A4 (21 x 29.7 cm)',
+    500: 50,
+    1000: 65
+  }
+};
+
+const PATRONES_PRODUCTO_CATALOGO = {
+  TARJETAS_PRESENTACION:
+    /\bta+r+[aeij]+t[ae]*s?\b|\bestampitas?\b/g,
+  FLYERS_VOLANTES:
+    /\b(flyers?|flayers?|fliers?|volantes?|vonates?|bolantes?|volates?)\b/g,
+  AFICHES:
+    /\bafiches?\b/g,
+  TRIPTICOS:
+    /\btripticos?\b/g,
+  HOJAS_MEMBRETADAS:
+    /\b(hojas? membretadas?|membretadas?|membretes?)\b/g
+};
+
+const PRODUCTOS_RAPIDA = [
+  'AFICHES',
+  'TRIPTICOS',
+  'HOJAS_MEMBRETADAS'
+];
+
 function indicesProductoCatalogo(texto, clave) {
   const patron =
-    clave === 'TARJETAS_PRESENTACION'
-      ? /\bta+r+[aeij]+t[ae]*s?\b|\bestampitas?\b/g
-      : /\b(flyers?|flayers?|fliers?|volantes?|vonates?|bolantes?|volates?)\b/g;
+    PATRONES_PRODUCTO_CATALOGO[clave];
+
+  if (!patron) {
+    return [];
+  }
 
   const hits = [];
   let coincidencia;
@@ -1784,6 +1992,18 @@ function detectarCarasFlyer(texto) {
   return null;
 }
 
+function detectarDisenoListoCatalogo(texto) {
+  return /\b(ya (tengo|tiene|tenemos) (el )?diseno|diseno listo|listo para imprimir|arte listo|pdf listo)\b/.test(
+    texto
+  );
+}
+
+function detectarSinDisenoCatalogo(texto) {
+  return /\b(no (tengo|tiene|tenemos) (el )?diseno|sin diseno|necesito (el )?diseno|falta (el )?diseno)\b/.test(
+    texto
+  );
+}
+
 function cantidadAntesProducto(texto, index) {
   const antes =
     texto.slice(Math.max(0, index - 24), index);
@@ -1820,10 +2040,9 @@ function faltantesLineaCatalogo(linea) {
 }
 
 function extraerLineasCatalogo(texto) {
-  const hits = [
-    ...indicesProductoCatalogo(texto, 'TARJETAS_PRESENTACION'),
-    ...indicesProductoCatalogo(texto, 'FLYERS_VOLANTES')
-  ].sort((a, b) => a.index - b.index);
+  const hits = Object.keys(PATRONES_PRODUCTO_CATALOGO)
+    .flatMap(clave => indicesProductoCatalogo(texto, clave))
+    .sort((a, b) => a.index - b.index);
 
   return hits.map((hit, i) => {
     const fin =
@@ -1844,7 +2063,27 @@ function extraerLineasCatalogo(texto) {
         acabado: detectarAcabadoTarjeta(chunk),
         puntas: detectarPuntasTarjeta(chunk),
         tamano: null,
-        caras: null
+        caras: null,
+        diseno_listo: false,
+        sin_diseno: false
+      };
+
+      return {
+        ...linea,
+        faltantes: faltantesLineaCatalogo(linea)
+      };
+    }
+
+    if (hit.clave === 'FLYERS_VOLANTES') {
+      const linea = {
+        producto: hit.clave,
+        cantidad,
+        acabado: null,
+        puntas: false,
+        tamano: detectarTamanoFlyer(chunk),
+        caras: detectarCarasFlyer(chunk),
+        diseno_listo: false,
+        sin_diseno: false
       };
 
       return {
@@ -1858,8 +2097,10 @@ function extraerLineasCatalogo(texto) {
       cantidad,
       acabado: null,
       puntas: false,
-      tamano: detectarTamanoFlyer(chunk),
-      caras: detectarCarasFlyer(chunk)
+      tamano: null,
+      caras: null,
+      diseno_listo: detectarDisenoListoCatalogo(chunk),
+      sin_diseno: detectarSinDisenoCatalogo(chunk)
     };
 
     return {
@@ -1891,7 +2132,9 @@ function fusionarLineasCatalogo(previas, nuevas) {
       acabado: linea.acabado ?? anterior.acabado,
       puntas: linea.puntas === true || anterior.puntas === true,
       tamano: linea.tamano ?? anterior.tamano,
-      caras: linea.caras ?? anterior.caras
+      caras: linea.caras ?? anterior.caras,
+      diseno_listo: linea.diseno_listo === true || anterior.diseno_listo === true,
+      sin_diseno: linea.sin_diseno === true || anterior.sin_diseno === true
     };
 
     porProducto[linea.producto] = {
@@ -1943,6 +2186,23 @@ function aplicarOpcionesSueltasCatalogo(lineas, texto) {
       };
     }
 
+    if (PRODUCTOS_RAPIDA.includes(linea.producto)) {
+      const mezclada = {
+        ...linea,
+        diseno_listo:
+          linea.diseno_listo === true ||
+          detectarDisenoListoCatalogo(texto),
+        sin_diseno:
+          linea.sin_diseno === true ||
+          detectarSinDisenoCatalogo(texto)
+      };
+
+      return {
+        ...mezclada,
+        faltantes: faltantesLineaCatalogo(mezclada)
+      };
+    }
+
     return linea;
   });
 }
@@ -1953,7 +2213,57 @@ function formatoDolaresCatalogo(valor) {
     : `$${valor.toFixed(2)}`;
 }
 
+function cotizarLineaRapida(linea) {
+  const tabla =
+    PRECIOS_RAPIDA[linea.producto];
+
+  const cantidad =
+    linea.cantidad ?? 1000;
+
+  if (!tabla) {
+    return { ...linea, cantidad, error: 'SIN_PRECIO' };
+  }
+
+  if (cantidad !== 500 && cantidad !== 1000) {
+    return { ...linea, cantidad, error: 'NO_CANTIDAD_RAPIDA' };
+  }
+
+  let precio =
+    tabla[cantidad];
+
+  let extra = '';
+
+  if (
+    linea.producto === 'AFICHES' &&
+    cantidad === 1000 &&
+    linea.diseno_listo === true
+  ) {
+    precio = tabla['1000_diseno_listo'];
+    extra = ' con diseño listo';
+  }
+
+  if (
+    linea.producto === 'TRIPTICOS' &&
+    linea.sin_diseno === true
+  ) {
+    precio += tabla.extra_diseno;
+    extra = ' más diseño';
+  }
+
+  return {
+    ...linea,
+    cantidad,
+    error: null,
+    precio,
+    etiqueta: `${cantidad} ${tabla.etiqueta}${extra}`
+  };
+}
+
 function cotizarLineaCatalogo(linea) {
+  if (PRODUCTOS_RAPIDA.includes(linea.producto)) {
+    return cotizarLineaRapida(linea);
+  }
+
   const cantidad =
     linea.cantidad ?? 1000;
 
@@ -1992,7 +2302,7 @@ function cotizarLineaCatalogo(linea) {
       error: null,
       precio: unitario * millares,
       etiqueta:
-        `${cantidad} tarjetas ${acabado.etiqueta}${extraPuntas} (9x5 cm)`
+        `${cantidad} tarjetas de presentación en acabado ${acabado.etiqueta}${extraPuntas}`
     };
   }
 
@@ -2020,6 +2330,43 @@ function cotizarLineaCatalogo(linea) {
   return { ...linea, cantidad, error: 'SIN_PRECIO' };
 }
 
+const COSTO_ENVIO_TRANSPORTE = 5;
+
+const PATRON_CIUDAD_LOCAL =
+  /\b(quito|sangolqui|cumbaya|tumbaco|conocoto|amaguana|calderon|pomasqui|nayon|puembo|tababela|chillos|valle de los chillos|san rafael|la armenia)\b/;
+
+const PATRON_CIUDAD_OTRA =
+  /\b(guayaquil|cuenca|ambato|manta|machala|ibarra|loja|riobamba|esmeraldas|portoviejo|latacunga|quevedo|duran|babahoyo|milagro|otavalo|tulcan|puyo|tena|macas|zamora|coca|salinas|playas|santa elena|santo domingo|huaquillas|pasaje|azogues|guaranda|chone|jipijapa|daule|samborondon|el carmen|ventanas|nueva loja|lago agrio|francisco de orellana)\b/;
+
+function clasificarCiudadEnvio(valor) {
+  const t =
+    textoPlano(valor);
+
+  if (!t) {
+    return null;
+  }
+
+  if (
+    PATRON_CIUDAD_LOCAL.test(t) ||
+    /\b(retiro|recojo|paso yo|paso por (ahi|alla|el local)|aqui mismo)\b/.test(t)
+  ) {
+    return 'LOCAL';
+  }
+
+  if (
+    PATRON_CIUDAD_OTRA.test(t) ||
+    /\b(otra ciudad|fuera de quito|al interior|en provincia)\b/.test(t)
+  ) {
+    return 'OTRA';
+  }
+
+  return null;
+}
+
+function formatoTotalPedido(valor) {
+  return `$${Number(valor).toFixed(2)}`;
+}
+
 function preguntaFaltanteCatalogo(faltante, producto) {
   if (producto === 'TARJETAS_PRESENTACION' && faltante === 'acabado') {
     return 'en tarjetas: el acabado (UV brillante, Mate, Mate + UV selectivo o Mate + Pan de Oro)';
@@ -2036,7 +2383,7 @@ function preguntaFaltanteCatalogo(faltante, producto) {
   return null;
 }
 
-function armarRespuestaTotalCatalogo(lineasCotizadas) {
+function armarRespuestaTotalCatalogo(lineasCotizadas, destinoEnvio) {
   const minimo =
     lineasCotizadas.find(l => l.error === 'MINIMO');
 
@@ -2056,6 +2403,17 @@ function armarRespuestaTotalCatalogo(lineasCotizadas) {
       estado: 'NO_MILLAR',
       respuesta:
         'Trabajamos en millar: 1000, 2000, 3000 unidades por diseño. ¿De cuántas unidades cotizamos cada producto?'
+    };
+  }
+
+  const noCantidadRapida =
+    lineasCotizadas.find(l => l.error === 'NO_CANTIDAD_RAPIDA');
+
+  if (noCantidadRapida) {
+    return {
+      estado: 'NO_CANTIDAD_RAPIDA',
+      respuesta:
+        'En afiches, trípticos y hojas membretadas trabajamos 500 o 1000 unidades. ¿De cuántas cotizamos?'
     };
   }
 
@@ -2088,16 +2446,54 @@ function armarRespuestaTotalCatalogo(lineasCotizadas) {
     return null;
   }
 
-  const total =
+  const subtotal =
     ok.reduce((acc, l) => acc + l.precio, 0);
+
+  const lineasTexto =
+    ok.map(l =>
+      `-${l.etiqueta} ${formatoDolaresCatalogo(l.precio)} dólares`
+    );
+
+  const encabezado =
+    'Le adjunto el detalle de su pedido actualizado:\n\n';
+
+  if (destinoEnvio === 'FALTA') {
+    return {
+      estado: 'FALTA_CIUDAD',
+      total: subtotal,
+      envio: { aplica: null, valor: COSTO_ENVIO_TRANSPORTE },
+      respuesta:
+        encabezado +
+        lineasTexto.join('\n') +
+        '\n\n¿El envío es a otra ciudad fuera de Quito? El transporte es $5.00 aproximadamente.'
+    };
+  }
+
+  const aplicaEnvio =
+    destinoEnvio === 'OTRA';
+
+  if (aplicaEnvio) {
+    lineasTexto.push(
+      `-Envío por Transporte $5.00 dólares`
+    );
+  }
+
+  const total =
+    subtotal +
+    (aplicaEnvio ? COSTO_ENVIO_TRANSPORTE : 0);
 
   return {
     estado: 'TOTAL',
     total,
+    envio: {
+      aplica: aplicaEnvio,
+      valor: aplicaEnvio ? COSTO_ENVIO_TRANSPORTE : 0
+    },
     respuesta:
-      (ok.length === 1
-        ? `El total sería:\n\n• ${ok[0].etiqueta}: ${formatoDolaresCatalogo(ok[0].precio)}\n\nTotal: ${formatoDolaresCatalogo(total)}\n\n*Precios no incluyen IVA*`
-        : `El total de lo solicitado sería:\n\n${ok.map(l => `• ${l.etiqueta}: ${formatoDolaresCatalogo(l.precio)}`).join('\n')}\n\nTotal: ${formatoDolaresCatalogo(total)}\n\n*Precios no incluyen IVA*`)
+      encabezado +
+      lineasTexto.join('\n') +
+      `\n*Total ${formatoTotalPedido(total)} dólares*` +
+      '\n\n*Precios no incluyen IVA*'
   };
 }
 
@@ -2107,9 +2503,14 @@ const PIDE_TOTAL_CATALOGO =
     mensajeTurnoPlano
   );
 
+const PIDE_ENVIO_CIUDAD =
+  /\b(otra ciudad|fuera de quito|transporte|envio por|envian a|enviar a|envien a|soy de|somos de|retiro|paso yo)\b/.test(
+    mensajeTurnoPlano
+  );
+
 const FAQ_CATALOGO_PURA =
   (
-    /\b(material|couche|papel|cartulina|gramaje|tiempos?|demora|entregas?|envios?|para cuando|metodologia)\b/.test(
+    /\b(material|couche|papel|cartulina|gramaje|tiempos?|demora|entregas?|para cuando|metodologia)\b/.test(
       mensajeTurnoPlano
     ) ||
     /\b(minimo|minimos|1000 por diseno|varios disenos|\d{1,2} disenos?|dividir|repartir|menos de 1000|dentro de (las )?1000)\b/.test(
@@ -2119,7 +2520,8 @@ const FAQ_CATALOGO_PURA =
       mensajeTurnoPlano
     )
   ) &&
-  !PIDE_TOTAL_CATALOGO;
+  !PIDE_TOTAL_CATALOGO &&
+  !PIDE_ENVIO_CIUDAD;
 
 const pedidoCatalogoAnterior =
   objeto(contextoAnterior.pedido_catalogo);
@@ -2128,6 +2530,19 @@ const esperandoDatosCatalogo =
   pedidoCatalogoAnterior.estado === 'FALTA_DATOS' &&
   Array.isArray(pedidoCatalogoAnterior.lineas) &&
   pedidoCatalogoAnterior.lineas.length > 0;
+
+const esperandoCiudadCatalogo =
+  pedidoCatalogoAnterior.estado === 'FALTA_CIUDAD' &&
+  Array.isArray(pedidoCatalogoAnterior.lineas) &&
+  pedidoCatalogoAnterior.lineas.length > 0;
+
+const lineasPedidoPrevias =
+  Array.isArray(pedidoCatalogoAnterior.lineas) &&
+  ['FALTA_DATOS', 'FALTA_CIUDAD', 'TOTAL'].includes(
+    pedidoCatalogoAnterior.estado
+  )
+    ? pedidoCatalogoAnterior.lineas
+    : [];
 
 const catalogoTarjetasPrevio =
   texto(
@@ -2139,19 +2554,32 @@ const catalogoFlyersPrevio =
     objeto(contextoAnterior.catalogo_flyers).enviada_at
   ) !== null;
 
+const catalogoAfichesPrevio =
+  texto(
+    objeto(contextoAnterior.catalogo_afiches).enviada_at
+  ) !== null;
+
+const catalogoTripticosPrevio =
+  texto(
+    objeto(contextoAnterior.catalogo_tripticos).enviada_at
+  ) !== null;
+
+const catalogoMembretadasPrevio =
+  texto(
+    objeto(contextoAnterior.catalogo_membretadas).enviada_at
+  ) !== null;
+
 const lineasCatalogoTurno =
   extraerLineasCatalogo(mensajeTurnoPlano);
 
 let lineasCatalogo =
   fusionarLineasCatalogo(
-    esperandoDatosCatalogo
-      ? pedidoCatalogoAnterior.lineas
-      : [],
+    lineasPedidoPrevias,
     lineasCatalogoTurno
   );
 
 if (
-  esperandoDatosCatalogo &&
+  (esperandoDatosCatalogo || esperandoCiudadCatalogo) &&
   lineasCatalogoTurno.length === 0
 ) {
   lineasCatalogo =
@@ -2164,6 +2592,67 @@ if (
 const lineasCompletas =
   lineasCatalogo.length > 0 &&
   lineasCatalogo.every(l => (l.faltantes ?? []).length === 0);
+
+const catalogoPrevioPorProducto = {
+  TARJETAS_PRESENTACION: catalogoTarjetasPrevio,
+  FLYERS_VOLANTES: catalogoFlyersPrevio,
+  AFICHES: catalogoAfichesPrevio,
+  TRIPTICOS: catalogoTripticosPrevio,
+  HOJAS_MEMBRETADAS: catalogoMembretadasPrevio
+};
+
+const lineasRapidaSinCatalogo =
+  lineasCatalogo.some(l =>
+    PRODUCTOS_RAPIDA.includes(l.producto) &&
+    catalogoPrevioPorProducto[l.producto] !== true
+  );
+
+const variasLineasCompletas =
+  lineasCatalogo.filter(l =>
+    (l.faltantes ?? []).length === 0
+  ).length >= 2;
+
+const ciudadConocidaEnvio =
+  texto(data.ciudad_detectada) ??
+  texto(contextoIA.prospecto_ciudad) ??
+  texto(objeto(contextoAnterior.ubicacion).ciudad) ??
+  texto(objeto(pedidoCatalogoAnterior.envio).ciudad);
+
+const destinoDesdeMensaje =
+  clasificarCiudadEnvio(mensajeTurnoPlano) ??
+  clasificarCiudadEnvio(ciudadConocidaEnvio);
+
+const afirmaOtraCiudad =
+  esperandoCiudadCatalogo &&
+  /^(si|asi es|correcto|claro|de otra|otra ciudad)\b/.test(
+    mensajeTurnoPlano
+  );
+
+const niegaOtraCiudad =
+  esperandoCiudadCatalogo &&
+  /^(no|aqui|retiro|paso|quito|local)\b/.test(
+    mensajeTurnoPlano
+  );
+
+const envioAnteriorAplica =
+  pedidoCatalogoAnterior.envio?.aplica;
+
+let destinoEnvioCatalogo =
+  destinoDesdeMensaje === 'LOCAL' || niegaOtraCiudad
+    ? 'LOCAL'
+    : destinoDesdeMensaje === 'OTRA' || afirmaOtraCiudad
+      ? 'OTRA'
+      : envioAnteriorAplica === true
+        ? 'OTRA'
+        : envioAnteriorAplica === false
+          ? 'LOCAL'
+          : 'FALTA';
+
+const respondeEnvioCatalogo =
+  afirmaOtraCiudad ||
+  niegaOtraCiudad ||
+  destinoDesdeMensaje !== null ||
+  PIDE_ENVIO_CIUDAD;
 
 const debeTotalizarCatalogo =
   !mencionaEtiquetaTurno &&
@@ -2179,7 +2668,9 @@ const debeTotalizarCatalogo =
         lineasCatalogoTurno.length > 0 ||
         detectarAcabadoTarjeta(mensajeTurnoPlano) !== null ||
         detectarTamanoFlyer(mensajeTurnoPlano) !== null ||
-        detectarCarasFlyer(mensajeTurnoPlano) !== null
+        detectarCarasFlyer(mensajeTurnoPlano) !== null ||
+        detectarDisenoListoCatalogo(mensajeTurnoPlano) ||
+        detectarSinDisenoCatalogo(mensajeTurnoPlano)
       )
     ) ||
     (
@@ -2189,7 +2680,8 @@ const debeTotalizarCatalogo =
     ) ||
     (
       PIDE_TOTAL_CATALOGO &&
-      lineasCompletas
+      lineasCompletas &&
+      !lineasRapidaSinCatalogo
     ) ||
     (
       PIDE_TOTAL_CATALOGO &&
@@ -2200,6 +2692,40 @@ const debeTotalizarCatalogo =
       PIDE_TOTAL_CATALOGO &&
       mencionaFlyersTurno &&
       catalogoFlyersPrevio
+    ) ||
+    (
+      PIDE_TOTAL_CATALOGO &&
+      mencionaAfichesTurno &&
+      catalogoAfichesPrevio
+    ) ||
+    (
+      PIDE_TOTAL_CATALOGO &&
+      mencionaTripticosTurno &&
+      catalogoTripticosPrevio
+    ) ||
+    (
+      PIDE_TOTAL_CATALOGO &&
+      mencionaMembretadasTurno &&
+      catalogoMembretadasPrevio
+    ) ||
+    (
+      PIDE_TOTAL_CATALOGO &&
+      variasLineasCompletas
+    ) ||
+    (
+      PIDE_TOTAL_CATALOGO &&
+      lineasPedidoPrevias.length > 0
+    ) ||
+    (
+      esperandoCiudadCatalogo &&
+      respondeEnvioCatalogo
+    ) ||
+    (
+      pedidoCatalogoAnterior.estado === 'TOTAL' &&
+      (
+        lineasCatalogoTurno.length > 0 ||
+        respondeEnvioCatalogo
+      )
     )
   );
 
@@ -2210,7 +2736,10 @@ if (debeTotalizarCatalogo) {
     lineasCatalogo.map(cotizarLineaCatalogo);
 
   const armado =
-    armarRespuestaTotalCatalogo(lineasCotizadas);
+    armarRespuestaTotalCatalogo(
+      lineasCotizadas,
+      destinoEnvioCatalogo
+    );
 
   if (armado !== null) {
     totalCatalogo = {
@@ -2218,6 +2747,23 @@ if (debeTotalizarCatalogo) {
       pedido: {
         estado: armado.estado,
         total: armado.total ?? null,
+        envio: {
+          aplica: armado.envio?.aplica ?? null,
+          valor: armado.envio?.valor ?? COSTO_ENVIO_TRANSPORTE,
+          ciudad:
+            texto(ciudadConocidaEnvio) ??
+            (
+              destinoEnvioCatalogo === 'OTRA'
+                ? texto(
+                    mensajeTurnoPlano.match(PATRON_CIUDAD_OTRA)?.[0]
+                  )
+                : destinoEnvioCatalogo === 'LOCAL'
+                  ? texto(
+                      mensajeTurnoPlano.match(PATRON_CIUDAD_LOCAL)?.[0]
+                    ) ?? 'Quito'
+                  : null
+            )
+        },
         lineas: lineasCotizadas.map(l => ({
           producto: l.producto,
           cantidad: l.cantidad ?? null,
@@ -2225,8 +2771,11 @@ if (debeTotalizarCatalogo) {
           puntas: l.puntas === true,
           tamano: l.tamano ?? null,
           caras: l.caras ?? null,
+          diseno_listo: l.diseno_listo === true,
+          sin_diseno: l.sin_diseno === true,
           faltantes: l.faltantes ?? [],
-          precio: l.precio ?? null
+          precio: l.precio ?? null,
+          etiqueta: l.etiqueta ?? null
         })),
         actualizado_at: new Date().toISOString()
       }
@@ -2245,8 +2794,13 @@ if (debeTotalizarCatalogo) {
       null;
 
     if (
-      mencionaTarjetasTurno &&
-      mencionaFlyersTurno
+      [
+        mencionaTarjetasTurno,
+        mencionaFlyersTurno,
+        mencionaAfichesTurno,
+        mencionaTripticosTurno,
+        mencionaMembretadasTurno
+      ].filter(Boolean).length > 1
     ) {
       productoLinea =
         'CATALOGO_MIXTO';
@@ -2276,8 +2830,12 @@ if (
   preguntaMismoPrecioForma &&
   !esLineaTarjetas &&
   !esLineaFlyers &&
+  !esLineaRapida &&
   !mencionaTarjetasTurno &&
   !mencionaFlyersTurno &&
+  !mencionaAfichesTurno &&
+  !mencionaTripticosTurno &&
+  !mencionaMembretadasTurno &&
   accion !== 'ENVIAR_DATOS_PAGO' &&
   !derivacionPorProductoNoP4
 ) {
@@ -2383,8 +2941,8 @@ const imagenInformativaYaEnviada =
 const enviarImagenInformativa =
   !esLineaTarjetas &&
   !esLineaFlyers &&
-  accion !== 'INFORMAR_TARJETAS' &&
-  accion !== 'INFORMAR_FLYERS' &&
+  !esLineaRapida &&
+  !ACCIONES_CATALOGO.includes(accion) &&
   imagenInformativa !== null &&
   !omitirEnvio &&
   urlImagenInformativa !== null &&
@@ -2539,6 +3097,112 @@ const primerEnvioCatalogoFlyers =
   urlImagenFlyers !== null &&
   !catalogoFlyersYaEnviado;
 
+const IMAGEN_AFICHES_DEFAULT =
+  'https://pegasoadhesivos.com/wp-content/uploads/2026/10/Afiches-Publicitarios-scaled.jpg';
+
+const IMAGEN_TRIPTICOS_DEFAULT =
+  'https://pegasoadhesivos.com/wp-content/uploads/2026/10/tripticos_Mesa-de-trabajo-1-copia-6-scaled.jpg';
+
+const IMAGEN_MEMBRETADAS_DEFAULT =
+  'https://pegasoadhesivos.com/wp-content/uploads/2026/10/Hojas-Membretadas-scaled.jpg';
+
+const RESPUESTA_CIERRE_CATALOGO_AFICHES =
+  'Le adjunto tamaños y precios de afiches:\n\n' +
+  '1000 afiches A3 (29.7 x 42 cm)\n' +
+  '• Full color, 1 lado, Couche 150 gr: $100\n' +
+  '• Si ya tiene el diseño listo para imprimir: $90\n\n' +
+  '*Precios no incluyen IVA*';
+
+const RESPUESTA_CIERRE_CATALOGO_TRIPTICOS =
+  'Le adjunto tamaños y precios de trípticos:\n\n' +
+  '1000 trípticos A4 (21 x 29.7 cm)\n' +
+  '• Full color, ambos lados, doblados y cortados: $85\n' +
+  '• Debe enviarnos el diseño listo. Si no tiene diseño, el diseño es $15 adicionales.\n\n' +
+  '*Precios no incluyen IVA*';
+
+const RESPUESTA_CIERRE_CATALOGO_MEMBRETADAS =
+  'Le adjunto tamaños y precios de hojas membretadas:\n\n' +
+  '1000 hojas membretadas A4 (21 x 29.7 cm)\n' +
+  '• Full color, 1 lado, papel Bond 75 gr: $65\n\n' +
+  '*Precios no incluyen IVA*';
+
+function resolverImagenCatalogo(clave, urlDefault) {
+  const config =
+    objeto(
+      filasConfiguracion.find(
+        fila => fila.clave === clave
+      )?.valor_json
+    );
+
+  const origen =
+    urlPublicaHttps(config.url) ??
+    urlDefault;
+
+  const url =
+    config.activo !== false &&
+    origen !== null
+      ? urlImagenParaWhatsApp(origen)
+      : null;
+
+  return { origen, url };
+}
+
+const imagenAfiches =
+  resolverImagenCatalogo('CATALOGO_AFICHES', IMAGEN_AFICHES_DEFAULT);
+
+const imagenTripticos =
+  resolverImagenCatalogo('CATALOGO_TRIPTICOS', IMAGEN_TRIPTICOS_DEFAULT);
+
+const imagenMembretadas =
+  resolverImagenCatalogo('CATALOGO_MEMBRETADAS', IMAGEN_MEMBRETADAS_DEFAULT);
+
+const urlImagenAfiches =
+  imagenAfiches.url;
+
+const urlImagenTripticos =
+  imagenTripticos.url;
+
+const urlImagenMembretadas =
+  imagenMembretadas.url;
+
+const catalogoAfichesYaEnviado =
+  texto(
+    objeto(contextoAnterior.catalogo_afiches).enviada_at
+  ) !== null;
+
+const catalogoTripticosYaEnviado =
+  texto(
+    objeto(contextoAnterior.catalogo_tripticos).enviada_at
+  ) !== null;
+
+const catalogoMembretadasYaEnviado =
+  texto(
+    objeto(contextoAnterior.catalogo_membretadas).enviada_at
+  ) !== null;
+
+const primerEnvioCatalogoAfiches =
+  accion === 'INFORMAR_AFICHES' &&
+  !omitirEnvio &&
+  urlImagenAfiches !== null &&
+  !catalogoAfichesYaEnviado;
+
+const primerEnvioCatalogoTripticos =
+  accion === 'INFORMAR_TRIPTICOS' &&
+  !omitirEnvio &&
+  urlImagenTripticos !== null &&
+  !catalogoTripticosYaEnviado;
+
+const primerEnvioCatalogoMembretadas =
+  accion === 'INFORMAR_MEMBRETADAS' &&
+  !omitirEnvio &&
+  urlImagenMembretadas !== null &&
+  !catalogoMembretadasYaEnviado;
+
+const primerEnvioCatalogoRapida =
+  primerEnvioCatalogoAfiches ||
+  primerEnvioCatalogoTripticos ||
+  primerEnvioCatalogoMembretadas;
+
 
 // ------------------------------------------------------
 // 12.7 RESPUESTAS DE TARJETAS (SIN MEZCLAR ETIQUETAS)
@@ -2614,7 +3278,7 @@ let textoSaludoTarjetas = null;
 
 let derivacionPorFlyerDesconocido = false;
 
-if (enviarVideosTarjetas || primerEnvioCatalogoFlyers) {
+if (enviarVideosTarjetas || primerEnvioCatalogoFlyers || primerEnvioCatalogoRapida) {
   if (sesionConversacionalNueva) {
     textoSaludoTarjetas =
       `${saludoHorarioTarjetas(mensajeTurnoPlano)}. Con gusto atenderemos su requerimiento`;
@@ -2628,6 +3292,36 @@ if (enviarVideosTarjetas || primerEnvioCatalogoFlyers) {
   if (primerEnvioCatalogoFlyers) {
     respuestaSugerida =
       RESPUESTA_CIERRE_CATALOGO_FLYERS;
+  }
+
+  if (primerEnvioCatalogoAfiches) {
+    respuestaSugerida =
+      RESPUESTA_CIERRE_CATALOGO_AFICHES;
+
+    if (/\b500\b/.test(mensajeTurnoPlano)) {
+      respuestaSugerida +=
+        '\n\nSí es posible imprimir 500 afiches; le saldrían en $85.';
+    }
+  }
+
+  if (primerEnvioCatalogoTripticos) {
+    respuestaSugerida =
+      RESPUESTA_CIERRE_CATALOGO_TRIPTICOS;
+
+    if (/\b500\b/.test(mensajeTurnoPlano)) {
+      respuestaSugerida +=
+        '\n\nSí es posible imprimir 500 trípticos; le saldrían en $69.';
+    }
+  }
+
+  if (primerEnvioCatalogoMembretadas) {
+    respuestaSugerida =
+      RESPUESTA_CIERRE_CATALOGO_MEMBRETADAS;
+
+    if (/\b500\b/.test(mensajeTurnoPlano)) {
+      respuestaSugerida +=
+        '\n\nSí es posible imprimir 500 hojas membretadas; le saldrían en $50.';
+    }
   }
 } else if (
   totalCatalogo === null &&
@@ -2804,12 +3498,197 @@ if (enviarVideosTarjetas || primerEnvioCatalogoFlyers) {
     respuestaSugerida =
       'Permítame un momento por favor, verificamos su requerimiento.';
   }
+} else if (
+  totalCatalogo === null &&
+  esLineaRapida &&
+  accion !== 'ENVIAR_DATOS_PAGO' &&
+  !omitirEnvio &&
+  !['INFORMAR_UBICACION', 'INFORMAR_METODOLOGIA_PAGO'].includes(accion)
+) {
+  const RESPUESTA_ENTREGA_RAPIDA =
+    'La entrega es de 2 a 3 días hábiles.';
+
+  const PATRON_500_RAPIDA =
+    /\b500\b/;
+
+  const PATRON_MATERIAL_RAPIDA =
+    /\b(material|couche|papel|bond|cartulina|gramaje)\b/;
+
+  const PATRON_ENTREGA_RAPIDA =
+    /\b(tiempo de entrega|tiempos? de (produccion|entrega)|demora|para cuando (estan|salen|quedan)|cuando (me )?(las |los )?(entregan|tienen|salen)|en cuantos dias|cuanto (se )?demora|dias habiles)\b/;
+
+  const PATRON_DISENO_RAPIDA =
+    /\b(diseno|arte|pdf|listo para imprimir)\b/;
+
+  const PATRON_PRECIO_RAPIDA =
+    /\b(precio|precios|vale|valor|cuanto (sale|cuesta|queda|es)|a como)\b/;
+
+  const preguntaAbiertaRapida =
+    /\?/.test(mensajeTurnoPlano) ||
+    /\b(pueden|podemos|hacen|hacemos|tienen|se puede|se podra)\b/.test(
+      mensajeTurnoPlano
+    );
+
+  const cfgRapida =
+    esLineaAfiches
+      ? {
+          accion: 'INFORMAR_AFICHES',
+          cierre: RESPUESTA_CIERRE_CATALOGO_AFICHES,
+          quinientos:
+            'Sí es posible imprimir 500 afiches; le saldrían en $85.',
+          material:
+            'Los afiches se imprimen en papel Couche de 150 gr, tamaño A3 (29.7 x 42 cm), full color a un solo lado.',
+          diseno:
+            'Si ya tiene el diseño listo para imprimir, 1000 afiches le quedan en $90. Si no, el valor de 1000 es $100 (incluye diseño).',
+          desconocido:
+            /\b(a[012456]|oficio|carta|tabloide|plastific|laminad|uv select|pantone|oro|urgente|adhesiv|sticker|etiqueta)\b/
+        }
+      : esLineaTripticos
+        ? {
+            accion: 'INFORMAR_TRIPTICOS',
+            cierre: RESPUESTA_CIERRE_CATALOGO_TRIPTICOS,
+            quinientos:
+              'Sí es posible imprimir 500 trípticos; le saldrían en $69.',
+            material:
+              'Los trípticos se imprimen tamaño A4 (21 x 29.7 cm), full color a ambos lados, doblados y cortados, en papel Couche de 150 gr.',
+            diseno:
+              'Debe enviarnos el diseño listo. Si no tiene diseño, le sale en $15 adicionales.',
+            desconocido:
+              /\b(dipticos?|a[12356]|oficio|plastific|laminad|urgente|adhesiv|sticker|etiqueta)\b/
+          }
+        : {
+            accion: 'INFORMAR_MEMBRETADAS',
+            cierre: RESPUESTA_CIERRE_CATALOGO_MEMBRETADAS,
+            quinientos:
+              'Sí es posible imprimir 500 hojas membretadas; le saldrían en $50.',
+            material:
+              'Las hojas membretadas se imprimen en papel Bond de 75 gr, tamaño A4 (21 x 29.7 cm), full color a un solo lado.',
+            diseno:
+              'Los valores publicados de hojas membretadas incluyen el diseño.',
+            desconocido:
+              /\b(couche|a[12356]|oficio|plastific|laminad|ambos lados|2 lados|urgente|adhesiv|sticker|etiqueta)\b/
+          };
+
+  if (cfgRapida.desconocido.test(mensajeTurnoPlano)) {
+    accion = 'DERIVAR_HUMANO';
+    derivacionPorFlyerDesconocido = true;
+    respuestaSugerida =
+      'Permítame un momento por favor, verificamos su requerimiento.';
+  } else if (PATRON_500_RAPIDA.test(mensajeTurnoPlano)) {
+    respuestaSugerida =
+      cfgRapida.quinientos;
+
+    accion = 'RESPONDER_GENERAL';
+  } else if (
+    accion === 'INFORMAR_DISENO' ||
+    PATRON_DISENO_RAPIDA.test(mensajeTurnoPlano)
+  ) {
+    respuestaSugerida =
+      cfgRapida.diseno;
+
+    accion = 'INFORMAR_DISENO';
+  } else if (
+    accion === 'INFORMAR_MATERIAL' ||
+    PATRON_MATERIAL_RAPIDA.test(mensajeTurnoPlano)
+  ) {
+    respuestaSugerida =
+      cfgRapida.material;
+
+    accion = 'INFORMAR_MATERIAL';
+  } else if (
+    accion === 'INFORMAR_ENTREGA' ||
+    accion === 'INFORMAR_METODOLOGIA' ||
+    aplicaMetodologia ||
+    PATRON_ENTREGA_RAPIDA.test(mensajeTurnoPlano)
+  ) {
+    respuestaSugerida =
+      RESPUESTA_ENTREGA_RAPIDA;
+
+    accion = 'INFORMAR_ENTREGA';
+  } else if (
+    PATRON_PRECIO_RAPIDA.test(mensajeTurnoPlano) ||
+    accion === cfgRapida.accion
+  ) {
+    respuestaSugerida =
+      cfgRapida.cierre;
+
+    if (['COTIZAR_P4', 'PEDIR_MEDIDAS', 'DERIVAR_HUMANO'].includes(accion)) {
+      accion = 'RESPONDER_GENERAL';
+    }
+  } else if (
+    accion === 'COTIZAR_P4' ||
+    accion === 'PEDIR_MEDIDAS'
+  ) {
+    accion = 'RESPONDER_GENERAL';
+    respuestaSugerida =
+      cfgRapida.cierre;
+  } else if (
+    preguntaAbiertaRapida &&
+    !['INFORMAR_DISENO'].includes(accion)
+  ) {
+    accion = 'DERIVAR_HUMANO';
+    derivacionPorFlyerDesconocido = true;
+    respuestaSugerida =
+      'Permítame un momento por favor, verificamos su requerimiento.';
+  }
 }
 
 const enviarImagenFlyers =
   !omitirEnvio &&
   urlImagenFlyers !== null &&
-  respuestaSugerida === RESPUESTA_CIERRE_CATALOGO_FLYERS;
+  (
+    respuestaSugerida === RESPUESTA_CIERRE_CATALOGO_FLYERS ||
+    String(respuestaSugerida ?? '').startsWith(
+      RESPUESTA_CIERRE_CATALOGO_FLYERS
+    )
+  );
+
+const enviarImagenAfiches =
+  !omitirEnvio &&
+  urlImagenAfiches !== null &&
+  String(respuestaSugerida ?? '').startsWith(
+    RESPUESTA_CIERRE_CATALOGO_AFICHES
+  );
+
+const enviarImagenTripticos =
+  !omitirEnvio &&
+  urlImagenTripticos !== null &&
+  String(respuestaSugerida ?? '').startsWith(
+    RESPUESTA_CIERRE_CATALOGO_TRIPTICOS
+  );
+
+const enviarImagenMembretadas =
+  !omitirEnvio &&
+  urlImagenMembretadas !== null &&
+  String(respuestaSugerida ?? '').startsWith(
+    RESPUESTA_CIERRE_CATALOGO_MEMBRETADAS
+  );
+
+const enviarImagenCatalogo =
+  enviarImagenFlyers ||
+  enviarImagenAfiches ||
+  enviarImagenTripticos ||
+  enviarImagenMembretadas;
+
+const urlImagenCatalogo =
+  enviarImagenAfiches
+    ? urlImagenAfiches
+    : enviarImagenTripticos
+      ? urlImagenTripticos
+      : enviarImagenMembretadas
+        ? urlImagenMembretadas
+        : enviarImagenFlyers
+          ? urlImagenFlyers
+          : null;
+
+const origenImagenCatalogo =
+  enviarImagenAfiches
+    ? imagenAfiches.origen
+    : enviarImagenTripticos
+      ? imagenTripticos.origen
+      : enviarImagenMembretadas
+        ? imagenMembretadas.origen
+        : urlFlyersOrigen;
 
 
 // ======================================================
@@ -2924,6 +3803,39 @@ const contextoComercialNuevo = {
   ),
 
   ...(
+    enviarImagenAfiches
+      ? {
+          catalogo_afiches: {
+            url: imagenAfiches.origen,
+            enviada_at: new Date().toISOString()
+          }
+        }
+      : {}
+  ),
+
+  ...(
+    enviarImagenTripticos
+      ? {
+          catalogo_tripticos: {
+            url: imagenTripticos.origen,
+            enviada_at: new Date().toISOString()
+          }
+        }
+      : {}
+  ),
+
+  ...(
+    enviarImagenMembretadas
+      ? {
+          catalogo_membretadas: {
+            url: imagenMembretadas.origen,
+            enviada_at: new Date().toISOString()
+          }
+        }
+      : {}
+  ),
+
+  ...(
     productoLinea
       ? { producto_linea: productoLinea }
       : {}
@@ -2932,6 +3844,19 @@ const contextoComercialNuevo = {
   ...(
     totalCatalogo?.pedido
       ? { pedido_catalogo: totalCatalogo.pedido }
+      : {}
+  ),
+
+  ...(
+    totalCatalogo?.pedido?.envio?.ciudad
+      ? {
+          ubicacion: {
+            ...objeto(contextoAnterior.ubicacion),
+            ciudad: totalCatalogo.pedido.envio.ciudad,
+            envio_otra_ciudad:
+              totalCatalogo.pedido.envio.aplica === true
+          }
+        }
       : {}
   ),
 
@@ -3159,11 +4084,11 @@ return [
         null,
 
       enviar_imagen_flyers:
-        enviarImagenFlyers,
+        enviarImagenCatalogo,
 
       imagen_flyers_url:
-        enviarImagenFlyers
-          ? urlImagenFlyers
+        enviarImagenCatalogo
+          ? urlImagenCatalogo
           : null,
 
       producto_tarjetas:
@@ -3179,6 +4104,30 @@ return [
         (
           accion === 'INFORMAR_FLYERS'
             ? 'flyers / volantes'
+            : null
+        ),
+
+      producto_afiches:
+        productoAfiches ??
+        (
+          accion === 'INFORMAR_AFICHES'
+            ? 'afiches'
+            : null
+        ),
+
+      producto_tripticos:
+        productoTripticos ??
+        (
+          accion === 'INFORMAR_TRIPTICOS'
+            ? 'trípticos'
+            : null
+        ),
+
+      producto_membretadas:
+        productoMembretadas ??
+        (
+          accion === 'INFORMAR_MEMBRETADAS'
+            ? 'hojas membretadas'
             : null
         ),
 

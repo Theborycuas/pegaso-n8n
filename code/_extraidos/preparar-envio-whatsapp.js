@@ -19,7 +19,7 @@
 // ======================================================
 // PREPARAR ENVÍO WHATSAPP - YCLOUD
 // PEGASO ADHESIVOS
-// VERSION: 3.6
+// VERSION: 3.7
 // ======================================================
 //
 // V2.1: no envía si el texto persistido es el marcador
@@ -55,6 +55,9 @@
 //
 // V3.6: el IVA de tarjetas y flyers va en el texto de
 // cierre; enviar_nota_iva queda apagado.
+//
+// V3.7: enviar_imagen_flyers también cubre afiches,
+// trípticos y hojas membretadas (misma ruta YCloud).
 //
 // Puede recibir datos desde distintas rutas:
 //

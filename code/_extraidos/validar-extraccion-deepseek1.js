@@ -17,11 +17,12 @@
 // ======================================================
 
 // ======================================================
-// VALIDAR EXTRACCIÓN CEREBRO COMERCIAL - V2.7
+// VALIDAR EXTRACCIÓN CEREBRO COMERCIAL - V2.8
 // ======================================================
 // Valida:
 // - contrato del Cerebro Comercial;
-// - enums (incluye INFORMAR_TARJETAS e INFORMAR_FLYERS);
+// - enums (incluye INFORMAR_TARJETAS, INFORMAR_FLYERS,
+//   INFORMAR_AFICHES, INFORMAR_TRIPTICOS, INFORMAR_MEMBRETADAS);
 // - cotización P4;
 // - continuidad conversacional;
 // - medidas no producibles;
@@ -109,6 +110,9 @@ const ACCIONES = [
   'INFORMAR_DISENO',
   'INFORMAR_TARJETAS',
   'INFORMAR_FLYERS',
+  'INFORMAR_AFICHES',
+  'INFORMAR_TRIPTICOS',
+  'INFORMAR_MEMBRETADAS',
   'COTIZAR_P4',
 
   // ----------------------------------------------
@@ -812,6 +816,15 @@ const REGLAS_INFORMATIVAS = {
     'CONSULTAR_PRECIO',
 
   INFORMAR_FLYERS:
+    'CONSULTAR_PRECIO',
+
+  INFORMAR_AFICHES:
+    'CONSULTAR_PRECIO',
+
+  INFORMAR_TRIPTICOS:
+    'CONSULTAR_PRECIO',
+
+  INFORMAR_MEMBRETADAS:
     'CONSULTAR_PRECIO'
 };
 
@@ -1148,7 +1161,7 @@ const INTENCIONES_CONSULTA_CATALOGO = [
 ];
 
 const productoCatalogoImpreso =
-  /\b(flyers?|flayers?|volantes?|tarjetas?)\b/i.test(
+  /\b(flyers?|flayers?|volantes?|tarjetas?|afiches?|tripticos?|membretad|membretes?)\b/i.test(
     String(data.producto ?? '')
   );
 
@@ -1166,9 +1179,15 @@ try {
   lineaCatalogoImpreso =
     linea === 'FLYERS_VOLANTES' ||
     linea === 'TARJETAS_PRESENTACION' ||
+    linea === 'AFICHES' ||
+    linea === 'TRIPTICOS' ||
+    linea === 'HOJAS_MEMBRETADAS' ||
     linea === 'CATALOGO_MIXTO' ||
     ctxIA.producto_tarjetas != null ||
-    ctxIA.producto_flyers != null;
+    ctxIA.producto_flyers != null ||
+    ctxIA.producto_afiches != null ||
+    ctxIA.producto_tripticos != null ||
+    ctxIA.producto_membretadas != null;
 } catch (_) {
   lineaCatalogoImpreso = false;
 }
