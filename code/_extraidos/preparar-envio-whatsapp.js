@@ -19,7 +19,7 @@
 // ======================================================
 // PREPARAR ENVÍO WHATSAPP - YCLOUD
 // PEGASO ADHESIVOS
-// VERSION: 3.5
+// VERSION: 3.6
 // ======================================================
 //
 // V2.1: no envía si el texto persistido es el marcador
@@ -52,6 +52,9 @@
 // V3.5: el saludo de catálogo solo sale si Resolver dejó
 // texto_saludo_tarjetas (sesión nueva). Flyers reutiliza
 // ycloud_request_imagen aunque no haya saludo.
+//
+// V3.6: el IVA de tarjetas y flyers va en el texto de
+// cierre; enviar_nota_iva queda apagado.
 //
 // Puede recibir datos desde distintas rutas:
 //

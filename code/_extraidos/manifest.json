@@ -1,8 +1,8 @@
 {
   "workflowId": "09OF22FOxihypeeh",
   "workflowName": "SISTEMA AUTOMATIZADO PEGASO",
-  "workflowUpdatedAt": "2026-10-20T16:18:09.175Z",
-  "extractedAt": "2026-10-20T16:20:55.685Z",
+  "workflowUpdatedAt": "2026-10-20T16:33:04.222Z",
+  "extractedAt": "2026-10-20T16:33:09.111Z",
   "workflowNodeCount": 204,
   "codeNodeCount": 69,
   "nodes": [
@@ -60,7 +60,7 @@
       "fileName": "error-ninguna-ia-funciono.js",
       "relativeFile": "code/_extraidos/error-ninguna-ia-funciono.js",
       "typeVersion": 2,
-      "lines": 15
+      "lines": 39
     },
     {
       "nodeId": "41dca488-3afd-4edd-8c4f-12ed45e91ce7",
@@ -140,7 +140,7 @@
       "fileName": "preparar-contexto-ia.js",
       "relativeFile": "code/_extraidos/preparar-contexto-ia.js",
       "typeVersion": 2,
-      "lines": 2691
+      "lines": 2793
     },
     {
       "nodeId": "f207ef1c-d7ff-4fae-9910-486f2ba24c0a",
@@ -172,7 +172,7 @@
       "fileName": "error-ninguna-ia-funciono-cerebro.js",
       "relativeFile": "code/_extraidos/error-ninguna-ia-funciono-cerebro.js",
       "typeVersion": 2,
-      "lines": 15
+      "lines": 39
     },
     {
       "nodeId": "29fac3bc-5564-446a-95d0-fc1f3263459c",
@@ -260,7 +260,7 @@
       "fileName": "resolver-contexto-comercial.js",
       "relativeFile": "code/_extraidos/resolver-contexto-comercial.js",
       "typeVersion": 2,
-      "lines": 2438
+      "lines": 2540
     },
     {
       "nodeId": "49b907ef-f963-4ccc-b7bb-db921afc5898",

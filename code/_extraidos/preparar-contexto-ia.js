@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Preparar contexto IA
 // ARCHIVO: code/03-conversacion/preparar-contexto-ia.js
-// VERSION: 4.8
+// VERSION: 4.11
 // ======================================================
 //
 // RESPONSABILIDAD:
@@ -58,6 +58,10 @@
 //   Los siguientes turnos van al cerebro (con producto_linea).
 // - V4.8: flyers/volantes → INFORMAR_FLYERS (imagen + precios).
 //   Ya no van a PRODUCTO_NO_P4. Afiches siguen derivando.
+// - V4.9: typos de producto (vonates→volantes) y mínimo de
+//   catálogo sin mezclar estampitas/etiquetas.
+// - V4.10: lista de flyers cierra con *Precios no incluyen IVA*.
+// - V4.11: el cierre de tarjetas usa el mismo aviso de IVA.
 // - Reglas pre-IA solo para texto sin multimedia:
 //   SALUDO_SIMPLE (respuesta corta fija), PRODUCTO_NO_P4
 //   (DERIVAR_HUMANO + COTIZACION_ESPECIAL) y
@@ -211,6 +215,72 @@ function normalizarTexto(valor) {
     .replace(/[^a-z0-9\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function distanciaLevenshtein(a, b) {
+  if (a === b) {
+    return 0;
+  }
+
+  if (a.length === 0) {
+    return b.length;
+  }
+
+  if (b.length === 0) {
+    return a.length;
+  }
+
+  const fila =
+    Array.from(
+      { length: b.length + 1 },
+      (_, i) => i
+    );
+
+  for (let i = 1; i <= a.length; i++) {
+    let previo = i - 1;
+    fila[0] = i;
+
+    for (let j = 1; j <= b.length; j++) {
+      const tmp = fila[j];
+      const costo =
+        a[i - 1] === b[j - 1] ? 0 : 1;
+
+      fila[j] = Math.min(
+        fila[j] + 1,
+        fila[j - 1] + 1,
+        previo + costo
+      );
+
+      previo = tmp;
+    }
+  }
+
+  return fila[b.length];
+}
+
+function mencionaLemas(textoPlano, lemas) {
+  for (const lema of lemas) {
+    if (new RegExp(`\\b${lema}\\b`).test(textoPlano)) {
+      return true;
+    }
+  }
+
+  const tokens =
+    textoPlano.split(' ').filter(t => t.length >= 5);
+
+  for (const token of tokens) {
+    for (const lema of lemas) {
+      if (Math.abs(token.length - lema.length) > 1) {
+        continue;
+      }
+
+      if (distanciaLevenshtein(token, lema) <= 1) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 
@@ -1966,9 +2036,18 @@ const PRODUCTOS_TARJETAS = [
   }
 ];
 
+const LEMAS_FLYERS = [
+  'volante', 'volantes', 'vonates', 'bolantes', 'volates',
+  'flyer', 'flyers', 'flayer', 'flayers', 'flier', 'fliers'
+];
+
+const LEMAS_TARJETAS = [
+  'tarjeta', 'tarjetas', 'estampita', 'estampitas'
+];
+
 const PRODUCTOS_FLYERS = [
   {
-    patron: /\b(flyers?|flayers?|volantes?)\b/,
+    patron: /\b(flyers?|flayers?|fliers?|volantes?|vonates?|bolantes?|volates?)\b/,
     producto: 'flyers / volantes'
   }
 ];
@@ -1992,7 +2071,11 @@ const RESPUESTA_TRANSICION_NO_P4 =
   'Permítame un momento por favor, verificamos su requerimiento.';
 
 const RESPUESTA_CIERRE_TARJETAS =
-  'Le adjunto videos y precios de los acabados que manejamos en tarjetas de presentación';
+  'Le adjunto videos y precios de los acabados que manejamos en tarjetas de presentación\n\n' +
+  '*Precios no incluyen IVA*';
+
+const RESPUESTA_MINIMO_CATALOGO =
+  'El mínimo es 1000 unidades por diseño, del mismo diseño. No es posible dividir en varios diseños.';
 
 const RESPUESTA_CIERRE_FLYERS =
   'Le adjunto tamaños y precios de volantes / flyers (1000 unidades):\n\n' +
@@ -2001,7 +2084,8 @@ const RESPUESTA_CIERRE_FLYERS =
   '• 2 lados: $26\n\n' +
   'A5 (21 x 14.8 cm)\n' +
   '• 1 lado: $32\n' +
-  '• 2 lados: $41';
+  '• 2 lados: $41\n\n' +
+  '*Precios no incluyen IVA*';
 
 
 const MINIMO_POR_DISENO = 1000;
@@ -2262,7 +2346,14 @@ const textoTurnoPlano =
 const productoTarjetas =
   textoTurnoPlano !== '' &&
   !MENCIONA_ETIQUETA.test(textoTurnoPlano)
-    ? PRODUCTOS_TARJETAS.find(p => p.patron.test(textoTurnoPlano)) ?? null
+    ? (
+        PRODUCTOS_TARJETAS.find(p => p.patron.test(textoTurnoPlano)) ??
+        (
+          mencionaLemas(textoTurnoPlano, LEMAS_TARJETAS)
+            ? { producto: 'tarjetas de presentación' }
+            : null
+        )
+      )
     : null;
 
 const catalogoTarjetasYaEnviado =
@@ -2273,7 +2364,14 @@ const catalogoTarjetasYaEnviado =
 const productoFlyers =
   textoTurnoPlano !== '' &&
   !MENCIONA_ETIQUETA.test(textoTurnoPlano)
-    ? PRODUCTOS_FLYERS.find(p => p.patron.test(textoTurnoPlano)) ?? null
+    ? (
+        PRODUCTOS_FLYERS.find(p => p.patron.test(textoTurnoPlano)) ??
+        (
+          mencionaLemas(textoTurnoPlano, LEMAS_FLYERS)
+            ? { producto: 'flyers / volantes' }
+            : null
+        )
+      )
     : null;
 
 const catalogoFlyersYaEnviado =
@@ -2373,12 +2471,20 @@ if (
     if (divisionDisenosDetectada) {
       reglaPreIA = 'DIVISION_MINIMO_DISENOS';
 
+      const esCatalogoImpreso =
+        productoTarjetasDetectado !== null ||
+        productoFlyersDetectado !== null ||
+        textoONull(contextoComercial.producto_linea) === 'TARJETAS_PRESENTACION' ||
+        textoONull(contextoComercial.producto_linea) === 'FLYERS_VOLANTES';
+
       decisionPreIA = {
         ...decisionBase(),
         intencion: 'CONSULTAR_MINIMO',
         accion: 'INFORMAR_MINIMO',
         respuesta_sugerida:
-          respuestaDivisionDisenos(divisionDisenosDetectada)
+          esCatalogoImpreso
+            ? RESPUESTA_MINIMO_CATALOGO
+            : respuestaDivisionDisenos(divisionDisenosDetectada)
       };
     }
   }

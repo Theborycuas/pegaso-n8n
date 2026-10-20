@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Normalizar decisión IA
 // ARCHIVO: code/04-cerebro-comercial/normalizar-decision-ia.js
-// VERSION: 2.6
+// VERSION: 2.7
 // RESPONSABILIDAD:
 // - Convertir la decisión YA VALIDADA (de cualquier proveedor) en un contrato único Pegaso con tipos normalizados.
 // - Unir la decisión con el contexto de "Preparar contexto IA" (IDs, prospecto, tipo_actor, contexto_comercial) y resolver ciudad/provincia.
@@ -365,7 +365,7 @@ const esRutaTarjetas =
   String(contextoIAMedia.regla_pre_ia ?? '') === 'TARJETAS_PRESENTACION' ||
   String(contextoIAMedia.regla_pre_ia ?? '') === 'FLYERS_VOLANTES' ||
   /\btarjetas?\b/i.test(textoTurnoCliente) ||
-  /\b(flyers?|flayers?|volantes?)\b/i.test(textoTurnoCliente);
+  /\b(flyers?|flayers?|fliers?|volantes?|vonates?|bolantes?|volates?)\b/i.test(textoTurnoCliente);
 
 if (
   comprobanteDetectado &&

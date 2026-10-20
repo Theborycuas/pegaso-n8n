@@ -16,15 +16,39 @@
 // El header NO pertenece al código almacenado en n8n.
 // ======================================================
 
+// ======================================================
+// ERROR NINGUNA IA FUNCIONO CEREBRO - V1.1
+// ======================================================
+// Groq, DeepSeek y OpenAI fallaron. No se deja al cliente
+// sin respuesta: se emite DERIVAR_HUMANO y el flujo sigue
+// por Normalizar decisión IA.
+// ======================================================
+
 return [
   {
     json: {
-      valid: false,
+      valid: true,
       success: false,
       can_quote: false,
       status: 'AI_EXTRACTION_FAILED',
       error_code: 'ALL_AI_FAILED',
-      message: 'No se pudo interpretar la solicitud. Los modelos de IA no pudieron extraer datos válidos.',
+      intencion: 'SOLICITAR_HUMANO',
+      accion: 'DERIVAR_HUMANO',
+      producto: null,
+      material: null,
+      cantidad: null,
+      ancho_cm: null,
+      alto_cm: null,
+      forma: 'NO_ESPECIFICADA',
+      ciudad_detectada: null,
+      provincia_detectada: null,
+      datos_suficientes_para_cotizar: false,
+      requiere_humano: true,
+      motivo_derivacion: 'OTRO',
+      requiere_notificacion: true,
+      clasificacion_prospecto: 'C',
+      respuesta_sugerida:
+        'Permítame un momento por favor, verificamos su requerimiento.',
       details: [],
       cantidad_detalles: 0,
       source: 'NONE'

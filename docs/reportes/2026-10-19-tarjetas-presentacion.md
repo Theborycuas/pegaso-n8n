@@ -3,7 +3,7 @@
 **Fecha:** 19 de octubre de 2026 · **Workflow:** SISTEMA AUTOMATIZADO PEGASO (`09OF22FOxihypeeh`)
 **Estado:** Implementado en local (build + edit). **No** publicado en n8n, sin commit ni `git push`. Flyers y afiches siguen derivando a humano.
 
-Cuando el prospecto pide con claridad **tarjetas de presentación** (y no etiquetas), el bot saluda según la hora, envía los **4 videos de acabados** (con caption de precio) y cierra con una frase corta. Al final: *Los precios adjuntos no incluyen IVA*. Material, entregas y caras se responden después, cuando pregunte, sin mezclar con etiquetas.
+Cuando el prospecto pide con claridad **tarjetas de presentación** (y no etiquetas), el bot saluda según la hora, envía los **4 videos de acabados** (con caption de precio) y cierra con una frase corta. Al final del texto de cierre: *Precios no incluyen IVA*. Material, entregas y caras se responden después, cuando pregunte, sin mezclar con etiquetas.
 
 ---
 

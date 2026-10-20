@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.10
+// RESOLVER CONTEXTO COMERCIAL - V3.13
 // ======================================================
 //
 // Objetivo:
@@ -91,6 +91,13 @@
 //   saliente sea la lista de precios A5/A6, no solo en el
 //   primer INFORMAR_FLYERS. Así no se pierde la foto si el
 //   catálogo quedó marcado como enviado sin imagen.
+// - V3.11: typos de volantes/tarjetas; mínimo 1000 sin el
+//   párrafo de estampitas (ese va solo si piden otra medida
+//   en Couche 300 gr).
+// - V3.12: el IVA de flyers va al final de la lista de
+//   precios, no como mensaje aparte.
+// - V3.13: el cierre de tarjetas también termina con
+//   *Precios no incluyen IVA*; ya no hay mensaje IVA suelto.
 //
 // ======================================================
 
@@ -100,6 +107,72 @@ const data = $input.first().json;
 // ======================================================
 // 1. HELPERS
 // ======================================================
+
+function distanciaLevenshtein(a, b) {
+  if (a === b) {
+    return 0;
+  }
+
+  if (a.length === 0) {
+    return b.length;
+  }
+
+  if (b.length === 0) {
+    return a.length;
+  }
+
+  const fila =
+    Array.from(
+      { length: b.length + 1 },
+      (_, i) => i
+    );
+
+  for (let i = 1; i <= a.length; i++) {
+    let previo = i - 1;
+    fila[0] = i;
+
+    for (let j = 1; j <= b.length; j++) {
+      const tmp = fila[j];
+      const costo =
+        a[i - 1] === b[j - 1] ? 0 : 1;
+
+      fila[j] = Math.min(
+        fila[j] + 1,
+        fila[j - 1] + 1,
+        previo + costo
+      );
+
+      previo = tmp;
+    }
+  }
+
+  return fila[b.length];
+}
+
+function mencionaLemas(textoPlano, lemas) {
+  for (const lema of lemas) {
+    if (new RegExp(`\\b${lema}\\b`).test(textoPlano)) {
+      return true;
+    }
+  }
+
+  const tokens =
+    String(textoPlano ?? '').split(' ').filter(t => t.length >= 5);
+
+  for (const token of tokens) {
+    for (const lema of lemas) {
+      if (Math.abs(token.length - lema.length) > 1) {
+        continue;
+      }
+
+      if (distanciaLevenshtein(token, lema) <= 1) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
 
 function texto(valor) {
   if (
@@ -1214,7 +1287,8 @@ else if (
   accion === 'INFORMAR_TARJETAS'
 ) {
   respuestaSugerida =
-    'Le adjunto videos y precios de los acabados que manejamos en tarjetas de presentación';
+    'Le adjunto videos y precios de los acabados que manejamos en tarjetas de presentación\n\n' +
+    '*Precios no incluyen IVA*';
 }
 
 else if (
@@ -1227,7 +1301,8 @@ else if (
     '• 2 lados: $26\n\n' +
     'A5 (21 x 14.8 cm)\n' +
     '• 1 lado: $32\n' +
-    '• 2 lados: $41';
+    '• 2 lados: $41\n\n' +
+    '*Precios no incluyen IVA*';
 }
 
 else if (
@@ -1519,16 +1594,27 @@ const MENCIONA_TARJETAS_TURNO =
   /\btarjetas?( de (presentacion|visita|negocio|negocios)| personales?| corporativas?)?\b|\bestampitas?\b/;
 
 const MENCIONA_FLYERS_TURNO =
-  /\b(flyers?|flayers?|volantes?)\b/;
+  /\b(flyers?|flayers?|fliers?|volantes?|vonates?|bolantes?|volates?)\b/;
 
 const mencionaEtiquetaTurno =
   MENCIONA_ETIQUETA_TURNO.test(mensajeTurnoPlano);
 
 const mencionaTarjetasTurno =
-  MENCIONA_TARJETAS_TURNO.test(mensajeTurnoPlano);
+  MENCIONA_TARJETAS_TURNO.test(mensajeTurnoPlano) ||
+  mencionaLemas(
+    mensajeTurnoPlano,
+    ['tarjeta', 'tarjetas', 'estampita', 'estampitas']
+  );
 
 const mencionaFlyersTurno =
-  MENCIONA_FLYERS_TURNO.test(mensajeTurnoPlano);
+  MENCIONA_FLYERS_TURNO.test(mensajeTurnoPlano) ||
+  mencionaLemas(
+    mensajeTurnoPlano,
+    [
+      'volante', 'volantes', 'vonates', 'bolantes', 'volates',
+      'flyer', 'flyers', 'flayer', 'flayers', 'flier', 'fliers'
+    ]
+  );
 
 const productoLineaAnterior =
   texto(contextoAnterior.producto_linea);
@@ -1755,7 +1841,8 @@ const RESPUESTA_CIERRE_CATALOGO_FLYERS =
   '• 2 lados: $26\n\n' +
   'A5 (21 x 14.8 cm)\n' +
   '• 1 lado: $32\n' +
-  '• 2 lados: $41';
+  '• 2 lados: $41\n\n' +
+  '*Precios no incluyen IVA*';
 
 function urlPublicaHttps(valor) {
   const cruda =
@@ -1825,7 +1912,8 @@ const primerEnvioCatalogoFlyers =
 // ------------------------------------------------------
 
 const RESPUESTA_CIERRE_CATALOGO_TARJETAS =
-  'Le adjunto videos y precios de los acabados que manejamos en tarjetas de presentación';
+  'Le adjunto videos y precios de los acabados que manejamos en tarjetas de presentación\n\n' +
+  '*Precios no incluyen IVA*';
 
 const RESPUESTA_MATERIAL_TARJETAS =
   'Las tarjetas de presentación se imprimen en papel Couche de 300 gr, medida estándar 9x5 cm.';
@@ -1838,8 +1926,10 @@ const RESPUESTA_CARAS_TARJETAS =
   'La impresión puede ser a una o ambas caras; el precio es el mismo. ' +
   'Comúnmente se imprime por los dos lados.';
 
-const RESPUESTA_MINIMO_TARJETAS =
-  'El mínimo es 1000 unidades por diseño, del mismo diseño; no se divide en varios. ' +
+const RESPUESTA_MINIMO_CATALOGO =
+  'El mínimo es 1000 unidades por diseño, del mismo diseño. No es posible dividir en varios diseños.';
+
+const RESPUESTA_OTRAS_MEDIDAS_TARJETAS =
   'Otras medidas en Couche 300 gr (por ejemplo estampitas de 18x10 cm) se calculan en múltiplos de la tarjeta 9x5 cm.';
 
 const RESPUESTA_ACABADO_TARJETAS =
@@ -1881,8 +1971,11 @@ const PATRON_MATERIAL_TARJETAS =
 const PATRON_ENTREGA_TARJETAS =
   /\b(tiempos?|demora|entregas?|envios?|para cuando|cuando (me )?(las |los )?(entregan|tienen|salen)|en cuantos dias|cuanto (se )?demora|metodologia)\b/;
 
-const PATRON_MINIMO_TARJETAS =
-  /\b(minimo|minimos|1000 por diseno|varios disenos|dividir|estampitas?)\b/;
+const PATRON_MINIMO_CATALOGO =
+  /\b(minimo|minimos|1000 por diseno|varios disenos|\d{1,2} disenos?|dividir|repartir|menos de 1000|dentro de (las )?1000)\b/;
+
+const PATRON_OTRAS_MEDIDAS_TARJETAS =
+  /\b(otras? medidas?|estampitas?|18\s*x\s*10)\b/;
 
 let textoSaludoTarjetas = null;
 
@@ -1939,11 +2032,20 @@ if (enviarVideosTarjetas || primerEnvioCatalogoFlyers) {
       accion = 'INFORMAR_ENTREGA';
     }
   } else if (
-    accion === 'INFORMAR_MINIMO' ||
-    PATRON_MINIMO_TARJETAS.test(mensajeTurnoPlano)
+    PATRON_OTRAS_MEDIDAS_TARJETAS.test(mensajeTurnoPlano)
   ) {
     respuestaSugerida =
-      RESPUESTA_MINIMO_TARJETAS;
+      RESPUESTA_OTRAS_MEDIDAS_TARJETAS;
+
+    if (['COTIZAR_P4', 'PEDIR_MEDIDAS', 'INFORMAR_TARJETAS'].includes(accion)) {
+      accion = 'RESPONDER_GENERAL';
+    }
+  } else if (
+    accion === 'INFORMAR_MINIMO' ||
+    PATRON_MINIMO_CATALOGO.test(mensajeTurnoPlano)
+  ) {
+    respuestaSugerida =
+      RESPUESTA_MINIMO_CATALOGO;
 
     if (accion !== 'INFORMAR_MINIMO') {
       accion = 'INFORMAR_MINIMO';
@@ -2002,6 +2104,14 @@ if (enviarVideosTarjetas || primerEnvioCatalogoFlyers) {
     derivacionPorFlyerDesconocido = true;
     respuestaSugerida =
       'Permítame un momento por favor, verificamos su requerimiento.';
+  } else if (
+    accion === 'INFORMAR_MINIMO' ||
+    PATRON_MINIMO_CATALOGO.test(mensajeTurnoPlano)
+  ) {
+    respuestaSugerida =
+      RESPUESTA_MINIMO_CATALOGO;
+
+    accion = 'INFORMAR_MINIMO';
   } else if (PATRON_CARAS_FLYERS.test(mensajeTurnoPlano)) {
     respuestaSugerida =
       RESPUESTA_CARAS_FLYERS;
@@ -2402,22 +2512,10 @@ return [
         textoSaludoTarjetas,
 
       enviar_nota_iva:
-        enviarVideosTarjetas ||
-        (
-          enviarImagenFlyers &&
-          !catalogoFlyersYaEnviado
-        ),
+        false,
 
       texto_nota_iva:
-        (
-          enviarVideosTarjetas ||
-          (
-            enviarImagenFlyers &&
-            !catalogoFlyersYaEnviado
-          )
-        )
-          ? '*Los precios adjuntos no incluyen IVA*'
-          : null,
+        null,
 
       enviar_imagen_flyers:
         enviarImagenFlyers,
