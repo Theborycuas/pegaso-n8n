@@ -1,8 +1,8 @@
 {
   "workflowId": "09OF22FOxihypeeh",
   "workflowName": "SISTEMA AUTOMATIZADO PEGASO",
-  "workflowUpdatedAt": "2026-10-20T15:27:02.207Z",
-  "extractedAt": "2026-10-20T15:27:06.482Z",
+  "workflowUpdatedAt": "2026-10-20T16:01:45.021Z",
+  "extractedAt": "2026-10-20T16:01:49.832Z",
   "workflowNodeCount": 204,
   "codeNodeCount": 69,
   "nodes": [
@@ -148,7 +148,7 @@
       "fileName": "validar-extraccion-cerebro-comercial.js",
       "relativeFile": "code/_extraidos/validar-extraccion-cerebro-comercial.js",
       "typeVersion": 2,
-      "lines": 1164
+      "lines": 1215
     },
     {
       "nodeId": "033b7f46-8a18-4244-9c65-75047b2d6aac",
@@ -156,7 +156,7 @@
       "fileName": "validar-extraccion-deepseek1.js",
       "relativeFile": "code/_extraidos/validar-extraccion-deepseek1.js",
       "typeVersion": 2,
-      "lines": 1164
+      "lines": 1215
     },
     {
       "nodeId": "e79de69f-646a-4449-81a4-725be9a4a6ec",
@@ -164,7 +164,7 @@
       "fileName": "validar-extraccion-openapi1.js",
       "relativeFile": "code/_extraidos/validar-extraccion-openapi1.js",
       "typeVersion": 2,
-      "lines": 1164
+      "lines": 1215
     },
     {
       "nodeId": "6de38fe8-617d-48d0-ad20-5c56b0c06047",
@@ -260,7 +260,7 @@
       "fileName": "resolver-contexto-comercial.js",
       "relativeFile": "code/_extraidos/resolver-contexto-comercial.js",
       "typeVersion": 2,
-      "lines": 2419
+      "lines": 2438
     },
     {
       "nodeId": "49b907ef-f963-4ccc-b7bb-db921afc5898",

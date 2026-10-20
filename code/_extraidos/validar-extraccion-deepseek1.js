@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// VALIDAR EXTRACCIÓN CEREBRO COMERCIAL - V2.5
+// VALIDAR EXTRACCIÓN CEREBRO COMERCIAL - V2.6
 // ======================================================
 // Valida:
 // - contrato del Cerebro Comercial;
@@ -1124,16 +1124,67 @@ if (
 // ======================================================
 // 20. RESPONDER GENERAL
 // ======================================================
+//
+// En etiquetas se mantiene la terna estrecha. En tarjetas
+// o flyers, CONSULTAR_PRECIO/MATERIAL/ENTREGA +
+// RESPONDER_GENERAL es una respuesta usable: el resolver
+// arma el catálogo. Invalidarla gastaba el siguiente
+// proveedor (Groq → DeepSeek válido → OpenAI).
+//
+// ======================================================
+
+const INTENCIONES_RESPONDER_GENERAL = [
+  'OTRO',
+  'APORTAR_DATOS',
+  'POSPONER_DECISION'
+];
+
+const INTENCIONES_CONSULTA_CATALOGO = [
+  'CONSULTAR_PRECIO',
+  'CONSULTAR_MATERIAL',
+  'CONSULTAR_MINIMO',
+  'CONSULTAR_ENTREGA',
+  'CONSULTAR_METODOLOGIA'
+];
+
+const productoCatalogoImpreso =
+  /\b(flyers?|flayers?|volantes?|tarjetas?)\b/i.test(
+    String(data.producto ?? '')
+  );
+
+let lineaCatalogoImpreso = false;
+
+try {
+  const linea =
+    String(
+      $('Preparar contexto IA')
+        .first()
+        .json
+        ?.contexto_comercial
+        ?.producto_linea ?? ''
+    ).toUpperCase();
+
+  lineaCatalogoImpreso =
+    linea === 'FLYERS_VOLANTES' ||
+    linea === 'TARJETAS_PRESENTACION';
+} catch (_) {
+  lineaCatalogoImpreso = false;
+}
+
+const admiteResponderGeneral =
+  INTENCIONES_RESPONDER_GENERAL.includes(
+    data.intencion
+  ) ||
+  (
+    (productoCatalogoImpreso || lineaCatalogoImpreso) &&
+    INTENCIONES_CONSULTA_CATALOGO.includes(
+      data.intencion
+    )
+  );
 
 if (
   data.accion === 'RESPONDER_GENERAL' &&
-  ![
-    'OTRO',
-    'APORTAR_DATOS',
-    'POSPONER_DECISION'
-  ].includes(
-    data.intencion
-  )
+  !admiteResponderGeneral
 ) {
   return invalido(
     'RESPONDER_GENERAL solo admite OTRO, APORTAR_DATOS o POSPONER_DECISION.'

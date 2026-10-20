@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.9
+// RESOLVER CONTEXTO COMERCIAL - V3.10
 // ======================================================
 //
 // Objetivo:
@@ -87,6 +87,10 @@
 //   CATALOGO_FLYERS.valor_json null usa la URL por defecto;
 //   el link de WhatsApp pasa por i0.wp.com (JPEG ~190 KB)
 //   porque Meta no siempre descarga el original de Hostinger.
+// - V3.10: la imagen de flyers se adjunta siempre que el texto
+//   saliente sea la lista de precios A5/A6, no solo en el
+//   primer INFORMAR_FLYERS. Así no se pierde la foto si el
+//   catálogo quedó marcado como enviado sin imagen.
 //
 // ======================================================
 
@@ -1809,7 +1813,7 @@ const catalogoFlyersYaEnviado =
     objeto(contextoAnterior.catalogo_flyers).enviada_at
   ) !== null;
 
-const enviarImagenFlyers =
+const primerEnvioCatalogoFlyers =
   accion === 'INFORMAR_FLYERS' &&
   !omitirEnvio &&
   urlImagenFlyers !== null &&
@@ -1884,7 +1888,7 @@ let textoSaludoTarjetas = null;
 
 let derivacionPorFlyerDesconocido = false;
 
-if (enviarVideosTarjetas || enviarImagenFlyers) {
+if (enviarVideosTarjetas || primerEnvioCatalogoFlyers) {
   if (sesionConversacionalNueva) {
     textoSaludoTarjetas =
       `${saludoHorarioTarjetas(mensajeTurnoPlano)}. Con gusto atenderemos su requerimiento`;
@@ -1895,7 +1899,7 @@ if (enviarVideosTarjetas || enviarImagenFlyers) {
       RESPUESTA_CIERRE_CATALOGO_TARJETAS;
   }
 
-  if (enviarImagenFlyers) {
+  if (primerEnvioCatalogoFlyers) {
     respuestaSugerida =
       RESPUESTA_CIERRE_CATALOGO_FLYERS;
   }
@@ -2045,7 +2049,7 @@ if (enviarVideosTarjetas || enviarImagenFlyers) {
       '¿Cuál tamaño y de cuántos lados necesita?';
   } else if (accion === 'INFORMAR_FLYERS') {
     respuestaSugerida =
-      'Los tamaños y precios están en la imagen que le envié. ¿Cuál tamaño y de cuántos lados necesita?';
+      RESPUESTA_CIERRE_CATALOGO_FLYERS;
   } else if (
     preguntaAbierta &&
     !['INFORMAR_UBICACION', 'INFORMAR_METODOLOGIA_PAGO', 'INFORMAR_DISENO'].includes(accion)
@@ -2056,6 +2060,11 @@ if (enviarVideosTarjetas || enviarImagenFlyers) {
       'Permítame un momento por favor, verificamos su requerimiento.';
   }
 }
+
+const enviarImagenFlyers =
+  !omitirEnvio &&
+  urlImagenFlyers !== null &&
+  respuestaSugerida === RESPUESTA_CIERRE_CATALOGO_FLYERS;
 
 
 // ======================================================
@@ -2393,10 +2402,20 @@ return [
         textoSaludoTarjetas,
 
       enviar_nota_iva:
-        enviarVideosTarjetas || enviarImagenFlyers,
+        enviarVideosTarjetas ||
+        (
+          enviarImagenFlyers &&
+          !catalogoFlyersYaEnviado
+        ),
 
       texto_nota_iva:
-        (enviarVideosTarjetas || enviarImagenFlyers)
+        (
+          enviarVideosTarjetas ||
+          (
+            enviarImagenFlyers &&
+            !catalogoFlyersYaEnviado
+          )
+        )
           ? '*Los precios adjuntos no incluyen IVA*'
           : null,
 

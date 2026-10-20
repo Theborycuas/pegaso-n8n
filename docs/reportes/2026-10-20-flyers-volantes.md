@@ -45,7 +45,8 @@ flowchart TD
 | Preparar contexto IA 4.8 | Pre-IA `FLYERS_VOLANTES` → `INFORMAR_FLYERS`. Flyers salen de `PRODUCTO_NO_P4` |
 | Cerebro ×3 | Prompt §27B + enum `INFORMAR_FLYERS` |
 | Validadores ×3 V2.5 | Aceptan `INFORMAR_FLYERS` |
-| Resolver 3.9 | `producto_linea = FLYERS_VOLANTES`; imagen + precios; saludo solo en sesión nueva; `CATALOGO_FLYERS` null usa URL por defecto; WhatsApp recibe JPEG vía i0.wp.com (~190 KB) |
+| Resolver 3.10 | Imagen de flyers siempre que el texto sea la lista A5/A6 (no solo el primer `INFORMAR_FLYERS`) |
+| Validadores cerebro V2.6 | `CONSULTAR_PRECIO` + `RESPONDER_GENERAL` en flyers/tarjetas es válido: no se gasta OpenAI si DeepSeek ya respondió |
 | Switch salida 14 | `INFORMAR_FLYERS` → Preparar respuesta comercial |
 | Preparar envío 3.5 | `enviar_saludo` solo si hay `texto_saludo_tarjetas`; imagen de flyers en `ycloud_request_imagen` |
 | Nodos | `IF: ¿Enviar saludo?` delante de videos/imagen (tarjetas y flyers) |
