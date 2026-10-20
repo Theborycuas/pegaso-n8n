@@ -3,7 +3,7 @@
 **Fecha:** 20 de octubre de 2026 · **Workflow:** SISTEMA AUTOMATIZADO PEGASO (`09OF22FOxihypeeh`)
 **Estado:** Implementado en local (build + edit). **No** publicado en n8n, sin commit ni `git push`. Afiches siguen derivando a humano.
 
-Cuando el prospecto pide **flyers, flayers o volantes** (y no etiquetas ni tarjetas), el bot envía la **imagen del catálogo** y luego el texto con tamaños y precios. El saludo horario (“Buenos días. Con gusto atenderemos su requerimiento”) **solo** si es el primer contacto de la sesión (sin historial en 24 h). Si ya estaban hablando de tarjetas u otro tema, no se vuelve a saludar. Al final de esa lista: *Precios no incluyen IVA*.
+Cuando el prospecto pide **flyers, flayers o volantes** (y no etiquetas ni tarjetas), el bot envía la **imagen del catálogo** y luego el texto con tamaños y precios. Si después pide el **total** junto con tarjetas (u otro producto de catálogo) y ya dio tamaño y caras, se suma; no se reenvía esta lista. El saludo horario (“Buenos días. Con gusto atenderemos su requerimiento”) **solo** si es el primer contacto de la sesión (sin historial en 24 h). Si ya estaban hablando de tarjetas u otro tema, no se vuelve a saludar. Al final de esa lista: *Precios no incluyen IVA*.
 
 ---
 

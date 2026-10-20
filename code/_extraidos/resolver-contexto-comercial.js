@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.13
+// RESOLVER CONTEXTO COMERCIAL - V3.14
 // ======================================================
 //
 // Objetivo:
@@ -98,6 +98,11 @@
 //   precios, no como mensaje aparte.
 // - V3.13: el cierre de tarjetas también termina con
 //   *Precios no incluyen IVA*; ya no hay mensaje IVA suelto.
+// - V3.14: si pide el total de productos de catálogo
+//   (tarjetas, flyers; luego se suman más filas a la
+//   tabla) y hay acabado/tamaño/caras, se desglosa y se
+//   suma. Si falta un dato, se pregunta. No se reenvía
+//   el catálogo ni se cotiza P4.
 //
 // ======================================================
 
@@ -1591,7 +1596,7 @@ const MENCIONA_ETIQUETA_TURNO =
   /\b(etiquetas?|stickers?|adhesiv[oa]s?|calcomanias?|pegatinas?|rotulos?|vinil|viniles)\b/;
 
 const MENCIONA_TARJETAS_TURNO =
-  /\btarjetas?( de (presentacion|visita|negocio|negocios)| personales?| corporativas?)?\b|\bestampitas?\b/;
+  /\btar[ej]\w{3,8}s?\b|\btarjetas?( de (presentacion|visita|negocio|negocios)| personales?| corporativas?)?\b|\bestampitas?\b/;
 
 const MENCIONA_FLYERS_TURNO =
   /\b(flyers?|flayers?|fliers?|volantes?|vonates?|bolantes?|volates?)\b/;
@@ -1603,7 +1608,7 @@ const mencionaTarjetasTurno =
   MENCIONA_TARJETAS_TURNO.test(mensajeTurnoPlano) ||
   mencionaLemas(
     mensajeTurnoPlano,
-    ['tarjeta', 'tarjetas', 'estampita', 'estampitas']
+    ['tarjeta', 'tarjetas', 'tarejtes', 'estampita', 'estampitas']
   );
 
 const mencionaFlyersTurno =
@@ -1660,6 +1665,588 @@ const esLineaFlyers =
   productoLinea === 'FLYERS_VOLANTES' &&
   !mencionaEtiquetaTurno &&
   !mencionaTarjetasTurno;
+
+
+// ------------------------------------------------------
+// 12.4c TOTAL DE CATÁLOGO (TARJETAS + FLYERS + FUTUROS)
+// ------------------------------------------------------
+//
+// Precios de catálogo (por 1000, mismo diseño). Sumar
+// productos distintos si el prospecto pide el total y
+// ya dio las opciones. No inventar: si falta acabado,
+// tamaño o caras, preguntar. Afiches u otro impreso
+// sin fila de precio sigue en humano.
+//
+// ------------------------------------------------------
+
+const PRECIOS_TARJETAS_1000 = {
+  UV_BRILLANTE: { etiqueta: 'UV brillante', precio_1000: 24 },
+  MATE: { etiqueta: 'Mate', precio_1000: 30 },
+  UV_SELECTIVO: {
+    etiqueta: 'Mate + UV selectivo',
+    precio_1000: 40,
+    precio_puntas: 45
+  },
+  PAN_DE_ORO: {
+    etiqueta: 'Mate + Pan de Oro',
+    precio_1000: 95,
+    precio_puntas: 100
+  }
+};
+
+const PRECIOS_FLYERS_1000 = {
+  A6: { etiqueta: 'A6 (10.5 x 14.8 cm)', 1: 20, 2: 26 },
+  A5: { etiqueta: 'A5 (21 x 14.8 cm)', 1: 32, 2: 41 }
+};
+
+function indicesProductoCatalogo(texto, clave) {
+  const patron =
+    clave === 'TARJETAS_PRESENTACION'
+      ? /\bta+r+[aeij]+t[ae]*s?\b|\bestampitas?\b/g
+      : /\b(flyers?|flayers?|fliers?|volantes?|vonates?|bolantes?|volates?)\b/g;
+
+  const hits = [];
+  let coincidencia;
+  while ((coincidencia = patron.exec(texto)) !== null) {
+    hits.push({
+      clave,
+      index: coincidencia.index
+    });
+  }
+  return hits;
+}
+
+function detectarAcabadoTarjeta(texto) {
+  if (/\bpan de oro\b/.test(texto)) {
+    return 'PAN_DE_ORO';
+  }
+
+  if (/\b(uv selectiv\w*|selectiv\w*|mate\s*\+?\s*uv)\b/.test(texto)) {
+    return 'UV_SELECTIVO';
+  }
+
+  if (/\buv brillant\w*\b/.test(texto)) {
+    return 'UV_BRILLANTE';
+  }
+
+  if (
+    /\bmate\b/.test(texto) &&
+    !/\bselectiv/.test(texto) &&
+    !/\boro\b/.test(texto)
+  ) {
+    return 'MATE';
+  }
+
+  return null;
+}
+
+function detectarPuntasTarjeta(texto) {
+  return /\b(puntas? redondeadas?|esquinas? redondeadas?|con puntas)\b/.test(
+    texto
+  );
+}
+
+function detectarTamanoFlyer(texto) {
+  if (/\ba6\b|\b10\.?5\s*x\s*14/.test(texto)) {
+    return 'A6';
+  }
+
+  if (/\ba5\b|\b21\s*x\s*14/.test(texto)) {
+    return 'A5';
+  }
+
+  return null;
+}
+
+function detectarCarasFlyer(texto) {
+  if (
+    /\b((a )?(dos|2) (lados?|caras?)|ambos lados|doble cara|dos caras)\b/.test(
+      texto
+    )
+  ) {
+    return 2;
+  }
+
+  if (
+    /\b((a )?(una|1|un) (solo )?(lado|lados|cara|caras)|un lado|un solo lado|una sola cara)\b/.test(
+      texto
+    )
+  ) {
+    return 1;
+  }
+
+  return null;
+}
+
+function cantidadAntesProducto(texto, index) {
+  const antes =
+    texto.slice(Math.max(0, index - 24), index);
+
+  if (/\bmil\s*$/.test(antes)) {
+    return 1000;
+  }
+
+  const n =
+    antes.match(/\b(\d{3,5})\s*$/);
+
+  return n
+    ? Number(n[1])
+    : null;
+}
+
+function faltantesLineaCatalogo(linea) {
+  const faltantes = [];
+
+  if (linea.producto === 'TARJETAS_PRESENTACION' && !linea.acabado) {
+    faltantes.push('acabado');
+  }
+
+  if (linea.producto === 'FLYERS_VOLANTES') {
+    if (!linea.tamano) {
+      faltantes.push('tamano');
+    }
+    if (!linea.caras) {
+      faltantes.push('caras');
+    }
+  }
+
+  return faltantes;
+}
+
+function extraerLineasCatalogo(texto) {
+  const hits = [
+    ...indicesProductoCatalogo(texto, 'TARJETAS_PRESENTACION'),
+    ...indicesProductoCatalogo(texto, 'FLYERS_VOLANTES')
+  ].sort((a, b) => a.index - b.index);
+
+  return hits.map((hit, i) => {
+    const fin =
+      i + 1 < hits.length
+        ? hits[i + 1].index
+        : texto.length;
+
+    const chunk =
+      texto.slice(hit.index, fin);
+
+    const cantidad =
+      cantidadAntesProducto(texto, hit.index);
+
+    if (hit.clave === 'TARJETAS_PRESENTACION') {
+      const linea = {
+        producto: hit.clave,
+        cantidad,
+        acabado: detectarAcabadoTarjeta(chunk),
+        puntas: detectarPuntasTarjeta(chunk),
+        tamano: null,
+        caras: null
+      };
+
+      return {
+        ...linea,
+        faltantes: faltantesLineaCatalogo(linea)
+      };
+    }
+
+    const linea = {
+      producto: hit.clave,
+      cantidad,
+      acabado: null,
+      puntas: false,
+      tamano: detectarTamanoFlyer(chunk),
+      caras: detectarCarasFlyer(chunk)
+    };
+
+    return {
+      ...linea,
+      faltantes: faltantesLineaCatalogo(linea)
+    };
+  });
+}
+
+function fusionarLineasCatalogo(previas, nuevas) {
+  const porProducto = {};
+
+  for (const linea of previas) {
+    porProducto[linea.producto] = { ...linea };
+  }
+
+  for (const linea of nuevas) {
+    const anterior =
+      porProducto[linea.producto];
+
+    if (!anterior) {
+      porProducto[linea.producto] = { ...linea };
+      continue;
+    }
+
+    const mezclada = {
+      ...anterior,
+      cantidad: linea.cantidad ?? anterior.cantidad,
+      acabado: linea.acabado ?? anterior.acabado,
+      puntas: linea.puntas === true || anterior.puntas === true,
+      tamano: linea.tamano ?? anterior.tamano,
+      caras: linea.caras ?? anterior.caras
+    };
+
+    porProducto[linea.producto] = {
+      ...mezclada,
+      faltantes: faltantesLineaCatalogo(mezclada)
+    };
+  }
+
+  return Object.values(porProducto);
+}
+
+function aplicarOpcionesSueltasCatalogo(lineas, texto) {
+  const acabado =
+    detectarAcabadoTarjeta(texto);
+
+  const puntas =
+    detectarPuntasTarjeta(texto);
+
+  const tamano =
+    detectarTamanoFlyer(texto);
+
+  const caras =
+    detectarCarasFlyer(texto);
+
+  return lineas.map(linea => {
+    if (linea.producto === 'TARJETAS_PRESENTACION') {
+      const mezclada = {
+        ...linea,
+        acabado: linea.acabado ?? acabado,
+        puntas: linea.puntas === true || puntas
+      };
+
+      return {
+        ...mezclada,
+        faltantes: faltantesLineaCatalogo(mezclada)
+      };
+    }
+
+    if (linea.producto === 'FLYERS_VOLANTES') {
+      const mezclada = {
+        ...linea,
+        tamano: linea.tamano ?? tamano,
+        caras: linea.caras ?? caras
+      };
+
+      return {
+        ...mezclada,
+        faltantes: faltantesLineaCatalogo(mezclada)
+      };
+    }
+
+    return linea;
+  });
+}
+
+function formatoDolaresCatalogo(valor) {
+  return Number.isInteger(valor)
+    ? `$${valor}`
+    : `$${valor.toFixed(2)}`;
+}
+
+function cotizarLineaCatalogo(linea) {
+  const cantidad =
+    linea.cantidad ?? 1000;
+
+  if (cantidad < 1000) {
+    return { ...linea, cantidad, error: 'MINIMO' };
+  }
+
+  if (cantidad % 1000 !== 0) {
+    return { ...linea, cantidad, error: 'NO_MILLAR' };
+  }
+
+  const millares =
+    cantidad / 1000;
+
+  if (linea.producto === 'TARJETAS_PRESENTACION') {
+    const acabado =
+      PRECIOS_TARJETAS_1000[linea.acabado];
+
+    if (!acabado) {
+      return { ...linea, cantidad, error: 'FALTA' };
+    }
+
+    const unitario =
+      linea.puntas === true && acabado.precio_puntas != null
+        ? acabado.precio_puntas
+        : acabado.precio_1000;
+
+    const extraPuntas =
+      linea.puntas === true && acabado.precio_puntas != null
+        ? ' con puntas redondeadas'
+        : '';
+
+    return {
+      ...linea,
+      cantidad,
+      error: null,
+      precio: unitario * millares,
+      etiqueta:
+        `${cantidad} tarjetas ${acabado.etiqueta}${extraPuntas} (9x5 cm)`
+    };
+  }
+
+  if (linea.producto === 'FLYERS_VOLANTES') {
+    const tamano =
+      PRECIOS_FLYERS_1000[linea.tamano];
+
+    if (!tamano || (linea.caras !== 1 && linea.caras !== 2)) {
+      return { ...linea, cantidad, error: 'FALTA' };
+    }
+
+    const unitario =
+      tamano[linea.caras];
+
+    return {
+      ...linea,
+      cantidad,
+      error: null,
+      precio: unitario * millares,
+      etiqueta:
+        `${cantidad} volantes ${tamano.etiqueta} a ${linea.caras} lado${linea.caras === 1 ? '' : 's'}`
+    };
+  }
+
+  return { ...linea, cantidad, error: 'SIN_PRECIO' };
+}
+
+function preguntaFaltanteCatalogo(faltante, producto) {
+  if (producto === 'TARJETAS_PRESENTACION' && faltante === 'acabado') {
+    return 'en tarjetas: el acabado (UV brillante, Mate, Mate + UV selectivo o Mate + Pan de Oro)';
+  }
+
+  if (producto === 'FLYERS_VOLANTES' && faltante === 'tamano') {
+    return 'en volantes: el tamaño (A6 o A5)';
+  }
+
+  if (producto === 'FLYERS_VOLANTES' && faltante === 'caras') {
+    return 'en volantes: si es a 1 o 2 lados';
+  }
+
+  return null;
+}
+
+function armarRespuestaTotalCatalogo(lineasCotizadas) {
+  const minimo =
+    lineasCotizadas.find(l => l.error === 'MINIMO');
+
+  if (minimo) {
+    return {
+      estado: 'MINIMO',
+      respuesta:
+        'El mínimo es 1000 unidades por diseño, del mismo diseño. No es posible dividir en varios diseños.'
+    };
+  }
+
+  const noMillar =
+    lineasCotizadas.find(l => l.error === 'NO_MILLAR');
+
+  if (noMillar) {
+    return {
+      estado: 'NO_MILLAR',
+      respuesta:
+        'Trabajamos en millar: 1000, 2000, 3000 unidades por diseño. ¿De cuántas unidades cotizamos cada producto?'
+    };
+  }
+
+  const preguntas = [];
+
+  for (const linea of lineasCotizadas) {
+    for (const faltante of linea.faltantes ?? []) {
+      const pregunta =
+        preguntaFaltanteCatalogo(faltante, linea.producto);
+
+      if (pregunta && !preguntas.includes(pregunta)) {
+        preguntas.push(pregunta);
+      }
+    }
+  }
+
+  if (preguntas.length > 0) {
+    return {
+      estado: 'FALTA_DATOS',
+      respuesta:
+        'Para indicarle el total me falta:\n\n' +
+        preguntas.map(p => `• ${p}.`).join('\n')
+    };
+  }
+
+  const ok =
+    lineasCotizadas.filter(l => l.error === null && l.precio != null);
+
+  if (ok.length === 0) {
+    return null;
+  }
+
+  const total =
+    ok.reduce((acc, l) => acc + l.precio, 0);
+
+  return {
+    estado: 'TOTAL',
+    total,
+    respuesta:
+      (ok.length === 1
+        ? `El total sería:\n\n• ${ok[0].etiqueta}: ${formatoDolaresCatalogo(ok[0].precio)}\n\nTotal: ${formatoDolaresCatalogo(total)}\n\n*Precios no incluyen IVA*`
+        : `El total de lo solicitado sería:\n\n${ok.map(l => `• ${l.etiqueta}: ${formatoDolaresCatalogo(l.precio)}`).join('\n')}\n\nTotal: ${formatoDolaresCatalogo(total)}\n\n*Precios no incluyen IVA*`)
+  };
+}
+
+const PIDE_TOTAL_CATALOGO =
+  PIDE_PRECIO.test(mensajeTurnoPlano) ||
+  /\b(total|suma|todo junto|en conjunto|por todo|todo eso|a como|queda)\b/.test(
+    mensajeTurnoPlano
+  );
+
+const FAQ_CATALOGO_PURA =
+  (
+    /\b(material|couche|papel|cartulina|gramaje|tiempos?|demora|entregas?|envios?|para cuando|metodologia)\b/.test(
+      mensajeTurnoPlano
+    ) ||
+    /\b(minimo|minimos|1000 por diseno|varios disenos|\d{1,2} disenos?|dividir|repartir|menos de 1000|dentro de (las )?1000)\b/.test(
+      mensajeTurnoPlano
+    ) ||
+    /\b(otras? medidas?|estampitas?|18\s*x\s*10)\b/.test(
+      mensajeTurnoPlano
+    )
+  ) &&
+  !PIDE_TOTAL_CATALOGO;
+
+const pedidoCatalogoAnterior =
+  objeto(contextoAnterior.pedido_catalogo);
+
+const esperandoDatosCatalogo =
+  pedidoCatalogoAnterior.estado === 'FALTA_DATOS' &&
+  Array.isArray(pedidoCatalogoAnterior.lineas) &&
+  pedidoCatalogoAnterior.lineas.length > 0;
+
+const catalogoTarjetasPrevio =
+  texto(
+    objeto(contextoAnterior.catalogo_tarjetas).enviada_at
+  ) !== null;
+
+const catalogoFlyersPrevio =
+  texto(
+    objeto(contextoAnterior.catalogo_flyers).enviada_at
+  ) !== null;
+
+const lineasCatalogoTurno =
+  extraerLineasCatalogo(mensajeTurnoPlano);
+
+let lineasCatalogo =
+  fusionarLineasCatalogo(
+    esperandoDatosCatalogo
+      ? pedidoCatalogoAnterior.lineas
+      : [],
+    lineasCatalogoTurno
+  );
+
+if (
+  esperandoDatosCatalogo &&
+  lineasCatalogoTurno.length === 0
+) {
+  lineasCatalogo =
+    aplicarOpcionesSueltasCatalogo(
+      lineasCatalogo,
+      mensajeTurnoPlano
+    );
+}
+
+const lineasCompletas =
+  lineasCatalogo.length > 0 &&
+  lineasCatalogo.every(l => (l.faltantes ?? []).length === 0);
+
+const debeTotalizarCatalogo =
+  !mencionaEtiquetaTurno &&
+  accion !== 'ENVIAR_DATOS_PAGO' &&
+  !derivacionPorProductoNoP4 &&
+  !derivacionPorCantidad &&
+  lineasCatalogo.length > 0 &&
+  !FAQ_CATALOGO_PURA &&
+  (
+    (
+      esperandoDatosCatalogo &&
+      (
+        lineasCatalogoTurno.length > 0 ||
+        detectarAcabadoTarjeta(mensajeTurnoPlano) !== null ||
+        detectarTamanoFlyer(mensajeTurnoPlano) !== null ||
+        detectarCarasFlyer(mensajeTurnoPlano) !== null
+      )
+    ) ||
+    (
+      PIDE_TOTAL_CATALOGO &&
+      mencionaTarjetasTurno &&
+      mencionaFlyersTurno
+    ) ||
+    (
+      PIDE_TOTAL_CATALOGO &&
+      lineasCompletas
+    ) ||
+    (
+      PIDE_TOTAL_CATALOGO &&
+      mencionaTarjetasTurno &&
+      catalogoTarjetasPrevio
+    ) ||
+    (
+      PIDE_TOTAL_CATALOGO &&
+      mencionaFlyersTurno &&
+      catalogoFlyersPrevio
+    )
+  );
+
+let totalCatalogo = null;
+
+if (debeTotalizarCatalogo) {
+  const lineasCotizadas =
+    lineasCatalogo.map(cotizarLineaCatalogo);
+
+  const armado =
+    armarRespuestaTotalCatalogo(lineasCotizadas);
+
+  if (armado !== null) {
+    totalCatalogo = {
+      ...armado,
+      pedido: {
+        estado: armado.estado,
+        total: armado.total ?? null,
+        lineas: lineasCotizadas.map(l => ({
+          producto: l.producto,
+          cantidad: l.cantidad ?? null,
+          acabado: l.acabado ?? null,
+          puntas: l.puntas === true,
+          tamano: l.tamano ?? null,
+          caras: l.caras ?? null,
+          faltantes: l.faltantes ?? [],
+          precio: l.precio ?? null
+        })),
+        actualizado_at: new Date().toISOString()
+      }
+    };
+
+    accion =
+      'RESPONDER_GENERAL';
+
+    respuestaSugerida =
+      totalCatalogo.respuesta;
+
+    omitirEnvio =
+      false;
+
+    motivoOmisionEnvio =
+      null;
+
+    if (
+      mencionaTarjetasTurno &&
+      mencionaFlyersTurno
+    ) {
+      productoLinea =
+        'CATALOGO_MIXTO';
+    }
+  }
+}
 
 
 // ------------------------------------------------------
@@ -1997,6 +2584,7 @@ if (enviarVideosTarjetas || primerEnvioCatalogoFlyers) {
       RESPUESTA_CIERRE_CATALOGO_FLYERS;
   }
 } else if (
+  totalCatalogo === null &&
   esLineaTarjetas &&
   accion !== 'DERIVAR_HUMANO' &&
   accion !== 'ENVIAR_DATOS_PAGO' &&
@@ -2063,6 +2651,7 @@ if (enviarVideosTarjetas || primerEnvioCatalogoFlyers) {
       RESPUESTA_ACABADO_TARJETAS;
   }
 } else if (
+  totalCatalogo === null &&
   esLineaFlyers &&
   accion !== 'ENVIAR_DATOS_PAGO' &&
   !omitirEnvio
@@ -2291,6 +2880,12 @@ const contextoComercialNuevo = {
   ...(
     productoLinea
       ? { producto_linea: productoLinea }
+      : {}
+  ),
+
+  ...(
+    totalCatalogo?.pedido
+      ? { pedido_catalogo: totalCatalogo.pedido }
       : {}
   ),
 

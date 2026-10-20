@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// VALIDAR EXTRACCIÓN CEREBRO COMERCIAL - V2.6
+// VALIDAR EXTRACCIÓN CEREBRO COMERCIAL - V2.7
 // ======================================================
 // Valida:
 // - contrato del Cerebro Comercial;
@@ -1155,18 +1155,20 @@ const productoCatalogoImpreso =
 let lineaCatalogoImpreso = false;
 
 try {
+  const ctxIA =
+    $('Preparar contexto IA').first().json ?? {};
+
   const linea =
     String(
-      $('Preparar contexto IA')
-        .first()
-        .json
-        ?.contexto_comercial
-        ?.producto_linea ?? ''
+      ctxIA?.contexto_comercial?.producto_linea ?? ''
     ).toUpperCase();
 
   lineaCatalogoImpreso =
     linea === 'FLYERS_VOLANTES' ||
-    linea === 'TARJETAS_PRESENTACION';
+    linea === 'TARJETAS_PRESENTACION' ||
+    linea === 'CATALOGO_MIXTO' ||
+    ctxIA.producto_tarjetas != null ||
+    ctxIA.producto_flyers != null;
 } catch (_) {
   lineaCatalogoImpreso = false;
 }

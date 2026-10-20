@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Preparar contexto IA
 // ARCHIVO: code/03-conversacion/preparar-contexto-ia.js
-// VERSION: 4.11
+// VERSION: 4.12
 // ======================================================
 //
 // RESPONSABILIDAD:
@@ -62,6 +62,9 @@
 //   catálogo sin mezclar estampitas/etiquetas.
 // - V4.10: lista de flyers cierra con *Precios no incluyen IVA*.
 // - V4.11: el cierre de tarjetas usa el mismo aviso de IVA.
+// - V4.12: si pide total con datos de catálogo (acabado,
+//   A5/A6, 1 o 2 lados) no se salta a INFORMAR_*: el
+//   resolver suma. Tarejtes y similares cuentan como tarjetas.
 // - Reglas pre-IA solo para texto sin multimedia:
 //   SALUDO_SIMPLE (respuesta corta fija), PRODUCTO_NO_P4
 //   (DERIVAR_HUMANO + COTIZACION_ESPECIAL) y
@@ -2027,7 +2030,7 @@ const NUCLEO_SALUDO = new Set([
 const PRODUCTOS_TARJETAS = [
   {
     patron:
-      /\btarjetas?( de (presentacion|visita|negocio|negocios)| personales?| corporativas?)?\b/,
+      /\btar[ej]\w{3,8}s?\b|\btarjetas?( de (presentacion|visita|negocio|negocios)| personales?| corporativas?)?\b/,
     producto: 'tarjetas de presentación'
   },
   {
@@ -2042,7 +2045,7 @@ const LEMAS_FLYERS = [
 ];
 
 const LEMAS_TARJETAS = [
-  'tarjeta', 'tarjetas', 'estampita', 'estampitas'
+  'tarjeta', 'tarjetas', 'tarejtes', 'estampita', 'estampitas'
 ];
 
 const PRODUCTOS_FLYERS = [
@@ -2383,13 +2386,42 @@ const mezclaTarjetasYFlyers =
   productoTarjetas !== null &&
   productoFlyers !== null;
 
+const PIDE_PRECIO_CATALOGO =
+  /\b(precios?|total|cuanto |a como|vale|valor|cotiz|suma)\b/.test(
+    textoTurnoPlano
+  );
+
+const specsTarjetasCompletas =
+  /\b(uv selectiv\w*|selectiv\w*|pan de oro|uv brillant\w*|mate)\b/.test(
+    textoTurnoPlano
+  );
+
+const specsFlyersCompletas =
+  /\b(a5|a6)\b/.test(textoTurnoPlano) &&
+  /\b((una|1|un|dos|2) (solo )?(lado|lados|cara|caras)|ambos lados|un lado|un solo lado)\b/.test(
+    textoTurnoPlano
+  );
+
+const pideTotalCatalogoCompleto =
+  PIDE_PRECIO_CATALOGO &&
+  (
+    mezclaTarjetasYFlyers ||
+    (productoTarjetas !== null && specsTarjetasCompletas) ||
+    (productoFlyers !== null && specsFlyersCompletas)
+  );
+
 // Primer contacto de tarjetas o flyers (también con imagen/archivo).
 // Si el catálogo ya salió, no se salta el cerebro.
-// Si nombra tarjetas y flyers juntos, aclara el cerebro.
+// Si pide el total con datos, el resolver suma: no INFORMAR_*.
+// Si nombra tarjetas y flyers juntos, el cerebro no salta.
 if (mezclaTarjetasYFlyers) {
   productoTarjetasDetectado = productoTarjetas.producto;
   productoFlyersDetectado = productoFlyers.producto;
-} else if (productoTarjetas && !catalogoTarjetasYaEnviado) {
+} else if (
+  productoTarjetas &&
+  !catalogoTarjetasYaEnviado &&
+  !pideTotalCatalogoCompleto
+) {
   reglaPreIA = 'TARJETAS_PRESENTACION';
   productoTarjetasDetectado = productoTarjetas.producto;
 
@@ -2404,7 +2436,11 @@ if (mezclaTarjetasYFlyers) {
   };
 } else if (productoTarjetas) {
   productoTarjetasDetectado = productoTarjetas.producto;
-} else if (productoFlyers && !catalogoFlyersYaEnviado) {
+} else if (
+  productoFlyers &&
+  !catalogoFlyersYaEnviado &&
+  !pideTotalCatalogoCompleto
+) {
   reglaPreIA = 'FLYERS_VOLANTES';
   productoFlyersDetectado = productoFlyers.producto;
 
