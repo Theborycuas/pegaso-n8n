@@ -19,13 +19,14 @@
 // ======================================================
 // NODO N8N: Normalizar decisión IA
 // ARCHIVO: code/04-cerebro-comercial/normalizar-decision-ia.js
-// VERSION: 2.4
+// VERSION: 2.5
 // RESPONSABILIDAD:
 // - Convertir la decisión YA VALIDADA (de cualquier proveedor) en un contrato único Pegaso con tipos normalizados.
 // - Unir la decisión con el contexto de "Preparar contexto IA" (IDs, prospecto, tipo_actor, contexto_comercial) y resolver ciudad/provincia.
 // - Aplicar la evidencia multimedia del turno (media_turno): comprobante detectado -> REPORTAR_PAGO + DERIVAR_HUMANO + ENVIA_COMPROBANTE
 //   con mensaje de verificación (nunca "gracias por su pago" / "pago confirmado");
-//   imagen/archivo que requiere revisión -> DERIVAR_HUMANO + IMAGEN_REQUIERE_REVISION / ARCHIVO_NO_PROCESABLE.
+//   imagen/archivo que requiere revisión -> DERIVAR_HUMANO + IMAGEN_REQUIERE_REVISION / ARCHIVO_NO_PROCESABLE
+//   (excepto ruta INFORMAR_TARJETAS / mención de tarjetas: no tumbar el catálogo por diseño o meme).
 //   Si la IA ya derivó por otro motivo, se respeta (salvo comprobante frente a motivos no prioritarios).
 // - Convertir solicitud de cuenta/datos bancarios (SOLICITA_DATOS_PAGO o ENVIAR_DATOS_PAGO) en ENVIAR_DATOS_PAGO
 //   sin handoff: el bot envía la imagen de datos bancarios; la derivación humana queda para el comprobante.
@@ -358,6 +359,11 @@ const comprobanteDetectado =
   mediaTurno.motivo_derivacion === 'ENVIA_COMPROBANTE' ||
   comprobantePorTexto;
 
+const esRutaTarjetas =
+  accion === 'INFORMAR_TARJETAS' ||
+  String(contextoIAMedia.regla_pre_ia ?? '') === 'TARJETAS_PRESENTACION' ||
+  /\btarjetas?\b/i.test(textoTurnoCliente);
+
 if (
   comprobanteDetectado &&
   !MOTIVOS_QUE_PREVALECEN_SOBRE_COMPROBANTE.includes(motivoDerivacion)
@@ -371,8 +377,10 @@ if (
 } else if (
   mediaTurno.requiere_revision_humana === true &&
   requiereHumano !== true &&
+  !esRutaTarjetas &&
   ['IMAGEN_REQUIERE_REVISION', 'ARCHIVO_NO_PROCESABLE'].includes(mediaTurno.motivo_derivacion)
 ) {
+  // No tumbar catálogo de tarjetas por una imagen de diseño/meme.
   derivacionPorMedia = 'REVISION_MEDIA';
   accion = 'DERIVAR_HUMANO';
   requiereHumano = true;

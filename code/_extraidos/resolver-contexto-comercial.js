@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.4
+// RESOLVER CONTEXTO COMERCIAL - V3.5
 // ======================================================
 //
 // Objetivo:
@@ -71,6 +71,8 @@
 // - V3.4: "si hago 5000 baja el precio" / "en cuanto me queda con X"
 //   no es NEGOCIAR: es recotización por cantidad (o mayorista si
 //   >= 6000). Prefijo de explicación al recotizar por cantidad.
+// - V3.5: INFORMAR_TARJETAS envía catálogo de 4 videos (acabados)
+//   + texto de cierre. No deriva a humano ni cotiza P4.
 //
 // ======================================================
 
@@ -679,6 +681,7 @@ else if (
     'INFORMAR_METODOLOGIA_PAGO',
     'INFORMAR_ENTREGA',
     'INFORMAR_DISENO',
+    'INFORMAR_TARJETAS',
     'ENVIAR_DATOS_PAGO',
     'REGISTRAR_ACEPTACION',
     'RESPONDER_GENERAL'
@@ -882,9 +885,9 @@ if (derivacionPorCantidad) {
 // I. REGLAS PRE-IA
 // ------------------------------------------------------
 //
-// PRODUCTO_NO_P4: impreso que no es etiqueta adhesiva.
-// Nunca se piden medidas ni se cotiza P4: lo atiende un
-// humano como COTIZACION_ESPECIAL.
+// TARJETAS_PRESENTACION: catálogo de acabados (videos).
+// PRODUCTO_NO_P4: otro impreso (flyers, afiches, etc.)
+// → humano. Nunca cotizar P4.
 //
 // ------------------------------------------------------
 
@@ -894,8 +897,20 @@ const reglaPreIA =
 const productoNoP4 =
   texto(contextoIA.producto_no_p4);
 
+const productoTarjetas =
+  texto(contextoIA.producto_tarjetas);
+
+if (
+  reglaPreIA === 'TARJETAS_PRESENTACION' ||
+  accionIA === 'INFORMAR_TARJETAS'
+) {
+  accion =
+    'INFORMAR_TARJETAS';
+}
+
 const derivacionPorProductoNoP4 =
   reglaPreIA === 'PRODUCTO_NO_P4' &&
+  accion !== 'INFORMAR_TARJETAS' &&
   !derivacionPorCantidad;
 
 if (derivacionPorProductoNoP4) {
@@ -1164,6 +1179,18 @@ else if (
 ) {
   respuestaSugerida =
     'Le adjunto nuestros datos personales 📃 y números de cuentas 🏦';
+}
+
+else if (
+  accion === 'INFORMAR_TARJETAS'
+) {
+  respuestaSugerida =
+    'Trabajamos tarjetas de presentación en papel Couche 300 gr, medida estándar 9x5 cm. ' +
+    'El mínimo es 1000 unidades por diseño (mismo diseño; no se dividen en varios). ' +
+    'Impresión a 1 o 2 caras al mismo precio. ' +
+    'Entregas de tarjetas: si el pedido ingresa con abono lunes o martes, se envía el miércoles; ' +
+    'si ingresa miércoles o jueves, se envía el viernes. ' +
+    'Si necesita otra medida en Couche 300 gr (p. ej. estampitas), se calcula en múltiplos de la tarjeta 9x5 cm.';
 }
 
 else if (
@@ -1522,10 +1549,80 @@ const imagenInformativaYaEnviada =
   ) !== null;
 
 const enviarImagenInformativa =
+  accion !== 'INFORMAR_TARJETAS' &&
   imagenInformativa !== null &&
   !omitirEnvio &&
   urlImagenInformativa !== null &&
   !imagenInformativaYaEnviada;
+
+
+// ------------------------------------------------------
+// 12.6 CATÁLOGO VIDEOS TARJETAS
+// ------------------------------------------------------
+
+const CATALOGO_TARJETAS_DEFAULT = [
+  {
+    clave: 'UV_BRILLANTE',
+    url: 'https://pegasoadhesivos.com/wp-content/uploads/2026/10/Tarjetas-UV-Brillantes.mp4',
+    caption: 'Este es el acabado UV brillante 1000 tarjetas en $24.00 dólares'
+  },
+  {
+    clave: 'MATE',
+    url: 'https://pegasoadhesivos.com/wp-content/uploads/2026/10/Tarjetas-Mates.mp4',
+    caption: 'Este es el acabado Mate normal 1000 tarjetas en $30.00 dólares.'
+  },
+  {
+    clave: 'UV_SELECTIVO',
+    url: 'https://pegasoadhesivos.com/wp-content/uploads/2026/10/Tarjetas-UV-Selectivas.mp4',
+    caption:
+      'Este es el acabado Mate  + UV Selectivo 1000 tarjetas en $40.00 dólares\n*Con las puntas redondeadas le saldría en $45.00 dólares.'
+  },
+  {
+    clave: 'PAN_DE_ORO',
+    url: 'https://pegasoadhesivos.com/wp-content/uploads/2026/10/Tarjetas-Mate-Pan-de-Oro.mp4',
+    caption:
+      'Este es el acabado Mate  + Pan de Oro 1000 tarjetas en $95.00 dólares\n*Con las puntas redondeadas le saldría en $100.00 dólares.'
+  }
+];
+
+const configCatalogoTarjetas =
+  objeto(
+    filasConfiguracion.find(
+      fila => fila.clave === 'CATALOGO_TARJETAS'
+    )?.valor_json
+  );
+
+const videosConfigurados = Array.isArray(configCatalogoTarjetas.videos)
+  ? configCatalogoTarjetas.videos
+  : CATALOGO_TARJETAS_DEFAULT;
+
+const videosTarjetasValidos = videosConfigurados
+  .map(v => ({
+    clave: texto(v?.clave),
+    url: texto(v?.url),
+    caption: String(v?.caption ?? '').trim()
+  }))
+  .filter(v =>
+    v.url !== null &&
+    /^https:\/\/\S+$/i.test(v.url) &&
+    v.caption !== ''
+  )
+  .slice(0, 4);
+
+const catalogoTarjetasActivo =
+  configCatalogoTarjetas.activo !== false;
+
+const catalogoTarjetasYaEnviado =
+  texto(
+    objeto(contextoAnterior.catalogo_tarjetas).enviada_at
+  ) !== null;
+
+const enviarVideosTarjetas =
+  accion === 'INFORMAR_TARJETAS' &&
+  !omitirEnvio &&
+  catalogoTarjetasActivo &&
+  videosTarjetasValidos.length > 0 &&
+  !catalogoTarjetasYaEnviado;
 
 
 // ======================================================
@@ -1615,6 +1712,22 @@ const contextoComercialNuevo = {
           }
         }
       : {}
+  ),
+
+  ...(
+    enviarVideosTarjetas
+      ? {
+          catalogo_tarjetas: {
+            videos: videosTarjetasValidos.map(v => v.clave),
+            enviada_at: new Date().toISOString()
+          },
+          producto_linea: 'TARJETAS_PRESENTACION'
+        }
+      : (
+        accion === 'INFORMAR_TARJETAS'
+          ? { producto_linea: 'TARJETAS_PRESENTACION' }
+          : {}
+      )
   ),
 
   cotizacion: {
@@ -1804,6 +1917,22 @@ return [
         enviarImagenInformativa
           ? urlImagenInformativa
           : null,
+
+      enviar_videos_tarjetas:
+        enviarVideosTarjetas,
+
+      videos_tarjetas:
+        enviarVideosTarjetas
+          ? videosTarjetasValidos
+          : [],
+
+      producto_tarjetas:
+        productoTarjetas ??
+        (
+          accion === 'INFORMAR_TARJETAS'
+            ? 'tarjetas de presentación'
+            : null
+        ),
 
       datos_suficientes_para_cotizar:
         datosSuficientes,

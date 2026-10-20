@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Preparar contexto IA
 // ARCHIVO: code/03-conversacion/preparar-contexto-ia.js
-// VERSION: 4.5
+// VERSION: 4.6
 // ======================================================
 //
 // RESPONSABILIDAD:
@@ -50,6 +50,9 @@
 //   (o el análisis trae señales de transferencia) y hay imagen en el
 //   turno, fuerza comprobante_detectado para handoff de pago — no
 //   "revisamos la imagen".
+// - V4.6: tarjetas de presentación → INFORMAR_TARJETAS (catálogo de
+//   videos). Ya no van a PRODUCTO_NO_P4/humano. Flyers/afiches siguen
+//   derivando. La detección de tarjetas aplica también con multimedia.
 // - Reglas pre-IA solo para texto sin multimedia:
 //   SALUDO_SIMPLE (respuesta corta fija), PRODUCTO_NO_P4
 //   (DERIVAR_HUMANO + COTIZACION_ESPECIAL) y
@@ -1946,8 +1949,19 @@ const NUCLEO_SALUDO = new Set([
   'buenas', 'buenos', 'buena', 'buen', 'saludos', 'saludo'
 ]);
 
+const PRODUCTOS_TARJETAS = [
+  {
+    patron:
+      /\btarjetas?( de (presentacion|visita|negocio|negocios)| personales?| corporativas?)?\b/,
+    producto: 'tarjetas de presentación'
+  },
+  {
+    patron: /\bestampitas?\b.*\bcouche\b|\bcouche\b.*\bestampitas?\b/,
+    producto: 'estampitas / couche (vía tarjetas)'
+  }
+];
+
 const PRODUCTOS_NO_P4 = [
-  { patron: /\btarjetas? (de )?(presentacion|personales?|visita|de visita|corporativas?)\b/, producto: 'tarjetas de presentación' },
   { patron: /\b(flyers?|flayers?|volantes?)\b/, producto: 'flyers / volantes' },
   { patron: /\bcarpetas?\b/, producto: 'carpetas' },
   { patron: /\btalonarios?\b/, producto: 'talonarios' },
@@ -1965,6 +1979,14 @@ const MENCIONA_ETIQUETA =
 
 const RESPUESTA_TRANSICION_NO_P4 =
   'Permítame un momento por favor, verificamos su requerimiento.';
+
+const RESPUESTA_CIERRE_TARJETAS =
+  'Trabajamos tarjetas de presentación en papel Couche 300 gr, medida estándar 9x5 cm. ' +
+  'El mínimo es 1000 unidades por diseño (mismo diseño; no se dividen en varios). ' +
+  'Impresión a 1 o 2 caras al mismo precio. ' +
+  'Entregas de tarjetas: si el pedido ingresa con abono lunes o martes, se envía el miércoles; ' +
+  'si ingresa miércoles o jueves, se envía el viernes. ' +
+  'Si necesita otra medida en Couche 300 gr (p. ej. estampitas), se calcula en múltiplos de la tarjeta 9x5 cm.';
 
 
 const MINIMO_POR_DISENO = 1000;
@@ -2213,12 +2235,34 @@ let decisionPreIA = null;
 
 let productoNoP4Detectado = null;
 
+let productoTarjetasDetectado = null;
+
 let divisionDisenosDetectada = null;
 
 const textoTurnoPlano =
   normalizarTexto(textoTurno);
 
-if (
+const productoTarjetas =
+  textoTurnoPlano !== '' &&
+  !MENCIONA_ETIQUETA.test(textoTurnoPlano)
+    ? PRODUCTOS_TARJETAS.find(p => p.patron.test(textoTurnoPlano)) ?? null
+    : null;
+
+// Tarjetas: también con imagen/archivo en el turno (diseño, meme, etc.).
+if (productoTarjetas) {
+  reglaPreIA = 'TARJETAS_PRESENTACION';
+  productoTarjetasDetectado = productoTarjetas.producto;
+
+  decisionPreIA = {
+    ...decisionBase(),
+    intencion: 'CONSULTAR_PRECIO',
+    accion: 'INFORMAR_TARJETAS',
+    producto: 'tarjetas de presentación',
+    requiere_humano: false,
+    motivo_derivacion: 'NINGUNO',
+    respuesta_sugerida: RESPUESTA_CIERRE_TARJETAS
+  };
+} else if (
   mediaTurno.cantidad_media === 0 &&
   textoTurnoPlano !== ''
 ) {
@@ -2580,6 +2624,9 @@ return [
 
       producto_no_p4:
         productoNoP4Detectado,
+
+      producto_tarjetas:
+        productoTarjetasDetectado,
 
       division_disenos:
         divisionDisenosDetectada,

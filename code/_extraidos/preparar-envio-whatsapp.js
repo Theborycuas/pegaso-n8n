@@ -19,7 +19,7 @@
 // ======================================================
 // PREPARAR ENVÍO WHATSAPP - YCLOUD
 // PEGASO ADHESIVOS
-// VERSION: 3.0
+// VERSION: 3.1
 // ======================================================
 //
 // V2.1: no envía si el texto persistido es el marcador
@@ -35,6 +35,9 @@
 // (material o metodología) y expone imagen_informativa. La
 // imagen se envía ANTES del texto ("YCloud Enviar imagen" →
 // "Esperar antes del texto" → "YCloud Enviar Wts").
+//
+// V3.1: catálogo de videos de tarjetas (enviar_videos_tarjetas
+// + videos_tarjetas[].body type=video con caption).
 //
 // Puede recibir datos desde distintas rutas:
 //
@@ -756,8 +759,19 @@ const urlImagenInformativa =
     ? textoONull(decision.imagen_informativa_url)
     : null;
 
+const videosTarjetasOrigen =
+  decision.enviar_videos_tarjetas === true &&
+  Array.isArray(decision.videos_tarjetas)
+    ? decision.videos_tarjetas
+    : [];
+
+const enviarVideosTarjetas =
+  enviarWhatsApp &&
+  videosTarjetasOrigen.length > 0;
+
 const enviarImagen =
   enviarWhatsApp &&
+  !enviarVideosTarjetas &&
   urlImagenInformativa !== null;
 
 const bodyYCloudImagen =
@@ -782,6 +796,46 @@ const bodyYCloudImagen =
         }
       }
     : null;
+
+const videosTarjetas =
+  enviarVideosTarjetas
+    ? videosTarjetasOrigen
+        .slice(0, 4)
+        .map(video => ({
+          clave:
+            textoONull(video?.clave),
+
+          body: {
+            from:
+              telefonoE164(
+                telefonoEmisor
+              ),
+
+            to:
+              telefonoE164(
+                telefonoDestino
+              ),
+
+            type:
+              'video',
+
+            video: {
+              link:
+                textoONull(video?.url),
+
+              caption:
+                String(video?.caption ?? '').trim()
+            }
+          }
+        }))
+        .filter(v =>
+          v.body.video.link !== null &&
+          v.body.video.caption !== ''
+        )
+    : [];
+
+const enviarVideosTarjetasFinal =
+  videosTarjetas.length > 0;
 
 
 // ======================================================
@@ -982,6 +1036,12 @@ return [
         body:
           bodyYCloudImagen
       },
+
+      enviar_videos_tarjetas:
+        enviarVideosTarjetasFinal,
+
+      videos_tarjetas:
+        videosTarjetas,
 
 
       // ----------------------------------------------

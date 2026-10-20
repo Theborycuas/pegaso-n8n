@@ -17,6 +17,7 @@ Un reporte por intervención sobre el workflow **SISTEMA AUTOMATIZADO PEGASO**: 
 | 2026-10-15 | [Tras la publicidad que pide medidas: acotar, no callar](2026-10-15-medidas-ya-solicitadas-no-callar.md) | Implementado en local, sin publicar en n8n ni commit |
 | 2026-10-15 | [Datos bancarios por imagen y handoff solo con comprobante](2026-10-15-datos-pago-comprobante.md) | Implementado en local, sin publicar ni commit; requiere crear `IMAGEN_DATOS_PAGO` en `configuracion_bot` |
 | 2026-10-15 | [Recotización por cantidad (no negociar)](2026-10-15-recotizacion-por-cantidad.md) | Implementado en local, sin publicar ni commit |
+| 2026-10-19 | [Tarjetas de presentación: catálogo de acabados con videos](2026-10-19-tarjetas-presentacion.md) | Implementado en local, sin publicar ni commit; flyers/afiches siguen a humano |
 
 ## Convenciones
 

@@ -1,9 +1,9 @@
 {
   "workflowId": "09OF22FOxihypeeh",
   "workflowName": "SISTEMA AUTOMATIZADO PEGASO",
-  "workflowUpdatedAt": "2026-10-16T03:50:17.888Z",
-  "extractedAt": "2026-10-19T16:40:21.138Z",
-  "workflowNodeCount": 189,
+  "workflowUpdatedAt": "2026-10-20T13:13:42.539Z",
+  "extractedAt": "2026-10-20T13:13:46.645Z",
+  "workflowNodeCount": 198,
   "codeNodeCount": 69,
   "nodes": [
     {
@@ -140,7 +140,7 @@
       "fileName": "preparar-contexto-ia.js",
       "relativeFile": "code/_extraidos/preparar-contexto-ia.js",
       "typeVersion": 2,
-      "lines": 2579
+      "lines": 2626
     },
     {
       "nodeId": "f207ef1c-d7ff-4fae-9910-486f2ba24c0a",
@@ -148,7 +148,7 @@
       "fileName": "validar-extraccion-cerebro-comercial.js",
       "relativeFile": "code/_extraidos/validar-extraccion-cerebro-comercial.js",
       "typeVersion": 2,
-      "lines": 1156
+      "lines": 1160
     },
     {
       "nodeId": "033b7f46-8a18-4244-9c65-75047b2d6aac",
@@ -156,7 +156,7 @@
       "fileName": "validar-extraccion-deepseek1.js",
       "relativeFile": "code/_extraidos/validar-extraccion-deepseek1.js",
       "typeVersion": 2,
-      "lines": 1156
+      "lines": 1160
     },
     {
       "nodeId": "e79de69f-646a-4449-81a4-725be9a4a6ec",
@@ -164,7 +164,7 @@
       "fileName": "validar-extraccion-openapi1.js",
       "relativeFile": "code/_extraidos/validar-extraccion-openapi1.js",
       "typeVersion": 2,
-      "lines": 1156
+      "lines": 1160
     },
     {
       "nodeId": "6de38fe8-617d-48d0-ad20-5c56b0c06047",
@@ -180,7 +180,7 @@
       "fileName": "normalizar-decision-ia.js",
       "relativeFile": "code/_extraidos/normalizar-decision-ia.js",
       "typeVersion": 2,
-      "lines": 948
+      "lines": 956
     },
     {
       "nodeId": "29a9ba73-a457-44ed-88e2-71ffd76be125",
@@ -260,7 +260,7 @@
       "fileName": "resolver-contexto-comercial.js",
       "relativeFile": "code/_extraidos/resolver-contexto-comercial.js",
       "typeVersion": 2,
-      "lines": 1800
+      "lines": 1929
     },
     {
       "nodeId": "49b907ef-f963-4ccc-b7bb-db921afc5898",
@@ -380,7 +380,7 @@
       "fileName": "preparar-envio-whatsapp.js",
       "relativeFile": "code/_extraidos/preparar-envio-whatsapp.js",
       "typeVersion": 2,
-      "lines": 988
+      "lines": 1048
     },
     {
       "nodeId": "bc2e3649-a530-43b4-be61-72665ab148cf",
