@@ -18,7 +18,7 @@
 
 // ======================================================
 // CALCULAR PRECIO DETALLE
-// PEGASO ADHESIVOS - V2.6
+// PEGASO ADHESIVOS - V2.7
 // ======================================================
 //
 // FUENTE ÚNICA DE VERDAD PARA REGLAS DE PRECIO.
@@ -31,7 +31,7 @@
 //
 // ======================================================
 //
-// ORDEN REAL DEL CALCULO (V2.6):
+// ORDEN REAL DEL CALCULO (V2.7):
 //
 //   1. Validar medida minima (ningun lado < 2 cm).
 //   2. Precio fijo (banda pequena $18 / 4x4 $20).
@@ -114,7 +114,9 @@
 //    +1 cm alto
 //
 //    EXCEPTO:
-//    cuando aplica una banda/precio fijo.
+//    cuando aplica una banda/precio fijo,
+//    o ambos lados son <= 5 cm (troquel: mismo
+//    precio rectangular, circular o troquelado).
 //
 // 9. REDONDEO
 //    Precio comercial final:
@@ -260,6 +262,9 @@ const REGLAS_PRECIO = {
 
   INCREMENTO_FORMA_ALTO_CM:
     1,
+
+  TROQUEL_MISMO_PRECIO_HASTA_CM:
+    5,
 
 
   // --------------------------------------------------
@@ -1197,6 +1202,12 @@ return items.map(
       !precioFijoAplicado &&
       aplicaIncrementoForma(
         forma
+      ) &&
+      !(
+        Number(ancho) <=
+          REGLAS_PRECIO.TROQUEL_MISMO_PRECIO_HASTA_CM &&
+        Number(alto) <=
+          REGLAS_PRECIO.TROQUEL_MISMO_PRECIO_HASTA_CM
       );
 
 

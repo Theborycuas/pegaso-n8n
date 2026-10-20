@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Validar extracción Groq
 // PEGASO ADHESIVOS
-// VERSION: 2.0
+// VERSION: 2.2
 // ======================================================
 //
 // RESPONSABILIDAD:
@@ -215,82 +215,28 @@ function extraerMedidasExplicitas(textoEntrada) {
       .replace(/,/g, '.')
       .toLowerCase();
 
-  // --------------------------------------------------
-  // Caso explícito:
-  // "11 de alto por 8 de ancho"
-  // "8 de ancho por 11 de alto"
-  // --------------------------------------------------
-
-  const regexEtiquetado =
-    /(\d+(?:\.\d+)?)\s*(?:cm|centimetros?|centímetros?)?\s*de\s*(ancho|alto)\s*(?:por|x)\s*(\d+(?:\.\d+)?)\s*(?:cm|centimetros?|centímetros?)?\s*de\s*(ancho|alto)/gi;
-
-  let match;
-
-  while (
-    (match = regexEtiquetado.exec(limpio)) !== null
-  ) {
-    const valor1 = Number(match[1]);
-    const tipo1 = match[2];
-    const valor2 = Number(match[3]);
-    const tipo2 = match[4];
-
-    let ancho = null;
-    let alto = null;
-
-    if (tipo1 === 'ancho') {
-      ancho = valor1;
-    }
-
-    if (tipo1 === 'alto') {
-      alto = valor1;
-    }
-
-    if (tipo2 === 'ancho') {
-      ancho = valor2;
-    }
-
-    if (tipo2 === 'alto') {
-      alto = valor2;
-    }
-
-    if (
-      Number.isFinite(ancho) &&
-      Number.isFinite(alto)
-    ) {
-      resultado.push({
-        ancho_cm: ancho,
-        alto_cm: alto
-      });
-    }
-  }
-
-  // --------------------------------------------------
-  // Caso común:
-  // 8x11
-  // 8 x 11
-  // 8 por 11
-  // --------------------------------------------------
-
-  const regexComun =
-    /(\d+(?:\.\d+)?)\s*(?:cm|centimetros?|centímetros?)?\s*(?:x|por)\s*(\d+(?:\.\d+)?)\s*(?:cm|centimetros?|centímetros?)?/gi;
-
-  while (
-    (match = regexComun.exec(limpio)) !== null
-  ) {
-    const ancho = Number(match[1]);
-    const alto = Number(match[2]);
-
+  function agregar(ancho, alto) {
     if (
       !Number.isFinite(ancho) ||
-      !Number.isFinite(alto)
+      !Number.isFinite(alto) ||
+      ancho <= 0 ||
+      alto <= 0 ||
+      ancho > 200 ||
+      alto > 200
     ) {
-      continue;
+      return;
     }
 
     const yaExiste =
       resultado.some(m =>
-        casiIgual(m.ancho_cm, ancho) &&
-        casiIgual(m.alto_cm, alto)
+        (
+          casiIgual(m.ancho_cm, ancho) &&
+          casiIgual(m.alto_cm, alto)
+        ) ||
+        (
+          casiIgual(m.ancho_cm, alto) &&
+          casiIgual(m.alto_cm, ancho)
+        )
       );
 
     if (!yaExiste) {
@@ -301,7 +247,95 @@ function extraerMedidasExplicitas(textoEntrada) {
     }
   }
 
+  // Primer número x segundo, como se escribe:
+  // 8x11, 8 x 11, 8cm alto x 9ancho,
+  // 8cm de alto x 5 de ancho, 18 de ancho x 7 de alto
+  const regexPar =
+    /(\d+(?:\.\d+)?)\s*(?:cm|centimetros?|centímetros?)?\s*(?:de\s+)?(?:alto|ancho)?\s*(?:x|por)\s*(\d+(?:\.\d+)?)\s*(?:cm|centimetros?|centímetros?)?\s*(?:de\s+)?(?:alto|ancho)?/gi;
+
+  let match;
+
+  while (
+    (match = regexPar.exec(limpio)) !== null
+  ) {
+    agregar(
+      Number(match[1]),
+      Number(match[2])
+    );
+  }
+
   return resultado;
+}
+
+
+function completarDetallesFaltantes(lista, medidas) {
+  if (
+    !Array.isArray(lista) ||
+    medidas.length < 2
+  ) {
+    return;
+  }
+
+  const plantilla =
+    lista[0] &&
+    typeof lista[0] === 'object'
+      ? lista[0]
+      : {
+          cantidad: 1000,
+          producto: null,
+          nombre: null,
+          sabor: null,
+          forma: 'RECTANGULAR',
+          material: null
+        };
+
+  for (const medida of medidas) {
+    const existe =
+      lista.some(d =>
+        d &&
+        (
+          (
+            casiIgual(
+              numero(d.ancho_cm),
+              medida.ancho_cm
+            ) &&
+            casiIgual(
+              numero(d.alto_cm),
+              medida.alto_cm
+            )
+          ) ||
+          (
+            casiIgual(
+              numero(d.ancho_cm),
+              medida.alto_cm
+            ) &&
+            casiIgual(
+              numero(d.alto_cm),
+              medida.ancho_cm
+            )
+          )
+        )
+      );
+
+    if (!existe) {
+      lista.push({
+        cantidad:
+          plantilla.cantidad ?? 1000,
+        producto:
+          plantilla.producto ?? null,
+        nombre: null,
+        sabor: null,
+        ancho_cm:
+          medida.ancho_cm,
+        alto_cm:
+          medida.alto_cm,
+        forma:
+          plantilla.forma ?? 'RECTANGULAR',
+        material:
+          plantilla.material ?? null
+      });
+    }
+  }
 }
 
 
@@ -309,6 +343,13 @@ const medidasExplicitas =
   extraerMedidasExplicitas(
     mensajeActual
   );
+
+if (Array.isArray(detalles)) {
+  completarDetallesFaltantes(
+    detalles,
+    medidasExplicitas
+  );
+}
 
 
 // ======================================================

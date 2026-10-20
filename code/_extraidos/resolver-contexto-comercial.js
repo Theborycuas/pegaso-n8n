@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.14
+// RESOLVER CONTEXTO COMERCIAL - V3.15
 // ======================================================
 //
 // Objetivo:
@@ -103,6 +103,9 @@
 //   tabla) y hay acabado/tamaño/caras, se desglosa y se
 //   suma. Si falta un dato, se pregunta. No se reenvía
 //   el catálogo ni se cotiza P4.
+// - V3.15: etiquetas P4: circular/cuadrada/troquel ≤ 5 cm
+//   mismo precio (FAQ fija, no deriva). Varias medidas
+//   del turno se cotizan juntas.
 //
 // ======================================================
 
@@ -1095,9 +1098,12 @@ function estimarPrecio1000Comercial(
       .toUpperCase();
 
   if (
-    formaNorm === 'CIRCULAR' ||
-    formaNorm === 'TROQUELADA' ||
-    formaNorm === 'REDONDEADA'
+    (
+      formaNorm === 'CIRCULAR' ||
+      formaNorm === 'TROQUELADA' ||
+      formaNorm === 'REDONDEADA'
+    ) &&
+    !(ancho <= 5 && alto <= 5)
   ) {
     anchoCalc += 1;
     altoCalc += 1;
@@ -2246,6 +2252,46 @@ if (debeTotalizarCatalogo) {
         'CATALOGO_MIXTO';
     }
   }
+}
+
+const RESPUESTA_PRECIO_FORMA_TROQUEL =
+  'Así es, desde los 5 cm para abajo se usa troquel para realizar los cortes por lo que el precio es el mismo, sea rectangular, circular o troquelado';
+
+const formasPrecioMencionadas =
+  [
+    /\bcuadrad/.test(mensajeTurnoPlano),
+    /\bcircular|\bredond/.test(mensajeTurnoPlano),
+    /\brectangul/.test(mensajeTurnoPlano),
+    /\btroquel/.test(mensajeTurnoPlano)
+  ].filter(Boolean).length;
+
+const preguntaMismoPrecioForma =
+  formasPrecioMencionadas >= 2 &&
+  /\b(lo mismo|igual(es)?|mismo precio|cuesta?n? igual)\b/.test(
+    mensajeTurnoPlano
+  );
+
+if (
+  totalCatalogo === null &&
+  preguntaMismoPrecioForma &&
+  !esLineaTarjetas &&
+  !esLineaFlyers &&
+  !mencionaTarjetasTurno &&
+  !mencionaFlyersTurno &&
+  accion !== 'ENVIAR_DATOS_PAGO' &&
+  !derivacionPorProductoNoP4
+) {
+  accion =
+    'RESPONDER_GENERAL';
+
+  respuestaSugerida =
+    RESPUESTA_PRECIO_FORMA_TROQUEL;
+
+  omitirEnvio =
+    false;
+
+  motivoOmisionEnvio =
+    null;
 }
 
 

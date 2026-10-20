@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Preparar contexto IA
 // ARCHIVO: code/03-conversacion/preparar-contexto-ia.js
-// VERSION: 4.12
+// VERSION: 4.13
 // ======================================================
 //
 // RESPONSABILIDAD:
@@ -65,6 +65,8 @@
 // - V4.12: si pide total con datos de catálogo (acabado,
 //   A5/A6, 1 o 2 lados) no se salta a INFORMAR_*: el
 //   resolver suma. Tarejtes y similares cuentan como tarjetas.
+// - V4.13: FAQ P4: circular y cuadrada cuestan lo mismo
+//   hasta 5 cm (troquel).
 // - Reglas pre-IA solo para texto sin multimedia:
 //   SALUDO_SIMPLE (respuesta corta fija), PRODUCTO_NO_P4
 //   (DERIVAR_HUMANO + COTIZACION_ESPECIAL) y
@@ -2073,6 +2075,9 @@ const MENCIONA_ETIQUETA =
 const RESPUESTA_TRANSICION_NO_P4 =
   'Permítame un momento por favor, verificamos su requerimiento.';
 
+const RESPUESTA_PRECIO_FORMA_TROQUEL =
+  'Así es, desde los 5 cm para abajo se usa troquel para realizar los cortes por lo que el precio es el mismo, sea rectangular, circular o troquelado';
+
 const RESPUESTA_CIERRE_TARJETAS =
   'Le adjunto videos y precios de los acabados que manejamos en tarjetas de presentación\n\n' +
   '*Precios no incluyen IVA*';
@@ -2479,6 +2484,22 @@ if (
       ? null
       : PRODUCTOS_NO_P4.find(p => p.patron.test(textoTurnoPlano)) ?? null;
 
+  const formasPrecioMencionadas =
+    [
+      /\bcuadrad/.test(textoTurnoPlano),
+      /\bcircular|\bredond/.test(textoTurnoPlano),
+      /\brectangul/.test(textoTurnoPlano),
+      /\btroquel/.test(textoTurnoPlano)
+    ].filter(Boolean).length;
+
+  const preguntaMismoPrecioFormaP4 =
+    formasPrecioMencionadas >= 2 &&
+    /\b(lo mismo|igual(es)?|mismo precio|cuesta?n? igual)\b/.test(
+      textoTurnoPlano
+    ) &&
+    productoTarjetas === null &&
+    productoFlyers === null;
+
   if (esSaludoSimple) {
     reglaPreIA = 'SALUDO_SIMPLE';
 
@@ -2499,6 +2520,15 @@ if (
       requiere_humano: true,
       motivo_derivacion: 'COTIZACION_ESPECIAL',
       respuesta_sugerida: RESPUESTA_TRANSICION_NO_P4
+    };
+  } else if (preguntaMismoPrecioFormaP4) {
+    reglaPreIA = 'PRECIO_FORMA_TROQUEL';
+
+    decisionPreIA = {
+      ...decisionBase(),
+      intencion: 'OTRO',
+      accion: 'RESPONDER_GENERAL',
+      respuesta_sugerida: RESPUESTA_PRECIO_FORMA_TROQUEL
     };
   } else {
     divisionDisenosDetectada =

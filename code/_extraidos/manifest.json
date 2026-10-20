@@ -1,8 +1,8 @@
 {
   "workflowId": "09OF22FOxihypeeh",
   "workflowName": "SISTEMA AUTOMATIZADO PEGASO",
-  "workflowUpdatedAt": "2026-10-20T18:02:58.936Z",
-  "extractedAt": "2026-10-20T18:03:05.613Z",
+  "workflowUpdatedAt": "2026-10-20T19:19:39.058Z",
+  "extractedAt": "2026-10-20T19:19:44.175Z",
   "workflowNodeCount": 204,
   "codeNodeCount": 69,
   "nodes": [
@@ -12,7 +12,7 @@
       "fileName": "calcular-precio-detalle.js",
       "relativeFile": "code/_extraidos/calcular-precio-detalle.js",
       "typeVersion": 2,
-      "lines": 1690
+      "lines": 1701
     },
     {
       "nodeId": "2478267a-3ded-4aa1-9dbd-8e4e62a6a390",
@@ -28,7 +28,7 @@
       "fileName": "validar-extraccion-groq.js",
       "relativeFile": "code/_extraidos/validar-extraccion-groq.js",
       "typeVersion": 2,
-      "lines": 842
+      "lines": 883
     },
     {
       "nodeId": "7bebd33a-2a0c-400a-aeaf-388110be4d9d",
@@ -36,7 +36,7 @@
       "fileName": "validar-extraccion-deepseek.js",
       "relativeFile": "code/_extraidos/validar-extraccion-deepseek.js",
       "typeVersion": 2,
-      "lines": 842
+      "lines": 883
     },
     {
       "nodeId": "37bffb2b-33a0-46ca-8bd1-3538a453b6fe",
@@ -44,7 +44,7 @@
       "fileName": "validar-extraccion-openapi.js",
       "relativeFile": "code/_extraidos/validar-extraccion-openapi.js",
       "typeVersion": 2,
-      "lines": 842
+      "lines": 883
     },
     {
       "nodeId": "b389417d-a3d7-4b2e-8819-255e7ba4a429",
@@ -140,7 +140,7 @@
       "fileName": "preparar-contexto-ia.js",
       "relativeFile": "code/_extraidos/preparar-contexto-ia.js",
       "typeVersion": 2,
-      "lines": 2833
+      "lines": 2863
     },
     {
       "nodeId": "f207ef1c-d7ff-4fae-9910-486f2ba24c0a",
@@ -260,7 +260,7 @@
       "fileName": "resolver-contexto-comercial.js",
       "relativeFile": "code/_extraidos/resolver-contexto-comercial.js",
       "typeVersion": 2,
-      "lines": 3131
+      "lines": 3177
     },
     {
       "nodeId": "49b907ef-f963-4ccc-b7bb-db921afc5898",
