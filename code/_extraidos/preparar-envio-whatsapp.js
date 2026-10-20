@@ -19,7 +19,7 @@
 // ======================================================
 // PREPARAR ENVÍO WHATSAPP - YCLOUD
 // PEGASO ADHESIVOS
-// VERSION: 3.1
+// VERSION: 3.4
 // ======================================================
 //
 // V2.1: no envía si el texto persistido es el marcador
@@ -38,6 +38,16 @@
 //
 // V3.1: catálogo de videos de tarjetas (enviar_videos_tarjetas
 // + videos_tarjetas[].body type=video con caption).
+//
+// V3.2: saludo horario antes de los videos
+// (ycloud_request_saludo_tarjetas); el texto posterior es
+// solo la frase de cierre del catálogo.
+//
+// V3.3: el mismo saludo sirve para flyers; la imagen de
+// flyers reutiliza ycloud_request_imagen (antes del texto).
+//
+// V3.4: nota de IVA al final del catálogo de tarjetas/flyers
+// (ycloud_request_nota_iva), no en etiquetas.
 //
 // Puede recibir datos desde distintas rutas:
 //
@@ -755,9 +765,11 @@ const bodyYCloud = {
 // ======================================================
 
 const urlImagenInformativa =
-  decision.enviar_imagen_informativa === true
-    ? textoONull(decision.imagen_informativa_url)
-    : null;
+  decision.enviar_imagen_flyers === true
+    ? textoONull(decision.imagen_flyers_url)
+    : decision.enviar_imagen_informativa === true
+      ? textoONull(decision.imagen_informativa_url)
+      : null;
 
 const videosTarjetasOrigen =
   decision.enviar_videos_tarjetas === true &&
@@ -836,6 +848,72 @@ const videosTarjetas =
 
 const enviarVideosTarjetasFinal =
   videosTarjetas.length > 0;
+
+const textoSaludoTarjetas =
+  String(decision.texto_saludo_tarjetas ?? '').trim();
+
+const enviarSaludoTarjetas =
+  enviarWhatsApp &&
+  textoSaludoTarjetas !== '' &&
+  (
+    enviarVideosTarjetasFinal ||
+    enviarImagen
+  );
+
+const bodyYCloudSaludoTarjetas =
+  enviarSaludoTarjetas
+    ? {
+        from:
+          telefonoE164(
+            telefonoEmisor
+          ),
+
+        to:
+          telefonoE164(
+            telefonoDestino
+          ),
+
+        type:
+          'text',
+
+        text: {
+          body:
+            textoSaludoTarjetas
+        }
+      }
+    : null;
+
+const textoNotaIva =
+  enviarWhatsApp &&
+  decision.enviar_nota_iva === true
+    ? String(decision.texto_nota_iva ?? '').trim()
+    : '';
+
+const enviarNotaIva =
+  textoNotaIva !== '';
+
+const bodyYCloudNotaIva =
+  enviarNotaIva
+    ? {
+        from:
+          telefonoE164(
+            telefonoEmisor
+          ),
+
+        to:
+          telefonoE164(
+            telefonoDestino
+          ),
+
+        type:
+          'text',
+
+        text: {
+          body:
+            textoNotaIva
+        }
+      }
+    : null;
 
 
 // ======================================================
@@ -1042,6 +1120,30 @@ return [
 
       videos_tarjetas:
         videosTarjetas,
+
+      enviar_saludo:
+        enviarSaludoTarjetas,
+
+      enviar_saludo_tarjetas:
+        enviarSaludoTarjetas,
+
+      ycloud_request_saludo: {
+        body:
+          bodyYCloudSaludoTarjetas
+      },
+
+      ycloud_request_saludo_tarjetas: {
+        body:
+          bodyYCloudSaludoTarjetas
+      },
+
+      enviar_nota_iva:
+        enviarNotaIva,
+
+      ycloud_request_nota_iva: {
+        body:
+          bodyYCloudNotaIva
+      },
 
 
       // ----------------------------------------------

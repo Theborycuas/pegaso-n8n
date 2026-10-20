@@ -17,11 +17,11 @@
 // ======================================================
 
 // ======================================================
-// VALIDAR EXTRACCIÓN CEREBRO COMERCIAL - V2.4
+// VALIDAR EXTRACCIÓN CEREBRO COMERCIAL - V2.5
 // ======================================================
 // Valida:
 // - contrato del Cerebro Comercial;
-// - enums (incluye INFORMAR_TARJETAS);
+// - enums (incluye INFORMAR_TARJETAS e INFORMAR_FLYERS);
 // - cotización P4;
 // - continuidad conversacional;
 // - medidas no producibles;
@@ -108,6 +108,7 @@ const ACCIONES = [
   'INFORMAR_ENTREGA',
   'INFORMAR_DISENO',
   'INFORMAR_TARJETAS',
+  'INFORMAR_FLYERS',
   'COTIZAR_P4',
 
   // ----------------------------------------------
@@ -808,6 +809,9 @@ const REGLAS_INFORMATIVAS = {
     'CONSULTAR_DISENO',
 
   INFORMAR_TARJETAS:
+    'CONSULTAR_PRECIO',
+
+  INFORMAR_FLYERS:
     'CONSULTAR_PRECIO'
 };
 

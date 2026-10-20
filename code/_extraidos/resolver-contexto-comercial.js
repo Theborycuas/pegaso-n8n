@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.5
+// RESOLVER CONTEXTO COMERCIAL - V3.8
 // ======================================================
 //
 // Objetivo:
@@ -73,6 +73,14 @@
 //   >= 6000). Prefijo de explicación al recotizar por cantidad.
 // - V3.5: INFORMAR_TARJETAS envía catálogo de 4 videos (acabados)
 //   + texto de cierre. No deriva a humano ni cotiza P4.
+// - V3.6: primer contacto de tarjetas = saludo horario + videos
+//   + frase corta. Material, entregas y caras se responden después,
+//   sin mezclar con la metodología/precios de etiquetas.
+// - V3.7: INFORMAR_FLYERS envía saludo + imagen + lista de precios
+//   A5/A6. Entregas iguales a tarjetas. Couche 115 gr. Lo que no
+//   está en catálogo deriva a humano.
+// - V3.8: tras el catálogo de tarjetas o flyers se envía
+//   "*Los precios adjuntos no incluyen IVA*".
 //
 // ======================================================
 
@@ -682,6 +690,7 @@ else if (
     'INFORMAR_ENTREGA',
     'INFORMAR_DISENO',
     'INFORMAR_TARJETAS',
+    'INFORMAR_FLYERS',
     'ENVIAR_DATOS_PAGO',
     'REGISTRAR_ACEPTACION',
     'RESPONDER_GENERAL'
@@ -886,8 +895,8 @@ if (derivacionPorCantidad) {
 // ------------------------------------------------------
 //
 // TARJETAS_PRESENTACION: catálogo de acabados (videos).
-// PRODUCTO_NO_P4: otro impreso (flyers, afiches, etc.)
-// → humano. Nunca cotizar P4.
+// FLYERS_VOLANTES: imagen + precios A5/A6.
+// PRODUCTO_NO_P4: otro impreso (afiches, etc.) → humano.
 //
 // ------------------------------------------------------
 
@@ -900,17 +909,27 @@ const productoNoP4 =
 const productoTarjetas =
   texto(contextoIA.producto_tarjetas);
 
+const productoFlyers =
+  texto(contextoIA.producto_flyers);
+
 if (
   reglaPreIA === 'TARJETAS_PRESENTACION' ||
   accionIA === 'INFORMAR_TARJETAS'
 ) {
   accion =
     'INFORMAR_TARJETAS';
+} else if (
+  reglaPreIA === 'FLYERS_VOLANTES' ||
+  accionIA === 'INFORMAR_FLYERS'
+) {
+  accion =
+    'INFORMAR_FLYERS';
 }
 
 const derivacionPorProductoNoP4 =
   reglaPreIA === 'PRODUCTO_NO_P4' &&
   accion !== 'INFORMAR_TARJETAS' &&
+  accion !== 'INFORMAR_FLYERS' &&
   !derivacionPorCantidad;
 
 if (derivacionPorProductoNoP4) {
@@ -1185,12 +1204,20 @@ else if (
   accion === 'INFORMAR_TARJETAS'
 ) {
   respuestaSugerida =
-    'Trabajamos tarjetas de presentación en papel Couche 300 gr, medida estándar 9x5 cm. ' +
-    'El mínimo es 1000 unidades por diseño (mismo diseño; no se dividen en varios). ' +
-    'Impresión a 1 o 2 caras al mismo precio. ' +
-    'Entregas de tarjetas: si el pedido ingresa con abono lunes o martes, se envía el miércoles; ' +
-    'si ingresa miércoles o jueves, se envía el viernes. ' +
-    'Si necesita otra medida en Couche 300 gr (p. ej. estampitas), se calcula en múltiplos de la tarjeta 9x5 cm.';
+    'Le adjunto videos y precios de los acabados que manejamos en tarjetas de presentación';
+}
+
+else if (
+  accion === 'INFORMAR_FLYERS'
+) {
+  respuestaSugerida =
+    'Le adjunto tamaños y precios de volantes / flyers (1000 unidades):\n\n' +
+    'A6 (10.5 x 14.8 cm)\n' +
+    '• 1 lado: $20\n' +
+    '• 2 lados: $26\n\n' +
+    'A5 (21 x 14.8 cm)\n' +
+    '• 1 lado: $32\n' +
+    '• 2 lados: $41';
 }
 
 else if (
@@ -1366,7 +1393,7 @@ const aplicaMetodologia =
   !omitirEnvio &&
   !pideConfirmacionMedidasGrandes &&
   !niegaMedidasGrandes &&
-  !['COTIZAR_P4', 'DERIVAR_HUMANO'].includes(accion);
+  !['COTIZAR_P4', 'DERIVAR_HUMANO', 'INFORMAR_TARJETAS', 'INFORMAR_FLYERS'].includes(accion);
 
 if (coincidenciaFecha !== null) {
   fechaDeseadaCliente = {
@@ -1464,6 +1491,82 @@ if (automatizacionAtendioTurno) {
 
 
 // ------------------------------------------------------
+// 12.4b LÍNEA DE PRODUCTO (TARJETAS vs ETIQUETAS)
+// ------------------------------------------------------
+//
+// Precios y entregas no se mezclan. Si el turno nombra
+// etiquetas/stickers, la línea es ETIQUETAS. Si nombra
+// tarjetas (sin etiquetas) o la acción es INFORMAR_TARJETAS,
+// la línea es TARJETAS_PRESENTACION. Si nombra ambos, no
+// se cambia la línea persistida (el cerebro debe aclarar).
+//
+// ------------------------------------------------------
+
+const MENCIONA_ETIQUETA_TURNO =
+  /\b(etiquetas?|stickers?|adhesiv[oa]s?|calcomanias?|pegatinas?|rotulos?|vinil|viniles)\b/;
+
+const MENCIONA_TARJETAS_TURNO =
+  /\btarjetas?( de (presentacion|visita|negocio|negocios)| personales?| corporativas?)?\b|\bestampitas?\b/;
+
+const MENCIONA_FLYERS_TURNO =
+  /\b(flyers?|flayers?|volantes?)\b/;
+
+const mencionaEtiquetaTurno =
+  MENCIONA_ETIQUETA_TURNO.test(mensajeTurnoPlano);
+
+const mencionaTarjetasTurno =
+  MENCIONA_TARJETAS_TURNO.test(mensajeTurnoPlano);
+
+const mencionaFlyersTurno =
+  MENCIONA_FLYERS_TURNO.test(mensajeTurnoPlano);
+
+const productoLineaAnterior =
+  texto(contextoAnterior.producto_linea);
+
+let productoLinea =
+  productoLineaAnterior;
+
+const mezclaLineasTurno =
+  [
+    mencionaEtiquetaTurno,
+    mencionaTarjetasTurno,
+    mencionaFlyersTurno
+  ].filter(Boolean).length > 1;
+
+if (mezclaLineasTurno) {
+  productoLinea =
+    productoLineaAnterior;
+} else if (mencionaEtiquetaTurno) {
+  productoLinea =
+    'ETIQUETAS';
+} else if (
+  accion === 'INFORMAR_TARJETAS' ||
+  productoTarjetas !== null ||
+  mencionaTarjetasTurno
+) {
+  productoLinea =
+    'TARJETAS_PRESENTACION';
+} else if (
+  accion === 'INFORMAR_FLYERS' ||
+  productoFlyers !== null ||
+  mencionaFlyersTurno
+) {
+  productoLinea =
+    'FLYERS_VOLANTES';
+}
+
+const esLineaTarjetas =
+  productoLinea === 'TARJETAS_PRESENTACION' &&
+  !mencionaEtiquetaTurno &&
+  !mencionaFlyersTurno;
+
+const esLineaFlyers =
+  productoLinea === 'FLYERS_VOLANTES' &&
+  !mencionaEtiquetaTurno &&
+  !mencionaTarjetasTurno;
+
+
+// ------------------------------------------------------
 // 12.5 IMAGEN INFORMATIVA (MATERIAL / METODOLOGÍA / DATOS PAGO)
 // ------------------------------------------------------
 //
@@ -1549,7 +1652,10 @@ const imagenInformativaYaEnviada =
   ) !== null;
 
 const enviarImagenInformativa =
+  !esLineaTarjetas &&
+  !esLineaFlyers &&
   accion !== 'INFORMAR_TARJETAS' &&
+  accion !== 'INFORMAR_FLYERS' &&
   imagenInformativa !== null &&
   !omitirEnvio &&
   urlImagenInformativa !== null &&
@@ -1623,6 +1729,292 @@ const enviarVideosTarjetas =
   catalogoTarjetasActivo &&
   videosTarjetasValidos.length > 0 &&
   !catalogoTarjetasYaEnviado;
+
+
+// ------------------------------------------------------
+// 12.6b CATÁLOGO IMAGEN FLYERS
+// ------------------------------------------------------
+
+const IMAGEN_FLYERS_DEFAULT =
+  'https://pegasoadhesivos.com/wp-content/uploads/2026/10/Volantes_Mesa-de-trabajo-1-copia-scaled.jpg';
+
+const RESPUESTA_CIERRE_CATALOGO_FLYERS =
+  'Le adjunto tamaños y precios de volantes / flyers (1000 unidades):\n\n' +
+  'A6 (10.5 x 14.8 cm)\n' +
+  '• 1 lado: $20\n' +
+  '• 2 lados: $26\n\n' +
+  'A5 (21 x 14.8 cm)\n' +
+  '• 1 lado: $32\n' +
+  '• 2 lados: $41';
+
+const configCatalogoFlyers =
+  objeto(
+    filasConfiguracion.find(
+      fila => fila.clave === 'CATALOGO_FLYERS' || fila.clave === 'IMAGEN_FLYERS'
+    )?.valor_json
+  );
+
+const urlFlyersConfigurada =
+  texto(configCatalogoFlyers.url) ??
+  IMAGEN_FLYERS_DEFAULT;
+
+const urlImagenFlyers =
+  configCatalogoFlyers.activo !== false &&
+  urlFlyersConfigurada !== null &&
+  /^https:\/\/\S+$/i.test(urlFlyersConfigurada)
+    ? urlFlyersConfigurada
+    : null;
+
+const catalogoFlyersYaEnviado =
+  texto(
+    objeto(contextoAnterior.catalogo_flyers).enviada_at
+  ) !== null;
+
+const enviarImagenFlyers =
+  accion === 'INFORMAR_FLYERS' &&
+  !omitirEnvio &&
+  urlImagenFlyers !== null &&
+  !catalogoFlyersYaEnviado;
+
+
+// ------------------------------------------------------
+// 12.7 RESPUESTAS DE TARJETAS (SIN MEZCLAR ETIQUETAS)
+// ------------------------------------------------------
+
+const RESPUESTA_CIERRE_CATALOGO_TARJETAS =
+  'Le adjunto videos y precios de los acabados que manejamos en tarjetas de presentación';
+
+const RESPUESTA_MATERIAL_TARJETAS =
+  'Las tarjetas de presentación se imprimen en papel Couche de 300 gr, medida estándar 9x5 cm.';
+
+const RESPUESTA_ENTREGA_TARJETAS =
+  'Para tarjetas: si el pedido ingresa con abono lunes o martes, se envía el miércoles; ' +
+  'si ingresa miércoles o jueves, se envía el viernes.';
+
+const RESPUESTA_CARAS_TARJETAS =
+  'La impresión puede ser a una o ambas caras; el precio es el mismo. ' +
+  'Comúnmente se imprime por los dos lados.';
+
+const RESPUESTA_MINIMO_TARJETAS =
+  'El mínimo es 1000 unidades por diseño, del mismo diseño; no se divide en varios. ' +
+  'Otras medidas en Couche 300 gr (por ejemplo estampitas de 18x10 cm) se calculan en múltiplos de la tarjeta 9x5 cm.';
+
+const RESPUESTA_ACABADO_TARJETAS =
+  'Los acabados y precios están en los videos que le envié. ¿Qué acabado le gustaría?';
+
+function saludoHorarioTarjetas(textoPlanoTurno) {
+  if (/\bnoches?\b/.test(textoPlanoTurno)) {
+    return 'Buenas noches';
+  }
+
+  if (/\btardes?\b/.test(textoPlanoTurno)) {
+    return 'Buenas tardes';
+  }
+
+  if (/\bdias?\b/.test(textoPlanoTurno)) {
+    return 'Buenos días';
+  }
+
+  const horaEcuador =
+    new Date(Date.now() - 5 * 3600 * 1000).getUTCHours();
+
+  if (horaEcuador >= 5 && horaEcuador < 12) {
+    return 'Buenos días';
+  }
+
+  if (horaEcuador >= 12 && horaEcuador < 19) {
+    return 'Buenas tardes';
+  }
+
+  return 'Buenas noches';
+}
+
+const PATRON_CARAS_TARJETAS =
+  /\b((a )?(una|1|dos|2) caras?|ambos lados|un lado|doble cara|una sola cara)\b/;
+
+const PATRON_MATERIAL_TARJETAS =
+  /\b(material|couche|papel|cartulina|gramaje)\b/;
+
+const PATRON_ENTREGA_TARJETAS =
+  /\b(tiempos?|demora|entregas?|envios?|para cuando|cuando (me )?(las |los )?(entregan|tienen|salen)|en cuantos dias|cuanto (se )?demora|metodologia)\b/;
+
+const PATRON_MINIMO_TARJETAS =
+  /\b(minimo|minimos|1000 por diseno|varios disenos|dividir|estampitas?)\b/;
+
+let textoSaludoTarjetas = null;
+
+let derivacionPorFlyerDesconocido = false;
+
+if (enviarVideosTarjetas || enviarImagenFlyers) {
+  textoSaludoTarjetas =
+    `${saludoHorarioTarjetas(mensajeTurnoPlano)}. Con gusto atenderemos su requerimiento`;
+
+  if (enviarVideosTarjetas) {
+    respuestaSugerida =
+      RESPUESTA_CIERRE_CATALOGO_TARJETAS;
+  }
+
+  if (enviarImagenFlyers) {
+    respuestaSugerida =
+      RESPUESTA_CIERRE_CATALOGO_FLYERS;
+  }
+} else if (
+  esLineaTarjetas &&
+  accion !== 'DERIVAR_HUMANO' &&
+  accion !== 'ENVIAR_DATOS_PAGO' &&
+  !omitirEnvio
+) {
+  if (PATRON_CARAS_TARJETAS.test(mensajeTurnoPlano)) {
+    respuestaSugerida =
+      RESPUESTA_CARAS_TARJETAS;
+
+    if (['COTIZAR_P4', 'PEDIR_MEDIDAS', 'INFORMAR_TARJETAS'].includes(accion)) {
+      accion = 'RESPONDER_GENERAL';
+    }
+  } else if (
+    accion === 'INFORMAR_MATERIAL' ||
+    PATRON_MATERIAL_TARJETAS.test(mensajeTurnoPlano)
+  ) {
+    respuestaSugerida =
+      RESPUESTA_MATERIAL_TARJETAS;
+
+    if (accion !== 'INFORMAR_MATERIAL') {
+      accion = 'INFORMAR_MATERIAL';
+    }
+  } else if (
+    accion === 'INFORMAR_ENTREGA' ||
+    accion === 'INFORMAR_METODOLOGIA' ||
+    aplicaMetodologia ||
+    PATRON_ENTREGA_TARJETAS.test(mensajeTurnoPlano)
+  ) {
+    respuestaSugerida =
+      RESPUESTA_ENTREGA_TARJETAS;
+
+    if (!['INFORMAR_ENTREGA', 'INFORMAR_METODOLOGIA'].includes(accion)) {
+      accion = 'INFORMAR_ENTREGA';
+    }
+  } else if (
+    accion === 'INFORMAR_MINIMO' ||
+    PATRON_MINIMO_TARJETAS.test(mensajeTurnoPlano)
+  ) {
+    respuestaSugerida =
+      RESPUESTA_MINIMO_TARJETAS;
+
+    if (accion !== 'INFORMAR_MINIMO') {
+      accion = 'INFORMAR_MINIMO';
+    }
+  } else if (
+    accion === 'COTIZAR_P4' ||
+    accion === 'PEDIR_MEDIDAS'
+  ) {
+    accion = 'RESPONDER_GENERAL';
+    respuestaSugerida =
+      'Para tarjetas de presentación el precio es por acabado, en 1000 unidades del mismo diseño (9x5 cm). ' +
+      '¿Qué acabado le gustaría? Si busca etiquetas adhesivas, indíquenos por favor las medidas.';
+  } else if (accion === 'INFORMAR_TARJETAS') {
+    respuestaSugerida =
+      RESPUESTA_ACABADO_TARJETAS;
+  }
+} else if (
+  esLineaFlyers &&
+  accion !== 'ENVIAR_DATOS_PAGO' &&
+  !omitirEnvio
+) {
+  const RESPUESTA_MATERIAL_FLYERS =
+    'Los volantes / flyers se imprimen en papel Couche de 115 gr.';
+
+  const RESPUESTA_ENTREGA_FLYERS =
+    'Para volantes / flyers: si el pedido ingresa con abono lunes o martes, se envía el miércoles; ' +
+    'si ingresa miércoles o jueves, se envía el viernes.';
+
+  const RESPUESTA_CARAS_FLYERS =
+    'En volantes el precio cambia según 1 o 2 caras, en 1000 unidades: ' +
+    'A6 $20 / $26 y A5 $32 / $41.';
+
+  const PATRON_CARAS_FLYERS =
+    /\b((a )?(una|1|dos|2) (lado|lados|caras?)|ambos lados|un lado|doble cara|una sola cara)\b/;
+
+  const PATRON_MATERIAL_FLYERS =
+    /\b(material|couche|papel|cartulina|gramaje)\b/;
+
+  const PATRON_ENTREGA_FLYERS =
+    /\b(tiempos?|demora|entregas?|envios?|para cuando|cuando (me )?(las |los )?(entregan|tienen|salen)|en cuantos dias|cuanto (se )?demora|metodologia)\b/;
+
+  const PATRON_TAMANO_FLYERS =
+    /\b(a5|a6|10\.?5\s*x\s*14|21\s*x\s*14)\b/;
+
+  const PATRON_DESCONOCIDO_FLYERS =
+    /\b(a[234]|oficio|carta|tabloide|plastific|laminad|uv select|pantone|oro|relieve|urgente|otro papel|adhesiv|sticker|etiqueta)\b/;
+
+  const preguntaAbierta =
+    /\?/.test(mensajeTurnoPlano) ||
+    /\b(pueden|podemos|hacen|hacemos|tienen|tienenos|se puede|se podra)\b/.test(
+      mensajeTurnoPlano
+    );
+
+  if (PATRON_DESCONOCIDO_FLYERS.test(mensajeTurnoPlano)) {
+    accion = 'DERIVAR_HUMANO';
+    derivacionPorFlyerDesconocido = true;
+    respuestaSugerida =
+      'Permítame un momento por favor, verificamos su requerimiento.';
+  } else if (PATRON_CARAS_FLYERS.test(mensajeTurnoPlano)) {
+    respuestaSugerida =
+      RESPUESTA_CARAS_FLYERS;
+
+    if (['COTIZAR_P4', 'PEDIR_MEDIDAS', 'INFORMAR_FLYERS', 'DERIVAR_HUMANO'].includes(accion)) {
+      accion = 'RESPONDER_GENERAL';
+    }
+  } else if (
+    accion === 'INFORMAR_MATERIAL' ||
+    PATRON_MATERIAL_FLYERS.test(mensajeTurnoPlano)
+  ) {
+    respuestaSugerida =
+      RESPUESTA_MATERIAL_FLYERS;
+
+    accion = 'INFORMAR_MATERIAL';
+  } else if (
+    accion === 'INFORMAR_ENTREGA' ||
+    accion === 'INFORMAR_METODOLOGIA' ||
+    aplicaMetodologia ||
+    PATRON_ENTREGA_FLYERS.test(mensajeTurnoPlano)
+  ) {
+    respuestaSugerida =
+      RESPUESTA_ENTREGA_FLYERS;
+
+    accion = 'INFORMAR_ENTREGA';
+  } else if (
+    PATRON_TAMANO_FLYERS.test(mensajeTurnoPlano) ||
+    /\b(precio|precios|vale|valor|cuanto (sale|cuesta|queda|es)|a como)\b/.test(
+      mensajeTurnoPlano
+    )
+  ) {
+    respuestaSugerida =
+      RESPUESTA_CIERRE_CATALOGO_FLYERS;
+
+    if (['COTIZAR_P4', 'PEDIR_MEDIDAS', 'DERIVAR_HUMANO'].includes(accion)) {
+      accion = 'RESPONDER_GENERAL';
+    }
+  } else if (
+    accion === 'COTIZAR_P4' ||
+    accion === 'PEDIR_MEDIDAS'
+  ) {
+    accion = 'RESPONDER_GENERAL';
+    respuestaSugerida =
+      'Los volantes / flyers se trabajan en 1000 unidades, tamaños A6 y A5, a 1 o 2 caras. ' +
+      '¿Cuál tamaño y de cuántos lados necesita?';
+  } else if (accion === 'INFORMAR_FLYERS') {
+    respuestaSugerida =
+      'Los tamaños y precios están en la imagen que le envié. ¿Cuál tamaño y de cuántos lados necesita?';
+  } else if (
+    preguntaAbierta &&
+    !['INFORMAR_UBICACION', 'INFORMAR_METODOLOGIA_PAGO', 'INFORMAR_DISENO'].includes(accion)
+  ) {
+    accion = 'DERIVAR_HUMANO';
+    derivacionPorFlyerDesconocido = true;
+    respuestaSugerida =
+      'Permítame un momento por favor, verificamos su requerimiento.';
+  }
+}
 
 
 // ======================================================
@@ -1720,14 +2112,26 @@ const contextoComercialNuevo = {
           catalogo_tarjetas: {
             videos: videosTarjetasValidos.map(v => v.clave),
             enviada_at: new Date().toISOString()
-          },
-          producto_linea: 'TARJETAS_PRESENTACION'
+          }
         }
-      : (
-        accion === 'INFORMAR_TARJETAS'
-          ? { producto_linea: 'TARJETAS_PRESENTACION' }
-          : {}
-      )
+      : {}
+  ),
+
+  ...(
+    enviarImagenFlyers
+      ? {
+          catalogo_flyers: {
+            url: urlImagenFlyers,
+            enviada_at: new Date().toISOString()
+          }
+        }
+      : {}
+  ),
+
+  ...(
+    productoLinea
+      ? { producto_linea: productoLinea }
+      : {}
   ),
 
   cotizacion: {
@@ -1873,6 +2277,24 @@ return [
           : {}
       ),
 
+      ...(
+        derivacionPorFlyerDesconocido
+          ? {
+              requiere_humano:
+                true,
+
+              motivo_derivacion:
+                'COTIZACION_ESPECIAL',
+
+              requiere_notificacion:
+                true,
+
+              regla_derivacion:
+                'FLYER_NO_CATALOGADO'
+            }
+          : {}
+      ),
+
       derivacion_por_cantidad:
         derivacionPorCantidad,
 
@@ -1926,11 +2348,38 @@ return [
           ? videosTarjetasValidos
           : [],
 
+      texto_saludo_tarjetas:
+        textoSaludoTarjetas,
+
+      enviar_nota_iva:
+        enviarVideosTarjetas || enviarImagenFlyers,
+
+      texto_nota_iva:
+        (enviarVideosTarjetas || enviarImagenFlyers)
+          ? '*Los precios adjuntos no incluyen IVA*'
+          : null,
+
+      enviar_imagen_flyers:
+        enviarImagenFlyers,
+
+      imagen_flyers_url:
+        enviarImagenFlyers
+          ? urlImagenFlyers
+          : null,
+
       producto_tarjetas:
         productoTarjetas ??
         (
           accion === 'INFORMAR_TARJETAS'
             ? 'tarjetas de presentación'
+            : null
+        ),
+
+      producto_flyers:
+        productoFlyers ??
+        (
+          accion === 'INFORMAR_FLYERS'
+            ? 'flyers / volantes'
             : null
         ),
 

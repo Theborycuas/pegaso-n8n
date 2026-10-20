@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Preparar contexto IA
 // ARCHIVO: code/03-conversacion/preparar-contexto-ia.js
-// VERSION: 4.6
+// VERSION: 4.8
 // ======================================================
 //
 // RESPONSABILIDAD:
@@ -53,6 +53,11 @@
 // - V4.6: tarjetas de presentación → INFORMAR_TARJETAS (catálogo de
 //   videos). Ya no van a PRODUCTO_NO_P4/humano. Flyers/afiches siguen
 //   derivando. La detección de tarjetas aplica también con multimedia.
+// - V4.7: el primer contacto de tarjetas no vierte material/entregas/
+//   caras. Solo INFORMAR_TARJETAS si el catálogo aún no se envió.
+//   Los siguientes turnos van al cerebro (con producto_linea).
+// - V4.8: flyers/volantes → INFORMAR_FLYERS (imagen + precios).
+//   Ya no van a PRODUCTO_NO_P4. Afiches siguen derivando.
 // - Reglas pre-IA solo para texto sin multimedia:
 //   SALUDO_SIMPLE (respuesta corta fija), PRODUCTO_NO_P4
 //   (DERIVAR_HUMANO + COTIZACION_ESPECIAL) y
@@ -1961,8 +1966,14 @@ const PRODUCTOS_TARJETAS = [
   }
 ];
 
+const PRODUCTOS_FLYERS = [
+  {
+    patron: /\b(flyers?|flayers?|volantes?)\b/,
+    producto: 'flyers / volantes'
+  }
+];
+
 const PRODUCTOS_NO_P4 = [
-  { patron: /\b(flyers?|flayers?|volantes?)\b/, producto: 'flyers / volantes' },
   { patron: /\bcarpetas?\b/, producto: 'carpetas' },
   { patron: /\btalonarios?\b/, producto: 'talonarios' },
   { patron: /\bboletos?\b/, producto: 'boletos' },
@@ -1981,12 +1992,16 @@ const RESPUESTA_TRANSICION_NO_P4 =
   'Permítame un momento por favor, verificamos su requerimiento.';
 
 const RESPUESTA_CIERRE_TARJETAS =
-  'Trabajamos tarjetas de presentación en papel Couche 300 gr, medida estándar 9x5 cm. ' +
-  'El mínimo es 1000 unidades por diseño (mismo diseño; no se dividen en varios). ' +
-  'Impresión a 1 o 2 caras al mismo precio. ' +
-  'Entregas de tarjetas: si el pedido ingresa con abono lunes o martes, se envía el miércoles; ' +
-  'si ingresa miércoles o jueves, se envía el viernes. ' +
-  'Si necesita otra medida en Couche 300 gr (p. ej. estampitas), se calcula en múltiplos de la tarjeta 9x5 cm.';
+  'Le adjunto videos y precios de los acabados que manejamos en tarjetas de presentación';
+
+const RESPUESTA_CIERRE_FLYERS =
+  'Le adjunto tamaños y precios de volantes / flyers (1000 unidades):\n\n' +
+  'A6 (10.5 x 14.8 cm)\n' +
+  '• 1 lado: $20\n' +
+  '• 2 lados: $26\n\n' +
+  'A5 (21 x 14.8 cm)\n' +
+  '• 1 lado: $32\n' +
+  '• 2 lados: $41';
 
 
 const MINIMO_POR_DISENO = 1000;
@@ -2237,6 +2252,8 @@ let productoNoP4Detectado = null;
 
 let productoTarjetasDetectado = null;
 
+let productoFlyersDetectado = null;
+
 let divisionDisenosDetectada = null;
 
 const textoTurnoPlano =
@@ -2248,8 +2265,33 @@ const productoTarjetas =
     ? PRODUCTOS_TARJETAS.find(p => p.patron.test(textoTurnoPlano)) ?? null
     : null;
 
-// Tarjetas: también con imagen/archivo en el turno (diseño, meme, etc.).
-if (productoTarjetas) {
+const catalogoTarjetasYaEnviado =
+  String(
+    objeto(contextoComercial.catalogo_tarjetas).enviada_at ?? ''
+  ).trim() !== '';
+
+const productoFlyers =
+  textoTurnoPlano !== '' &&
+  !MENCIONA_ETIQUETA.test(textoTurnoPlano)
+    ? PRODUCTOS_FLYERS.find(p => p.patron.test(textoTurnoPlano)) ?? null
+    : null;
+
+const catalogoFlyersYaEnviado =
+  String(
+    objeto(contextoComercial.catalogo_flyers).enviada_at ?? ''
+  ).trim() !== '';
+
+const mezclaTarjetasYFlyers =
+  productoTarjetas !== null &&
+  productoFlyers !== null;
+
+// Primer contacto de tarjetas o flyers (también con imagen/archivo).
+// Si el catálogo ya salió, no se salta el cerebro.
+// Si nombra tarjetas y flyers juntos, aclara el cerebro.
+if (mezclaTarjetasYFlyers) {
+  productoTarjetasDetectado = productoTarjetas.producto;
+  productoFlyersDetectado = productoFlyers.producto;
+} else if (productoTarjetas && !catalogoTarjetasYaEnviado) {
   reglaPreIA = 'TARJETAS_PRESENTACION';
   productoTarjetasDetectado = productoTarjetas.producto;
 
@@ -2262,7 +2304,27 @@ if (productoTarjetas) {
     motivo_derivacion: 'NINGUNO',
     respuesta_sugerida: RESPUESTA_CIERRE_TARJETAS
   };
-} else if (
+} else if (productoTarjetas) {
+  productoTarjetasDetectado = productoTarjetas.producto;
+} else if (productoFlyers && !catalogoFlyersYaEnviado) {
+  reglaPreIA = 'FLYERS_VOLANTES';
+  productoFlyersDetectado = productoFlyers.producto;
+
+  decisionPreIA = {
+    ...decisionBase(),
+    intencion: 'CONSULTAR_PRECIO',
+    accion: 'INFORMAR_FLYERS',
+    producto: 'flyers / volantes',
+    requiere_humano: false,
+    motivo_derivacion: 'NINGUNO',
+    respuesta_sugerida: RESPUESTA_CIERRE_FLYERS
+  };
+} else if (productoFlyers) {
+  productoFlyersDetectado = productoFlyers.producto;
+}
+
+if (
+  decisionPreIA === null &&
   mediaTurno.cantidad_media === 0 &&
   textoTurnoPlano !== ''
 ) {
@@ -2627,6 +2689,9 @@ return [
 
       producto_tarjetas:
         productoTarjetasDetectado,
+
+      producto_flyers:
+        productoFlyersDetectado,
 
       division_disenos:
         divisionDisenosDetectada,
