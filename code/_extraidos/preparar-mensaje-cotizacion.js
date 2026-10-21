@@ -18,8 +18,13 @@
 
 // ======================================================
 // PREPARAR MENSAJE COTIZACIÓN
-// PEGASO ADHESIVOS - V2.9
+// PEGASO ADHESIVOS - V2.10
 // ======================================================
+//
+// V2.10: si hay mix etiquetas + flyers/tarjetas, se
+// anexa el bloque de catálogo (con *Precios no incluyen
+// IVA*) después de las líneas P4. Las etiquetas no
+// llevan IVA.
 //
 // V2.9: si se recotiza por cambio de cantidad (p. ej.
 // "¿con 5000 baja el precio?"), el mensaje abre con
@@ -751,6 +756,16 @@ const cierreCotizacion =
 
   });
 
+
+const anexoCatalogoMixto =
+  textoONull(
+    decision.anexo_catalogo_mixto
+  );
+
+if (anexoCatalogoMixto) {
+  mensaje +=
+    `\n${anexoCatalogoMixto}\n`;
+}
 
 mensaje +=
   `\n${cierreCotizacion}`;

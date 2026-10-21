@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.17
+// RESOLVER CONTEXTO COMERCIAL - V3.19
 // ======================================================
 //
 // Objetivo:
@@ -114,6 +114,16 @@
 //   acumula (pedido actualizado). Si falta un dato, se
 //   pregunta. Si el envío es a otra ciudad fuera de
 //   Quito, se suman $5 de transporte.
+// - V3.18: no repetir ubicación / Permítame / material
+//   si el último saliente ya cubrió esa acción. Medidas
+//   con * o varias en el mismo texto (14*16 / 10.2*10.2)
+//   cotizan P4. Mix etiquetas + flyers: cotiza cada
+//   línea; IVA solo en el bloque que no es etiquetas.
+//   ≥ 6000 a humano solo si esa cantidad está escrita.
+// - V3.19: si el catálogo de flyers ya se envió y eligen
+//   A5/A6 + 1 o 2 caras ("Tamaño A5 ambas caras"), se
+//   cotiza esa línea en texto. No se reenvía imagen ni
+//   la lista completa. "ambas caras" cuenta como 2 lados.
 //
 // ======================================================
 
@@ -264,6 +274,80 @@ function igualesNumero(a, b) {
   }
 
   return Math.abs(na - nb) < 0.000001;
+}
+
+function esMedidaFlyerCatalogo(ancho, alto) {
+  const a = numero(ancho);
+  const al = numero(alto);
+
+  if (a === null || al === null) {
+    return false;
+  }
+
+  const menor = Math.min(a, al);
+  const mayor = Math.max(a, al);
+
+  return (
+    (
+      igualesNumero(menor, 10.5) &&
+      igualesNumero(mayor, 14.8)
+    ) ||
+    (
+      igualesNumero(menor, 14.8) &&
+      igualesNumero(mayor, 21)
+    )
+  );
+}
+
+function extraerParesMedidaTurno(texto) {
+  const limpio =
+    String(texto ?? '')
+      .replace(/,/g, '.')
+      .replace(/[×*]/g, 'x')
+      .toLowerCase();
+
+  const regex =
+    /(\d+(?:\.\d+)?)\s*(?:cm|centimetros?)?\s*(?:de\s+)?(?:alto|ancho)?\s*(?:x|por)\s*(\d+(?:\.\d+)?)/gi;
+
+  const pares = [];
+  let match;
+
+  while ((match = regex.exec(limpio)) !== null) {
+    const ancho = Number(match[1]);
+    const alto = Number(match[2]);
+
+    if (
+      !Number.isFinite(ancho) ||
+      !Number.isFinite(alto) ||
+      ancho <= 0 ||
+      alto <= 0 ||
+      ancho > 200 ||
+      alto > 200
+    ) {
+      continue;
+    }
+
+    const duplicado =
+      pares.some(p =>
+        (
+          igualesNumero(p.ancho_cm, ancho) &&
+          igualesNumero(p.alto_cm, alto)
+        ) ||
+        (
+          igualesNumero(p.ancho_cm, alto) &&
+          igualesNumero(p.alto_cm, ancho)
+        )
+      );
+
+    if (!duplicado) {
+      pares.push({
+        ancho_cm: ancho,
+        alto_cm: alto
+      });
+    }
+  }
+
+  return pares;
 }
 
 
@@ -457,11 +541,41 @@ if (cantidadActual === null && verificarNumerosTurno) {
   }
 }
 
-const anchoActual =
+let anchoActual =
   datoDelTurno(numero(data.ancho_cm), medidaEscrita);
 
-const altoActual =
+let altoActual =
   datoDelTurno(numero(data.alto_cm), medidaEscrita);
+
+const planoTieneFlyers =
+  /\b(flyers?|flayers?|fliers?|volantes?|vonates?|bolantes?|volates?|a6|a5)\b/.test(
+    planoTurno
+  );
+
+const paresMedidaTurno =
+  extraerParesMedidaTurno(textoTurnoCrudo)
+    .filter(par =>
+      !(
+        planoTieneFlyers &&
+        esMedidaFlyerCatalogo(par.ancho_cm, par.alto_cm)
+      )
+    );
+
+if (
+  planoTieneFlyers &&
+  esMedidaFlyerCatalogo(anchoActual, altoActual)
+) {
+  anchoActual = null;
+  altoActual = null;
+}
+
+if (
+  (anchoActual === null || altoActual === null) &&
+  paresMedidaTurno.length > 0
+) {
+  anchoActual = paresMedidaTurno[0].ancho_cm;
+  altoActual = paresMedidaTurno[0].alto_cm;
+}
 
 const datosDescartadosTurno = [
   ['cantidad', numero(data.cantidad), cantidadActual],
@@ -965,10 +1079,23 @@ const INTENCIONES_PRECIO = [
   'APORTAR_DATOS'
 ];
 
+const cantidadMayoristaEscrita =
+  numerosTurno.some(n =>
+    n.unidad === null &&
+    n.valor >= CANTIDAD_DERIVACION_HUMANA
+  );
+
 const cantidadMayorista =
   cantidadCotizable !== null &&
   cantidadCotizable >=
-    CANTIDAD_DERIVACION_HUMANA;
+    CANTIDAD_DERIVACION_HUMANA &&
+  (
+    cantidadMayoristaEscrita ||
+    (
+      !verificarNumerosTurno &&
+      !planoTieneFlyers
+    )
+  );
 
 let derivacionPorCantidad =
   cantidadMayorista &&
@@ -1072,6 +1199,22 @@ const derivacionPorProductoNoP4 =
 if (derivacionPorProductoNoP4) {
   accion =
     'DERIVAR_HUMANO';
+}
+
+if (
+  paresMedidaTurno.length > 0 &&
+  datosSuficientes &&
+  !derivacionPorCantidad &&
+  !derivacionPorProductoNoP4 &&
+  [
+    'INFORMAR_MATERIAL',
+    'INFORMAR_MINIMO',
+    'RESPONDER_GENERAL',
+    'PEDIR_MEDIDAS'
+  ].includes(accion)
+) {
+  accion =
+    'COTIZAR_P4';
 }
 
 
@@ -1753,7 +1896,7 @@ const mezclaLineasTurno =
 
 if (mezclaLineasTurno) {
   productoLinea =
-    productoLineaAnterior;
+    'CATALOGO_MIXTO';
 } else if (mencionaEtiquetaTurno) {
   productoLinea =
     'ETIQUETAS';
@@ -1974,7 +2117,7 @@ function detectarTamanoFlyer(texto) {
 
 function detectarCarasFlyer(texto) {
   if (
-    /\b((a )?(dos|2) (lados?|caras?)|ambos lados|doble cara|dos caras)\b/.test(
+    /\b((a )?(dos|2) (lados?|caras?)|ambos lados|ambas caras|doble cara|dos caras|2 caras)\b/.test(
       texto
     )
   ) {
@@ -1982,7 +2125,7 @@ function detectarCarasFlyer(texto) {
   }
 
   if (
-    /\b((a )?(una|1|un) (solo )?(lado|lados|cara|caras)|un lado|un solo lado|una sola cara)\b/.test(
+    /\b((a )?(una|1|un) (solo )?(lado|lados|cara|caras)|un lado|un solo lado|una sola cara|1 cara)\b/.test(
       texto
     )
   ) {
@@ -2589,6 +2732,48 @@ if (
     );
 }
 
+const tamanoFlyerTurno =
+  detectarTamanoFlyer(mensajeTurnoPlano);
+
+const carasFlyerTurno =
+  detectarCarasFlyer(mensajeTurnoPlano);
+
+if (
+  catalogoFlyersPrevio &&
+  !mencionaEtiquetaTurno &&
+  (tamanoFlyerTurno !== null || carasFlyerTurno !== null)
+) {
+  const hayFlyer =
+    lineasCatalogo.some(l => l.producto === 'FLYERS_VOLANTES');
+
+  if (!hayFlyer) {
+    const lineaFlyer = {
+      producto: 'FLYERS_VOLANTES',
+      cantidad: 1000,
+      acabado: null,
+      puntas: false,
+      tamano: tamanoFlyerTurno,
+      caras: carasFlyerTurno,
+      diseno_listo: false,
+      sin_diseno: false
+    };
+
+    lineasCatalogo = [
+      ...lineasCatalogo,
+      {
+        ...lineaFlyer,
+        faltantes: faltantesLineaCatalogo(lineaFlyer)
+      }
+    ];
+  } else {
+    lineasCatalogo =
+      aplicarOpcionesSueltasCatalogo(
+        lineasCatalogo,
+        mensajeTurnoPlano
+      );
+  }
+}
+
 const lineasCompletas =
   lineasCatalogo.length > 0 &&
   lineasCatalogo.every(l => (l.faltantes ?? []).length === 0);
@@ -2805,6 +2990,140 @@ if (debeTotalizarCatalogo) {
       productoLinea =
         'CATALOGO_MIXTO';
     }
+  }
+}
+
+function armarAnexoFlyerMixto(linea) {
+  const cantidad =
+    linea.cantidad ?? 1000;
+
+  const millares =
+    Math.max(1, cantidad / 1000);
+
+  const tabla =
+    PRECIOS_FLYERS_1000[linea.tamano];
+
+  const iva =
+    '\n\n*Precios no incluyen IVA*';
+
+  if (!tabla) {
+    return (
+      'Volantes / flyers (1000 unidades):\n\n' +
+      'A6 (10.5 x 14.8 cm)\n• 1 lado: $20\n• 2 lados: $26\n\n' +
+      'A5 (21 x 14.8 cm)\n• 1 lado: $32\n• 2 lados: $41' +
+      iva
+    );
+  }
+
+  if (linea.caras === 1 || linea.caras === 2) {
+    const precio =
+      tabla[linea.caras] * millares;
+
+    return (
+      'Volantes / flyers:\n' +
+      `-${cantidad} Volantes Tamaño ${tabla.etiqueta} ` +
+      `Impreso a ${linea.caras} lado${linea.caras === 1 ? '' : 's'} ` +
+      `precio $${precio}` +
+      iva
+    );
+  }
+
+  return (
+    `Volantes / flyers (${cantidad} unidades) ${tabla.etiqueta}:\n` +
+    `• 1 lado: $${tabla[1] * millares}\n` +
+    `• 2 lados: $${tabla[2] * millares}` +
+    iva
+  );
+}
+
+let anexoCatalogoMixto = null;
+
+const lineaFlyerMix =
+  lineasCatalogo.find(l => l.producto === 'FLYERS_VOLANTES') ??
+  lineasPedidoPrevias.find(l => l.producto === 'FLYERS_VOLANTES') ??
+  null;
+
+const hayMixEtiquetasYFlyers =
+  productoLinea === 'CATALOGO_MIXTO' ||
+  (
+    (mencionaFlyersTurno || lineaFlyerMix !== null) &&
+    (
+      mencionaEtiquetaTurno ||
+      productoLinea === 'ETIQUETAS' ||
+      paresMedidaTurno.length > 0
+    )
+  );
+
+if (
+  hayMixEtiquetasYFlyers &&
+  totalCatalogo === null &&
+  !derivacionPorProductoNoP4 &&
+  accion !== 'ENVIAR_DATOS_PAGO'
+) {
+  if (lineaFlyerMix) {
+    anexoCatalogoMixto =
+      armarAnexoFlyerMixto(lineaFlyerMix);
+  } else if (mencionaFlyersTurno) {
+    anexoCatalogoMixto =
+      armarAnexoFlyerMixto({
+        producto: 'FLYERS_VOLANTES',
+        cantidad: 1000,
+        tamano: detectarTamanoFlyer(mensajeTurnoPlano),
+        caras: detectarCarasFlyer(mensajeTurnoPlano)
+      });
+  }
+
+  const medidasEtiquetaDeEsteTurno =
+    paresMedidaTurno.length > 0 ||
+    (
+      anchoActual !== null &&
+      altoActual !== null &&
+      !esMedidaFlyerCatalogo(anchoActual, altoActual)
+    );
+
+  if (medidasEtiquetaDeEsteTurno) {
+    if (derivacionPorCantidad) {
+      derivacionPorCantidad = false;
+      accion = 'COTIZAR_P4';
+    } else if (
+      [
+        'INFORMAR_FLYERS',
+        'PEDIR_MEDIDAS',
+        'RESPONDER_GENERAL'
+      ].includes(accion)
+    ) {
+      accion = 'COTIZAR_P4';
+    }
+  } else if (
+    anexoCatalogoMixto &&
+    [
+      'INFORMAR_FLYERS',
+      'PEDIR_MEDIDAS',
+      'COTIZAR_P4',
+      'RESPONDER_GENERAL'
+    ].includes(accion)
+  ) {
+    accion = 'RESPONDER_GENERAL';
+
+    respuestaSugerida =
+      anexoCatalogoMixto +
+      (
+        mencionaEtiquetaTurno
+          ? '\n\nPara las etiquetas adhesivas indíquenos ancho y alto en centímetros, por favor.'
+          : ''
+      );
+
+    omitirEnvio = false;
+    motivoOmisionEnvio = null;
+  }
+
+  if (
+    anexoCatalogoMixto &&
+    catalogoFlyersPrevio &&
+    !mencionaFlyersTurno &&
+    medidasEtiquetaDeEsteTurno
+  ) {
+    anexoCatalogoMixto = null;
   }
 }
 
@@ -3393,6 +3712,7 @@ if (enviarVideosTarjetas || primerEnvioCatalogoFlyers || primerEnvioCatalogoRapi
 } else if (
   totalCatalogo === null &&
   esLineaFlyers &&
+  !hayMixEtiquetasYFlyers &&
   accion !== 'ENVIAR_DATOS_PAGO' &&
   !omitirEnvio
 ) {
@@ -3408,7 +3728,7 @@ if (enviarVideosTarjetas || primerEnvioCatalogoFlyers || primerEnvioCatalogoRapi
     'A6 $20 / $26 y A5 $32 / $41.';
 
   const PATRON_CARAS_FLYERS =
-    /\b((a )?(una|1|dos|2) (lado|lados|caras?)|ambos lados|un lado|doble cara|una sola cara)\b/;
+    /\b((a )?(una|1|dos|2) (lado|lados|caras?)|ambos lados|ambas caras|un lado|doble cara|una sola cara|2 caras|1 cara)\b/;
 
   const PATRON_MATERIAL_FLYERS =
     /\b(material|couche|papel|cartulina|gramaje)\b/;
@@ -3467,9 +3787,12 @@ if (enviarVideosTarjetas || primerEnvioCatalogoFlyers || primerEnvioCatalogoRapi
 
     accion = 'INFORMAR_ENTREGA';
   } else if (
-    PATRON_TAMANO_FLYERS.test(mensajeTurnoPlano) ||
-    /\b(precio|precios|vale|valor|cuanto (sale|cuesta|queda|es)|a como)\b/.test(
-      mensajeTurnoPlano
+    !catalogoFlyersPrevio &&
+    (
+      PATRON_TAMANO_FLYERS.test(mensajeTurnoPlano) ||
+      /\b(precio|precios|vale|valor|cuanto (sale|cuesta|queda|es)|a como)\b/.test(
+        mensajeTurnoPlano
+      )
     )
   ) {
     respuestaSugerida =
@@ -3633,6 +3956,85 @@ if (enviarVideosTarjetas || primerEnvioCatalogoFlyers || primerEnvioCatalogoRapi
   }
 }
 
+let pedidoCatalogoEspecifico = null;
+
+if (
+  catalogoFlyersPrevio &&
+  !mencionaEtiquetaTurno &&
+  totalCatalogo === null &&
+  !hayMixEtiquetasYFlyers &&
+  (tamanoFlyerTurno !== null || carasFlyerTurno !== null) &&
+  accion !== 'ENVIAR_DATOS_PAGO' &&
+  !derivacionPorProductoNoP4 &&
+  !omitirEnvio
+) {
+  const lineaFlyerElegida =
+    lineasCatalogo.find(l => l.producto === 'FLYERS_VOLANTES') ??
+    null;
+
+  if (
+    lineaFlyerElegida &&
+    lineaFlyerElegida.tamano &&
+    (lineaFlyerElegida.caras === 1 || lineaFlyerElegida.caras === 2)
+  ) {
+    const cotizada =
+      cotizarLineaCatalogo(lineaFlyerElegida);
+
+    if (cotizada.error === null && cotizada.precio != null) {
+      const cantidad =
+        cotizada.cantidad ?? 1000;
+
+      const lados =
+        cotizada.caras === 1
+          ? '1 lado'
+          : '2 lados';
+
+      accion =
+        'RESPONDER_GENERAL';
+
+      respuestaSugerida =
+        `Los ${cantidad} Flyers ${cotizada.tamano} a ${lados} ` +
+        `le saldrían en $${Number(cotizada.precio).toFixed(2)} dólares.\n` +
+        `*Precios no incluyen IVA*`;
+
+      omitirEnvio = false;
+      motivoOmisionEnvio = null;
+
+      pedidoCatalogoEspecifico = {
+        estado: 'LINEA',
+        total: cotizada.precio,
+        envio: { aplica: null, valor: COSTO_ENVIO_TRANSPORTE },
+        lineas: [{
+          producto: cotizada.producto,
+          cantidad,
+          acabado: null,
+          puntas: false,
+          tamano: cotizada.tamano,
+          caras: cotizada.caras,
+          diseno_listo: false,
+          sin_diseno: false,
+          faltantes: [],
+          precio: cotizada.precio,
+          etiqueta: cotizada.etiqueta ?? null
+        }],
+        actualizado_at: new Date().toISOString()
+      };
+    }
+  } else if (lineaFlyerElegida && lineaFlyerElegida.tamano) {
+    accion = 'RESPONDER_GENERAL';
+    respuestaSugerida =
+      `Para ${lineaFlyerElegida.tamano}, ¿a 1 o 2 lados?`;
+    omitirEnvio = false;
+    motivoOmisionEnvio = null;
+  } else if (lineaFlyerElegida && lineaFlyerElegida.caras) {
+    accion = 'RESPONDER_GENERAL';
+    respuestaSugerida =
+      '¿Sus volantes serían A6 (10.5 x 14.8 cm) o A5 (21 x 14.8 cm)?';
+    omitirEnvio = false;
+    motivoOmisionEnvio = null;
+  }
+}
+
 const enviarImagenFlyers =
   !omitirEnvio &&
   urlImagenFlyers !== null &&
@@ -3689,6 +4091,104 @@ const origenImagenCatalogo =
       : enviarImagenMembretadas
         ? imagenMembretadas.origen
         : urlFlyersOrigen;
+
+
+// ------------------------------------------------------
+// 12.8 NO REPETIR LA MISMA INFORMACIÓN
+// ------------------------------------------------------
+//
+// Si el prospecto encadena mensajes, cada webhook es
+// inmediato: el último SALIENTE ya puede haber cubierto
+// ubicación, material o "Permítame…". No se reenvía.
+//
+
+const ACCIONES_NO_REPETIR = [
+  'INFORMAR_UBICACION',
+  'INFORMAR_MATERIAL',
+  'DERIVAR_HUMANO',
+  'INFORMAR_MINIMO',
+  'INFORMAR_METODOLOGIA',
+  'INFORMAR_METODOLOGIA_PAGO',
+  'INFORMAR_ENTREGA',
+  'INFORMAR_DISENO',
+  'INFORMAR_FLYERS',
+  'INFORMAR_TARJETAS',
+  'INFORMAR_AFICHES',
+  'INFORMAR_TRIPTICOS',
+  'INFORMAR_MEMBRETADAS'
+];
+
+function accionEquivalenteRespuesta(textoRespuesta) {
+  const plano =
+    textoPlano(textoRespuesta);
+
+  if (/\bpermitame un momento por favor\b/.test(plano)) {
+    return 'DERIVAR_HUMANO';
+  }
+
+  if (
+    /\bciudad de quito\b|\bestamos ubicados\b|\bdesde que ciudad nos escribe\b|\blocal fisico\b|\benvios para todo el pais\b/.test(
+      plano
+    )
+  ) {
+    return 'INFORMAR_UBICACION';
+  }
+
+  if (
+    /\bpolipropileno\b|\balta adherencia\b|\brefrigeracion y congelacion\b/.test(
+      plano
+    )
+  ) {
+    return 'INFORMAR_MATERIAL';
+  }
+
+  return accion;
+}
+
+const ultimoAccionEq =
+  texto(ultimoSaliente.accion_equivalente);
+
+const accionSalida =
+  accionEquivalenteRespuesta(respuestaSugerida);
+
+const enviadoAtMs =
+  Date.parse(String(ultimoSaliente.enviado_at ?? ''));
+
+const salienteReciente =
+  !Number.isFinite(enviadoAtMs) ||
+  (Date.now() - enviadoAtMs) <= 20 * 60 * 1000;
+
+if (
+  !omitirEnvio &&
+  salienteReciente &&
+  ultimoAccionEq !== null &&
+  accionSalida === ultimoAccionEq &&
+  ACCIONES_NO_REPETIR.includes(accionSalida)
+) {
+  const pideLocal =
+    /\b(local fisico|tiene local|tienen local|donde estan ubicados|donde quedan|para visitarles)\b/.test(
+      mensajeTurnoPlano
+    );
+
+  const ultimoYaDijoLocal =
+    /\blocal fisico\b/.test(
+      textoPlano(ultimoSaliente.contenido)
+    );
+
+  if (
+    accionSalida === 'INFORMAR_UBICACION' &&
+    pideLocal &&
+    !ultimoYaDijoLocal
+  ) {
+    accion = 'INFORMAR_UBICACION';
+    respuestaSugerida =
+      'Sí, contamos con local físico en Quito. Los retiros se realizan los viernes a partir de las 5 PM; si el trabajo sale antes le notificamos.';
+  } else {
+    omitirEnvio = true;
+    motivoOmisionEnvio =
+      'ACCION_YA_ENVIADA_EN_CONVERSACION';
+  }
+}
 
 
 // ======================================================
@@ -3844,7 +4344,22 @@ const contextoComercialNuevo = {
   ...(
     totalCatalogo?.pedido
       ? { pedido_catalogo: totalCatalogo.pedido }
-      : {}
+      : pedidoCatalogoEspecifico
+        ? { pedido_catalogo: pedidoCatalogoEspecifico }
+        : (
+          anexoCatalogoMixto &&
+          lineaFlyerMix
+            ? {
+                pedido_catalogo: {
+                  estado: 'MIXTO_ETIQUETAS',
+                  lineas: lineasCatalogo.length > 0
+                    ? lineasCatalogo
+                    : [lineaFlyerMix],
+                  actualizado_at: new Date().toISOString()
+                }
+              }
+            : {}
+        )
   ),
 
   ...(
@@ -4038,6 +4553,9 @@ return [
       motivo_omision_envio:
         motivoOmisionEnvio,
 
+      anexo_catalogo_mixto:
+        anexoCatalogoMixto,
+
       ajuste_recotizacion:
         ajusteRecotizacion,
 
@@ -4054,20 +4572,20 @@ return [
         precio1000Estimado,
 
       enviar_imagen_informativa:
-        enviarImagenInformativa,
+        !omitirEnvio && enviarImagenInformativa,
 
       imagen_informativa:
-        enviarImagenInformativa
+        !omitirEnvio && enviarImagenInformativa
           ? temaImagenInformativa
           : null,
 
       imagen_informativa_url:
-        enviarImagenInformativa
+        !omitirEnvio && enviarImagenInformativa
           ? urlImagenInformativa
           : null,
 
       enviar_videos_tarjetas:
-        enviarVideosTarjetas,
+        !omitirEnvio && enviarVideosTarjetas,
 
       videos_tarjetas:
         enviarVideosTarjetas
@@ -4084,10 +4602,10 @@ return [
         null,
 
       enviar_imagen_flyers:
-        enviarImagenCatalogo,
+        !omitirEnvio && enviarImagenCatalogo,
 
       imagen_flyers_url:
-        enviarImagenCatalogo
+        !omitirEnvio && enviarImagenCatalogo
           ? urlImagenCatalogo
           : null,
 

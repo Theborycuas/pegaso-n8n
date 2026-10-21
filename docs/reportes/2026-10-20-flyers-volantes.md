@@ -32,9 +32,10 @@ flowchart TD
   E --> IMG
   IMG --> PRE[Texto con precios A5/A6]
   B -->|Sí| Q{Qué pregunta?}
+  Q -->|Elige A5/A6 y 1 o 2 caras| COT[Texto: Los 1000 Flyers A5 a 2 lados le saldrían en $41.00]
   Q -->|Material| MAT[Couche 115 gr]
   Q -->|Entrega| ENT[Lun-mar → mié / mié-jue → vie]
-  Q -->|Tamaño / caras / precio| LST[Lista A5/A6]
+  Q -->|Precio sin elegir tamaño| LST[Lista A5/A6, sin repetir imagen]
   Q -->|Algo fuera de catálogo| HUM[DERIVAR_HUMANO]
 ```
 
@@ -51,6 +52,7 @@ flowchart TD
 | Switch salida 14 | `INFORMAR_FLYERS` → Preparar respuesta comercial |
 | Preparar envío 3.5 | `enviar_saludo` solo si hay `texto_saludo_tarjetas`; imagen de flyers en `ycloud_request_imagen` |
 | Nodos | `IF: ¿Enviar saludo?` delante de videos/imagen (tarjetas y flyers) |
+| Resolver 3.19 | Tras el catálogo, “Tamaño A5 ambas caras” cotiza esa línea en texto (`Los 1000 Flyers A5 a 2 lados le saldrían en $41.00 dólares`). No reenvía imagen ni la lista. `ambas caras` = 2 lados. |
 
 ## 4. Cómo activarlo
 

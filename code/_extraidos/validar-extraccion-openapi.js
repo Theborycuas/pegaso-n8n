@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Validar extracción Groq
 // PEGASO ADHESIVOS
-// VERSION: 2.2
+// VERSION: 2.4
 // ======================================================
 //
 // RESPONSABILIDAD:
@@ -62,6 +62,13 @@ const output =
   !Array.isArray(item.output)
     ? item.output
     : null;
+
+if (
+  output &&
+  !Array.isArray(output.detalles)
+) {
+  output.detalles = [];
+}
 
 const detalles =
   Array.isArray(output?.detalles)
@@ -213,7 +220,29 @@ function extraerMedidasExplicitas(textoEntrada) {
   const limpio =
     textoEntrada
       .replace(/,/g, '.')
+      .replace(/[×*]/g, 'x')
       .toLowerCase();
+
+  const hayFlyersEnTexto =
+    /\b(flyers?|flayers?|volantes?|vonates?|a6|a5)\b/.test(
+      limpio
+    );
+
+  function esMedidaFlyerCatalogo(ancho, alto) {
+    const menor = Math.min(ancho, alto);
+    const mayor = Math.max(ancho, alto);
+
+    return (
+      (
+        casiIgual(menor, 10.5) &&
+        casiIgual(mayor, 14.8)
+      ) ||
+      (
+        casiIgual(menor, 14.8) &&
+        casiIgual(mayor, 21)
+      )
+    );
+  }
 
   function agregar(ancho, alto) {
     if (
@@ -223,6 +252,13 @@ function extraerMedidasExplicitas(textoEntrada) {
       alto <= 0 ||
       ancho > 200 ||
       alto > 200
+    ) {
+      return;
+    }
+
+    if (
+      hayFlyersEnTexto &&
+      esMedidaFlyerCatalogo(ancho, alto)
     ) {
       return;
     }
@@ -271,7 +307,7 @@ function extraerMedidasExplicitas(textoEntrada) {
 function completarDetallesFaltantes(lista, medidas) {
   if (
     !Array.isArray(lista) ||
-    medidas.length < 2
+    medidas.length === 0
   ) {
     return;
   }
@@ -349,6 +385,78 @@ if (Array.isArray(detalles)) {
     detalles,
     medidasExplicitas
   );
+
+  if (
+    /\b(flyers?|flayers?|volantes?|vonates?|a6|a5)\b/i.test(
+      String(mensajeActual ?? '')
+    )
+  ) {
+    for (let i = detalles.length - 1; i >= 0; i--) {
+      const ancho = numero(detalles[i]?.ancho_cm);
+      const alto = numero(detalles[i]?.alto_cm);
+      const menor = Math.min(ancho, alto);
+      const mayor = Math.max(ancho, alto);
+
+      if (
+        (
+          casiIgual(menor, 10.5) &&
+          casiIgual(mayor, 14.8)
+        ) ||
+        (
+          casiIgual(menor, 14.8) &&
+          casiIgual(mayor, 21)
+        )
+      ) {
+        detalles.splice(i, 1);
+      }
+    }
+
+    if (
+      output &&
+      (
+        (
+          casiIgual(
+            Math.min(
+              numero(output.ancho_cm),
+              numero(output.alto_cm)
+            ),
+            10.5
+          ) &&
+          casiIgual(
+            Math.max(
+              numero(output.ancho_cm),
+              numero(output.alto_cm)
+            ),
+            14.8
+          )
+        ) ||
+        (
+          casiIgual(
+            Math.min(
+              numero(output.ancho_cm),
+              numero(output.alto_cm)
+            ),
+            14.8
+          ) &&
+          casiIgual(
+            Math.max(
+              numero(output.ancho_cm),
+              numero(output.alto_cm)
+            ),
+            21
+          )
+        )
+      )
+    ) {
+      if (detalles.length > 0) {
+        output.ancho_cm = detalles[0].ancho_cm;
+        output.alto_cm = detalles[0].alto_cm;
+      } else {
+        output.ancho_cm = null;
+        output.alto_cm = null;
+      }
+    }
+  }
 }
 
 

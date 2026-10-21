@@ -20,6 +20,9 @@ Un reporte por intervención sobre el workflow **SISTEMA AUTOMATIZADO PEGASO**: 
 | 2026-10-19 | [Tarjetas de presentación: catálogo de acabados con videos](2026-10-19-tarjetas-presentacion.md) | Implementado en local, sin publicar ni commit |
 | 2026-10-20 | [Volantes / flyers: imagen de catálogo y precios](2026-10-20-flyers-volantes.md) | Implementado en local, sin publicar ni commit |
 | 2026-10-20 | [Producción rápida: afiches, trípticos y hojas membretadas](2026-10-20-produccion-rapida.md) | Implementado en local, sin publicar ni commit |
+| 2026-10-20 | [Forma P4 y varias medidas](2026-10-20-forma-y-varias-medidas.md) | Implementado en local, sin publicar ni commit |
+| 2026-10-20 | [Total de catálogo y envío $5](2026-10-20-total-catalogo.md) | Implementado en local, sin publicar ni commit |
+| 2026-10-20 | [Anti-repetición, medidas con * y mix etiquetas + flyers](2026-10-20-anti-repeticion-mix.md) | Implementado en local, sin publicar ni commit |
 
 ## Convenciones
 

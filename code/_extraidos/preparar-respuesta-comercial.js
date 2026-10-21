@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// PREPARAR RESPUESTA COMERCIAL - V2.3
+// PREPARAR RESPUESTA COMERCIAL - V2.4
 // ======================================================
 //
 // Recibe la decisión comercial resuelta.
@@ -26,9 +26,12 @@
 // - si la decisión trae omitir_envio (acción ya atendida,
 //   medidas ya solicitadas sin dato nuevo) o la respuesta es
 //   idéntica al último SALIENTE de "Preparar contexto IA",
+//   o es la misma familia (Permítame… / ubicación Quito),
 //   NO se envía: respuesta_final queda como marcador
 //   [RESPUESTA AUTOMÁTICA OMITIDA · motivo=...] para que el
 //   SALIENTE registrado cierre el turno sin llegar al cliente.
+// - V2.4: omite parafrasis de la misma acción (Permítame
+//   archivo vs imagen; tres textos de Quito distintos).
 //
 // ======================================================
 
@@ -110,11 +113,42 @@ return items.map(
         ''
       ).trim();
 
+    const respuestaNorm =
+      normalizarParaComparar(respuesta);
+
+    const ultimoNorm =
+      normalizarParaComparar(ultimoMensaje);
+
+    const mismoPermita =
+      respuestaNorm.startsWith('permitame un momento') &&
+      ultimoNorm.startsWith('permitame un momento');
+
+    const mismaUbicacion =
+      (
+        /\bciudad de quito\b|\bestamos ubicados\b|\benvios para todo el pais\b/.test(
+          respuestaNorm
+        )
+      ) &&
+      (
+        /\bciudad de quito\b|\bestamos ubicados\b|\benvios para todo el pais\b/.test(
+          ultimoNorm
+        )
+      );
+
+    const mismoInicio =
+      respuestaNorm.length >= 40 &&
+      ultimoNorm.length >= 40 &&
+      respuestaNorm.slice(0, 48) === ultimoNorm.slice(0, 48);
+
     const esDuplicado =
       !omisionSolicitada &&
       ultimoMensaje !== '' &&
-      normalizarParaComparar(respuesta) ===
-      normalizarParaComparar(ultimoMensaje);
+      (
+        respuestaNorm === ultimoNorm ||
+        mismoPermita ||
+        mismaUbicacion ||
+        mismoInicio
+      );
 
     const omitirEnvio =
       omisionSolicitada ||

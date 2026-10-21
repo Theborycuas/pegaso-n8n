@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Preparar contexto IA
 // ARCHIVO: code/03-conversacion/preparar-contexto-ia.js
-// VERSION: 4.14
+// VERSION: 4.15
 // ======================================================
 //
 // RESPONSABILIDAD:
@@ -71,6 +71,10 @@
 //   de PRODUCTO_NO_P4. Primer contacto INFORMAR_* con
 //   imagen + precios (producción rápida, 2-3 días hábiles).
 //   Dípticos y brochures siguen a humano.
+// - V4.15: flyers/tarjetas/afiches se detectan también
+//   si el turno nombra etiquetas (mix). No se salta a
+//   INFORMAR_* ni a PRODUCTO_NO_P4: el resolver cotiza
+//   cada línea. Anti-repetición de ubicación / Permítame.
 // - Reglas pre-IA solo para texto sin multimedia:
 //   SALUDO_SIMPLE (respuesta corta fija), PRODUCTO_NO_P4
 //   (DERIVAR_HUMANO + COTIZACION_ESPECIAL) y
@@ -1493,6 +1497,28 @@ function accionEquivalenteSaliente(contenido) {
     return 'SALUDO';
   }
 
+  if (
+    /\bpermitame un momento por favor\b/.test(plano)
+  ) {
+    return 'DERIVAR_HUMANO';
+  }
+
+  if (
+    /\bciudad de quito\b|\bestamos ubicados\b|\bdesde que ciudad nos escribe\b|\blocal fisico\b|\benvios para todo el pais\b/.test(
+      plano
+    )
+  ) {
+    return 'INFORMAR_UBICACION';
+  }
+
+  if (
+    /\bpolipropileno\b|\balta adherencia\b|\brefrigeracion y congelacion\b|\bmaterial termo\b/.test(
+      plano
+    )
+  ) {
+    return 'INFORMAR_MATERIAL';
+  }
+
   return null;
 }
 
@@ -2413,8 +2439,7 @@ const textoTurnoPlano =
   normalizarTexto(textoTurno);
 
 const productoTarjetas =
-  textoTurnoPlano !== '' &&
-  !MENCIONA_ETIQUETA.test(textoTurnoPlano)
+  textoTurnoPlano !== ''
     ? (
         PRODUCTOS_TARJETAS.find(p => p.patron.test(textoTurnoPlano)) ??
         (
@@ -2431,8 +2456,7 @@ const catalogoTarjetasYaEnviado =
   ).trim() !== '';
 
 const productoFlyers =
-  textoTurnoPlano !== '' &&
-  !MENCIONA_ETIQUETA.test(textoTurnoPlano)
+  textoTurnoPlano !== ''
     ? (
         PRODUCTOS_FLYERS.find(p => p.patron.test(textoTurnoPlano)) ??
         (
@@ -2449,7 +2473,7 @@ const catalogoFlyersYaEnviado =
   ).trim() !== '';
 
 function productoCatalogoRapido(productos, lemas, nombre) {
-  if (textoTurnoPlano === '' || MENCIONA_ETIQUETA.test(textoTurnoPlano)) {
+  if (textoTurnoPlano === '') {
     return null;
   }
 
@@ -2510,6 +2534,16 @@ const mezclaCatalogoImpreso =
     productoMembretadas
   ].filter(Boolean).length > 1;
 
+const mezclaEtiquetasYCatalogo =
+  MENCIONA_ETIQUETA.test(textoTurnoPlano) &&
+  (
+    productoTarjetas !== null ||
+    productoFlyers !== null ||
+    productoAfiches !== null ||
+    productoTripticos !== null ||
+    productoMembretadas !== null
+  );
+
 const PIDE_PRECIO_CATALOGO =
   /\b(precios?|total|cuanto |a como|vale|valor|cotiz|suma)\b/.test(
     textoTurnoPlano
@@ -2538,7 +2572,7 @@ const pideTotalCatalogoCompleto =
 // Si el catálogo ya salió, no se salta el cerebro.
 // Si pide el total con datos, el resolver suma: no INFORMAR_*.
 // Si nombra tarjetas y flyers juntos, el cerebro no salta.
-if (mezclaCatalogoImpreso) {
+if (mezclaCatalogoImpreso || mezclaEtiquetasYCatalogo) {
   productoTarjetasDetectado = productoTarjetas?.producto ?? null;
   productoFlyersDetectado = productoFlyers?.producto ?? null;
   productoAfichesDetectado = productoAfiches?.producto ?? null;
