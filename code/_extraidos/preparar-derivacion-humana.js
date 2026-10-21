@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Preparar derivación humana
 // ARCHIVO: code/06-derivacion-humana/preparar-derivacion-humana.js
-// VERSION: 3.1
+// VERSION: 3.2
 // RESPONSABILIDAD:
 // - Recibir la salida DERIVAR_HUMANO de "Enrutar acción comercial" y validar conversacion_id y prospecto_id
 // - Convertir la decisión comercial en un contrato estable de HANDOFF (respaldo en "Recuperar decisión comercial")
@@ -669,6 +669,22 @@ return [
 
       handoff_motivo:
         motivo,
+
+      regla_derivacion:
+        texto(
+          input.regla_derivacion
+        ) ??
+        texto(
+          decisionAnterior.regla_derivacion
+        ),
+
+      handoff_regla_derivacion:
+        texto(
+          input.regla_derivacion
+        ) ??
+        texto(
+          decisionAnterior.regla_derivacion
+        ),
 
       handoff_clasificacion:
         clasificacionHandoff,

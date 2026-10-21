@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// VALIDAR EXTRACCIÓN CEREBRO COMERCIAL - V2.8
+// VALIDAR EXTRACCIÓN CEREBRO COMERCIAL - V2.9
 // ======================================================
 // Valida:
 // - contrato del Cerebro Comercial;
@@ -152,6 +152,10 @@ const MOTIVOS_DERIVACION = [
   'PROBLEMA_PEDIDO',
   'PROBLEMA_PAGO',
   'PROBLEMA_ENTREGA',
+  'COTIZACION_ESPECIAL',
+  'CANTIDAD_MAYORISTA',
+  'PRODUCTO_NO_P4',
+  'FLYER_NO_CATALOGADO',
   'OTRO'
 ];
 

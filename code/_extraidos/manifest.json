@@ -1,8 +1,8 @@
 {
   "workflowId": "09OF22FOxihypeeh",
   "workflowName": "SISTEMA AUTOMATIZADO PEGASO",
-  "workflowUpdatedAt": "2026-10-21T03:32:55.283Z",
-  "extractedAt": "2026-10-21T03:33:03.369Z",
+  "workflowUpdatedAt": "2026-10-21T03:36:44.149Z",
+  "extractedAt": "2026-10-21T03:36:51.115Z",
   "workflowNodeCount": 204,
   "codeNodeCount": 69,
   "nodes": [
@@ -140,7 +140,7 @@
       "fileName": "preparar-contexto-ia.js",
       "relativeFile": "code/_extraidos/preparar-contexto-ia.js",
       "typeVersion": 2,
-      "lines": 3085
+      "lines": 3105
     },
     {
       "nodeId": "f207ef1c-d7ff-4fae-9910-486f2ba24c0a",
@@ -148,7 +148,7 @@
       "fileName": "validar-extraccion-cerebro-comercial.js",
       "relativeFile": "code/_extraidos/validar-extraccion-cerebro-comercial.js",
       "typeVersion": 2,
-      "lines": 1236
+      "lines": 1240
     },
     {
       "nodeId": "033b7f46-8a18-4244-9c65-75047b2d6aac",
@@ -156,7 +156,7 @@
       "fileName": "validar-extraccion-deepseek1.js",
       "relativeFile": "code/_extraidos/validar-extraccion-deepseek1.js",
       "typeVersion": 2,
-      "lines": 1236
+      "lines": 1240
     },
     {
       "nodeId": "e79de69f-646a-4449-81a4-725be9a4a6ec",
@@ -164,7 +164,7 @@
       "fileName": "validar-extraccion-openapi1.js",
       "relativeFile": "code/_extraidos/validar-extraccion-openapi1.js",
       "typeVersion": 2,
-      "lines": 1236
+      "lines": 1240
     },
     {
       "nodeId": "6de38fe8-617d-48d0-ad20-5c56b0c06047",
@@ -260,7 +260,7 @@
       "fileName": "resolver-contexto-comercial.js",
       "relativeFile": "code/_extraidos/resolver-contexto-comercial.js",
       "typeVersion": 2,
-      "lines": 4644
+      "lines": 4665
     },
     {
       "nodeId": "49b907ef-f963-4ccc-b7bb-db921afc5898",
@@ -292,7 +292,7 @@
       "fileName": "preparar-derivacion-humana.js",
       "relativeFile": "code/_extraidos/preparar-derivacion-humana.js",
       "typeVersion": 2,
-      "lines": 699
+      "lines": 715
     },
     {
       "nodeId": "9d8686d5-90a3-4d2e-8655-738d092f1167",
@@ -308,7 +308,7 @@
       "fileName": "preparar-mensaje-transicion-humano.js",
       "relativeFile": "code/_extraidos/preparar-mensaje-transicion-humano.js",
       "typeVersion": 2,
-      "lines": 387
+      "lines": 424
     },
     {
       "nodeId": "ebb48494-a503-4619-8523-aecbae62a80b",

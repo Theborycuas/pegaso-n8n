@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Preparar contexto IA
 // ARCHIVO: code/03-conversacion/preparar-contexto-ia.js
-// VERSION: 4.15
+// VERSION: 4.16
 // ======================================================
 //
 // RESPONSABILIDAD:
@@ -75,6 +75,9 @@
 //   si el turno nombra etiquetas (mix). No se salta a
 //   INFORMAR_* ni a PRODUCTO_NO_P4: el resolver cotiza
 //   cada línea. Anti-repetición de ubicación / Permítame.
+// - V4.16: PRODUCTO_NO_P4 usa motivo PRODUCTO_NO_P4 (no
+//   el texto de 6.000 etiquetas). Más trabajos que no
+//   manejamos (banners, lonas, cajas, textil, etc.).
 // - Reglas pre-IA solo para texto sin multimedia:
 //   SALUDO_SIMPLE (respuesta corta fija), PRODUCTO_NO_P4
 //   (DERIVAR_HUMANO + COTIZACION_ESPECIAL) y
@@ -2127,7 +2130,24 @@ const PRODUCTOS_NO_P4 = [
   { patron: /\bentradas? (para|de)\b/, producto: 'entradas' },
   { patron: /\bformularios?\b/, producto: 'formularios' },
   { patron: /\bdipticos?\b/, producto: 'dípticos' },
-  { patron: /\bbrochures?\b/, producto: 'brochures' }
+  { patron: /\bbrochures?\b/, producto: 'brochures' },
+  { patron: /\bbanners?\b/, producto: 'banners' },
+  { patron: /\blonas?\b/, producto: 'lonas' },
+  { patron: /\bpendones?\b/, producto: 'pendones' },
+  { patron: /\broll\s*ups?\b|\brollups?\b/, producto: 'roll up' },
+  { patron: /\bgigantografias?\b/, producto: 'gigantografías' },
+  { patron: /\bplotter\b/, producto: 'plotter' },
+  { patron: /\bimanes?\b|\bmagneticos?\b/, producto: 'imanes' },
+  { patron: /\bcajas?\b|\bempaques?\b|\bpackaging\b/, producto: 'cajas / empaque' },
+  { patron: /\bservilletas?\b|\bvasos?\b/, producto: 'servilletas / vasos' },
+  { patron: /\bcamisetas?\b|\bpolos?\b|\bgorras?\b|\buniformes?\b|\bsublimacion\b/, producto: 'textil' },
+  { patron: /\blanyards?\b|\bcredenciales?\b|\bpuls(era|eras)\b/, producto: 'lanyards / credenciales' },
+  { patron: /\bpines?\b|\bbotones?\b|\bllaveros?\b/, producto: 'pines / llaveros' },
+  { patron: /\bcalendarios?\b|\bagendas?\b|\blibretas?\b/, producto: 'calendarios / agendas' },
+  { patron: /\brecetarios?\b|\bfactureros?\b|\bsellos?\b/, producto: 'recetarios / sellos' },
+  { patron: /\binvitaciones?\b/, producto: 'invitaciones' },
+  { patron: /\bdisplays?\b|\btotems?\b|\bdummies?\b/, producto: 'displays' },
+  { patron: /\bacrilico\b|\bfoam\b|\bmdf\b|\bcanvas\b|\blienzo\b/, producto: 'sustrato no manejado' }
 ];
 
 const MENCIONA_ETIQUETA =
@@ -2731,7 +2751,7 @@ if (
       intencion: 'SOLICITAR_COTIZACION',
       accion: 'DERIVAR_HUMANO',
       requiere_humano: true,
-      motivo_derivacion: 'COTIZACION_ESPECIAL',
+      motivo_derivacion: 'PRODUCTO_NO_P4',
       respuesta_sugerida: RESPUESTA_TRANSICION_NO_P4
     };
   } else if (preguntaMismoPrecioFormaP4) {

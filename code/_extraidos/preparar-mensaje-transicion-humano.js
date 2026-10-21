@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Preparar mensaje transición humano
 // ARCHIVO: code/06-derivacion-humana/preparar-mensaje-transicion-humano.js
-// VERSION: 3.4
+// VERSION: 3.5
 // RESPONSABILIDAD:
 // - Recibir la salida del UPDATE "Guardar contexto handoff" y recuperar el contrato de "Preparar contexto handoff"
 // - Elegir el texto fijo de transición al prospecto según el motivo (pago, reporte de pago o comprobante, pedido, llamada, imagen, archivo, negociación, reclamo)
@@ -113,6 +113,17 @@ const motivo =
       input.motivo_derivacion
     ) ??
     'ATENCION_COMERCIAL'
+  ).toUpperCase();
+
+const reglaDerivacion =
+  (
+    texto(
+      input.regla_derivacion
+    ) ??
+    texto(
+      input.handoff_regla_derivacion
+    ) ??
+    ''
   ).toUpperCase();
 
 
@@ -255,18 +266,44 @@ else if (
 
 
 // ------------------------------------------------------
-// CANTIDAD MAYORISTA / COTIZACIÓN ESPECIAL
+// CANTIDAD MAYORISTA
+// ------------------------------------------------------
+//
+// Solo cuando la cantidad de etiquetas es >= 6000.
+// Carpetas, dípticos u otro trabajo que no manejamos
+// NO usan este texto: van a "Permítame…".
+//
+
+else if (
+  motivo === 'CANTIDAD_MAYORISTA' ||
+  (
+    motivo === 'COTIZACION_ESPECIAL' &&
+    reglaDerivacion === 'CANTIDAD_MAYORISTA'
+  )
+) {
+
+  mensaje =
+    'Para cantidades desde 6.000 etiquetas le damos una atención personalizada. Permítame un momento por favor.';
+
+}
+
+
+// ------------------------------------------------------
+// PRODUCTO / MATERIAL QUE NO MANEJAMOS
 // ------------------------------------------------------
 
 else if (
   [
     'COTIZACION_ESPECIAL',
-    'CANTIDAD_MAYORISTA'
+    'PRODUCTO_NO_P4',
+    'FLYER_NO_CATALOGADO',
+    'PRODUCTO_DESCONOCIDO',
+    'MATERIAL_NO_MANEJADO'
   ].includes(motivo)
 ) {
 
   mensaje =
-    'Para cantidades desde 6.000 etiquetas le damos una atención personalizada. Permítame un momento por favor.';
+    'Permítame un momento por favor, verificamos su requerimiento.';
 
 }
 

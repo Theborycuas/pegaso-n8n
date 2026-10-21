@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.19
+// RESOLVER CONTEXTO COMERCIAL - V3.20
 // ======================================================
 //
 // Objetivo:
@@ -124,6 +124,9 @@
 //   A5/A6 + 1 o 2 caras ("Tamaño A5 ambas caras"), se
 //   cotiza esa línea en texto. No se reenvía imagen ni
 //   la lista completa. "ambas caras" cuenta como 2 lados.
+// - V3.20: producto o material que no manejamos (carpetas,
+//   banners, cajas, etc.) → DERIVAR_HUMANO con motivo
+//   PRODUCTO_NO_P4, sin el texto de 6.000 etiquetas.
 //
 // ======================================================
 
@@ -1191,8 +1194,26 @@ if (
     'INFORMAR_MEMBRETADAS';
 }
 
+const PATRON_PRODUCTO_NO_MANEJADO =
+  /\b(carpetas?|talonarios?|boletos?|formularios?|dipticos?|brochures?|banners?|lonas?|pendones?|roll\s*ups?|rollups?|gigantografias?|plotter|imanes?|magneticos?|cajas?|empaques?|packaging|servilletas?|vasos?|camisetas?|polos?|gorras?|uniformes?|sublimacion|lanyards?|credenciales?|puls(era|eras)|pines?|botones?|llaveros?|calendarios?|agendas?|libretas?|recetarios?|factureros?|sellos?|invitaciones?|displays?|totems?|dummies?|acrilico|foam|mdf|canvas|lienzo)\b|\bentradas? (para|de)\b/;
+
+const productoNoManejadoEnTurno =
+  PATRON_PRODUCTO_NO_MANEJADO.test(planoTurno) &&
+  !/\b(etiquetas?|stickers?|adhesiv[oa]s?|calcomanias?|pegatinas?)\b/.test(
+    planoTurno
+  ) &&
+  !planoTieneFlyers &&
+  productoTarjetas === null &&
+  productoFlyers === null &&
+  productoAfiches === null &&
+  productoTripticos === null &&
+  productoMembretadas === null;
+
 const derivacionPorProductoNoP4 =
-  reglaPreIA === 'PRODUCTO_NO_P4' &&
+  (
+    reglaPreIA === 'PRODUCTO_NO_P4' ||
+    productoNoManejadoEnTurno
+  ) &&
   !ACCIONES_CATALOGO.includes(accion) &&
   !derivacionPorCantidad;
 
@@ -4464,7 +4485,7 @@ return [
                 true,
 
               motivo_derivacion:
-                'COTIZACION_ESPECIAL',
+                'CANTIDAD_MAYORISTA',
 
               requiere_notificacion:
                 true,
@@ -4504,7 +4525,7 @@ return [
                 true,
 
               motivo_derivacion:
-                'COTIZACION_ESPECIAL',
+                'PRODUCTO_NO_P4',
 
               requiere_notificacion:
                 true,
@@ -4525,7 +4546,7 @@ return [
                 true,
 
               motivo_derivacion:
-                'COTIZACION_ESPECIAL',
+                'FLYER_NO_CATALOGADO',
 
               requiere_notificacion:
                 true,

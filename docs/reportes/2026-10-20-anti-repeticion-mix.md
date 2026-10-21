@@ -67,5 +67,5 @@ Si en ese turno aún no hay medidas de etiqueta, se envía el bloque de volantes
 
 - Dos ejecuciones **en paralelo** (las dos leen el mismo último SALIENTE antes de guardar) aún pueden duplicar. El debounce de 3 s y omitir al segundo mensaje mitigan el caso habitual.
 - Un 6000 escrito como “6 mil” en palabras sigue yendo a humano si la IA lo extrae y el turno no es de catálogo.
-- Dípticos / brochures siguen a humano.
+- Dípticos, brochures, carpetas y otros trabajos que no se manejan van a humano con “Permítame un momento por favor, verificamos su requerimiento.” — nunca con el texto de 6.000 etiquetas.
 - Tras el catálogo de flyers, si eligen A5/A6 y caras se cotiza esa línea en texto (resolver 3.19); no se reenvía la imagen.
