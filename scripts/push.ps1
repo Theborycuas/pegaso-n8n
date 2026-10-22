@@ -72,6 +72,26 @@ $EXTRACT_SCRIPT = Join-Path `
     $ROOT `
     "scripts\extract-code.mjs"
 
+# Ecuador (America/Guayaquil) no usa horario de verano: UTC-5.
+function Format-HoraEcuador {
+    param(
+        [string]$Iso
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Iso)) {
+        return $Iso
+    }
+
+    try {
+        $utc = [datetimeoffset]::Parse($Iso).ToUniversalTime()
+        $ecuador = $utc.ToOffset([timespan]::FromHours(-5))
+        return $ecuador.ToString("yyyy-MM-dd HH:mm:ss") + " (Ecuador)"
+    }
+    catch {
+        return $Iso
+    }
+}
+
 # ======================================================
 # CABECERA
 # ======================================================
@@ -156,8 +176,8 @@ catch {
     throw "ERROR: No se pudo interpretar el workflow remoto."
 }
 
-Write-Host "  updatedAt local:  $($state.updatedAt)"
-Write-Host "  updatedAt remoto: $($remote.updatedAt)"
+Write-Host "  updatedAt local:  $(Format-HoraEcuador $state.updatedAt)"
+Write-Host "  updatedAt remoto: $(Format-HoraEcuador $remote.updatedAt)"
 Write-Host "  versionId local:  $($state.versionId)"
 Write-Host "  versionId remoto: $($remote.versionId)"
 Write-Host ""
@@ -410,7 +430,7 @@ $newConnectionCount
 Write-Host ""
 Write-Host "Verificacion post-push OK."
 Write-Host ""
-Write-Host "Nuevo updatedAt: $($newRemote.updatedAt)"
+Write-Host "Nuevo updatedAt: $(Format-HoraEcuador $newRemote.updatedAt)"
 Write-Host "Nuevo versionId: $($newRemote.versionId)"
 Write-Host "Nodos remotos: $($newRemote.nodes.Count)"
 Write-Host "Conexiones origen remotas: $newConnectionCount"
@@ -490,7 +510,7 @@ Write-Host "Conexiones origen:"
 Write-Host "  $newConnectionCount"
 Write-Host ""
 Write-Host "updatedAt:"
-Write-Host "  $($newRemote.updatedAt)"
+Write-Host "  $(Format-HoraEcuador $newRemote.updatedAt)"
 Write-Host ""
 Write-Host "versionId:"
 Write-Host "  $($newRemote.versionId)"

@@ -20,7 +20,7 @@
 // NODO N8N: VALIDAR ANÁLISIS IMAGEN GROQ
 // PEGASO ADHESIVOS
 // ARCHIVO: code/03-conversacion/validar-analisis-imagen.js
-// VERSION: 2.1
+// VERSION: 2.2
 // ======================================================
 //
 // RESPONSABILIDAD:
@@ -97,6 +97,54 @@ const CONTENIDOS_ETIQUETA = [
 
 const LARGO_MAXIMO_RESUMEN = 500;
 const LARGO_MAXIMO_CAMPO = 250;
+
+
+function inferirVeredictoComercial(contenidoFinal, analisisNorm) {
+  const blob =
+    [
+      analisisNorm?.resumen_para_cerebro,
+      analisisNorm?.texto_visible_relevante,
+      analisisNorm?.producto_probable
+    ]
+      .join(' ')
+      .toLowerCase();
+
+  if (contenidoFinal === 'COMPROBANTE_PAGO') {
+    return 'COMPROBANTE';
+  }
+
+  if (contenidoFinal === 'MEDIDAS_ESCRITAS') {
+    return 'MEDIDAS_MANUSCRITAS';
+  }
+
+  if (/\b(boceto|sketch|dibujo a mano|a mano alzada|croquis)\b/.test(blob)) {
+    return 'BOCETO';
+  }
+
+  if (contenidoFinal === 'ENVASE_O_PRODUCTO') {
+    return 'FOTO_PRODUCTO';
+  }
+
+  if (contenidoFinal === 'ETIQUETA_O_DISENO') {
+    return 'DISENO_ETIQUETA';
+  }
+
+  if (
+    contenidoFinal === 'LOGO' ||
+    contenidoFinal === 'REFERENCIA_VISUAL'
+  ) {
+    return 'REFERENCIA_NO_FINAL';
+  }
+
+  if (
+    contenidoFinal === 'NO_RELACIONADO' ||
+    /\b(flyer|volante|publicidad|catalogo promocional|afiche)\b/.test(blob)
+  ) {
+    return 'IMAGEN_NO_ETIQUETA';
+  }
+
+  return contenidoFinal;
+}
 
 
 // ======================================================
@@ -987,6 +1035,18 @@ const resultados =
         analisis.contenido_detectado = 'COMPROBANTE_PAGO';
       }
 
+      const veredictoComercial =
+        inferirVeredictoComercial(
+          contenido,
+          analisis
+        );
+
+      analisis.contenido_detectado =
+        contenido;
+
+      analisis.veredicto_comercial =
+        veredictoComercial;
+
       // ==================================================
       // 10. DETERMINAR REVISIÓN HUMANA
       // ======================================================
@@ -1054,6 +1114,8 @@ const resultados =
         `proveedor=${PROVEEDOR_ANALISIS}`,
 
         `contenido=${contenido}`,
+
+        `veredicto=${veredictoComercial}`,
 
         `confianza=${confianza}`,
 
@@ -1205,6 +1267,9 @@ const resultados =
 
           contenido_detectado:
             contenido,
+
+          veredicto_comercial:
+            veredictoComercial,
 
           confianza,
 

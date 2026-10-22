@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Preparar entrada WhatsApp
 // ARCHIVO: code/01-entrada/preparar-entrada-whatsapp.js
-// VERSION: 2.1
+// VERSION: 2.2
 // RESPONSABILIDAD:
 // - Validar que exista evento_whatsapp procesable con telefono_cliente y mensaje_id (lanza error si no)
 // - Traducir tipo_mensaje de WhatsApp a enum interno
@@ -32,7 +32,9 @@
 //     línea 2 "[MEDIA_PENDIENTE] {json}"
 // - Imagen no descargable: genera contexto de revisión.
 // - Audio no descargable: genera contexto de revisión.
-// - Video/documento: por ahora continúan como ARCHIVO NO PROCESABLE.
+// - Video/documento: el binario sigue como ARCHIVO NO PROCESABLE, pero
+//   el nombre de archivo (.ai/.pdf) y el caption se persisten en mensaje
+//   para poder cotizar si traen medidas (28,5x13,5cm etiqueta perox.ai).
 // - Aceptar enlaces de descarga solo de
 //   https://api.ycloud.com/v2/whatsapp/media/download/
 //   (anti-SSRF: la credencial YCloud nunca sale a otro host)
@@ -572,10 +574,20 @@ if (entraComoMedia) {
   // CONTENIDO QUE SE PERSISTE EN mensajes.contenido
   // ----------------------------------------------------
 
+  const nombreArchivo =
+    normalizarCaption(
+      evento.media_filename
+    );
+
   mensaje =
     `[${tipoMensaje}]` +
     (
-      caption
+      nombreArchivo
+        ? ` ${nombreArchivo}`
+        : ''
+    ) +
+    (
+      caption && caption !== nombreArchivo
         ? ` ${caption}`
         : ''
     ) +
@@ -694,6 +706,9 @@ return [
 
           caption:
             evento.caption ?? null,
+
+          filename:
+            evento.media_filename ?? null,
 
           link:
             linkMedia,

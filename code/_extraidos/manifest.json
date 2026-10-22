@@ -1,8 +1,8 @@
 {
   "workflowId": "09OF22FOxihypeeh",
   "workflowName": "SISTEMA AUTOMATIZADO PEGASO",
-  "workflowUpdatedAt": "2026-10-21T03:36:44.149Z",
-  "extractedAt": "2026-10-22T02:37:21.755Z",
+  "workflowUpdatedAt": "2026-10-22T03:18:30.694Z",
+  "extractedAt": "2026-10-22T03:18:37.522Z",
   "workflowNodeCount": 204,
   "codeNodeCount": 69,
   "nodes": [
@@ -140,7 +140,7 @@
       "fileName": "preparar-contexto-ia.js",
       "relativeFile": "code/_extraidos/preparar-contexto-ia.js",
       "typeVersion": 2,
-      "lines": 3105
+      "lines": 3208
     },
     {
       "nodeId": "f207ef1c-d7ff-4fae-9910-486f2ba24c0a",
@@ -180,7 +180,7 @@
       "fileName": "normalizar-decision-ia.js",
       "relativeFile": "code/_extraidos/normalizar-decision-ia.js",
       "typeVersion": 2,
-      "lines": 970
+      "lines": 982
     },
     {
       "nodeId": "29a9ba73-a457-44ed-88e2-71ffd76be125",
@@ -188,7 +188,7 @@
       "fileName": "preparar-respuesta-comercial.js",
       "relativeFile": "code/_extraidos/preparar-respuesta-comercial.js",
       "typeVersion": 2,
-      "lines": 189
+      "lines": 200
     },
     {
       "nodeId": "1be58b3b-42bc-4ad5-ab46-871491a80742",
@@ -260,7 +260,7 @@
       "fileName": "resolver-contexto-comercial.js",
       "relativeFile": "code/_extraidos/resolver-contexto-comercial.js",
       "typeVersion": 2,
-      "lines": 4665
+      "lines": 5085
     },
     {
       "nodeId": "49b907ef-f963-4ccc-b7bb-db921afc5898",
@@ -364,7 +364,7 @@
       "fileName": "normalizar-evento-whatsapp.js",
       "relativeFile": "code/_extraidos/normalizar-evento-whatsapp.js",
       "typeVersion": 2,
-      "lines": 1334
+      "lines": 1359
     },
     {
       "nodeId": "a8c7e996-96eb-40f1-9c73-921195df970d",
@@ -372,7 +372,7 @@
       "fileName": "preparar-entrada-whatsapp.js",
       "relativeFile": "code/_extraidos/preparar-entrada-whatsapp.js",
       "typeVersion": 2,
-      "lines": 720
+      "lines": 735
     },
     {
       "nodeId": "aabdc11d-b55e-467d-b32d-50c9d5bf8c4e",
@@ -452,7 +452,7 @@
       "fileName": "validar-analisis-imagen-groq.js",
       "relativeFile": "code/_extraidos/validar-analisis-imagen-groq.js",
       "typeVersion": 2,
-      "lines": 1267
+      "lines": 1332
     },
     {
       "nodeId": "771b9b13-a594-4d57-aab3-a7ec3526b9e2",
@@ -460,7 +460,7 @@
       "fileName": "validar-analisis-imagen-deepseek.js",
       "relativeFile": "code/_extraidos/validar-analisis-imagen-deepseek.js",
       "typeVersion": 2,
-      "lines": 1267
+      "lines": 1332
     },
     {
       "nodeId": "cac07c7b-5251-40d5-a127-6c972b3113c7",
@@ -468,7 +468,7 @@
       "fileName": "analizar-imagen-openai.js",
       "relativeFile": "code/_extraidos/analizar-imagen-openai.js",
       "typeVersion": 2,
-      "lines": 1267
+      "lines": 1332
     },
     {
       "nodeId": "397a709e-9177-4c15-b89a-6bf1f4266e81",

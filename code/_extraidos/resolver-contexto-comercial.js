@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.20
+// RESOLVER CONTEXTO COMERCIAL - V3.22
 // ======================================================
 //
 // Objetivo:
@@ -1197,8 +1197,16 @@ if (
 const PATRON_PRODUCTO_NO_MANEJADO =
   /\b(carpetas?|talonarios?|boletos?|formularios?|dipticos?|brochures?|banners?|lonas?|pendones?|roll\s*ups?|rollups?|gigantografias?|plotter|imanes?|magneticos?|cajas?|empaques?|packaging|servilletas?|vasos?|camisetas?|polos?|gorras?|uniformes?|sublimacion|lanyards?|credenciales?|puls(era|eras)|pines?|botones?|llaveros?|calendarios?|agendas?|libretas?|recetarios?|factureros?|sellos?|invitaciones?|displays?|totems?|dummies?|acrilico|foam|mdf|canvas|lienzo)\b|\bentradas? (para|de)\b/;
 
+const planoTurnoProducto =
+  paresMedidaTurno.length > 0
+    ? planoTurno.replace(
+        /\b(vasos?|cajas?|empaques?|packaging|botellas?|frascos?|envases?|potes?)\b/g,
+        ' '
+      )
+    : planoTurno;
+
 const productoNoManejadoEnTurno =
-  PATRON_PRODUCTO_NO_MANEJADO.test(planoTurno) &&
+  PATRON_PRODUCTO_NO_MANEJADO.test(planoTurnoProducto) &&
   !/\b(etiquetas?|stickers?|adhesiv[oa]s?|calcomanias?|pegatinas?)\b/.test(
     planoTurno
   ) &&
@@ -1371,6 +1379,109 @@ const AFIRMA_MEDIDAS =
 const NIEGA_MEDIDAS =
   /^(no)\b|\b(incorrect[oa]s?|estan mal|esta mal|equivocad|error|no (son|es)( las)?( esas)?( correctas)?|otras medidas|me equivoque)\b/;
 
+const PATRON_RECHAZO_CORTES =
+  /\bno(,\s*)?(muchas\s+)?gracias\b/;
+
+const PATRON_LISTA_MEDIDAS_ETIQUETADAS =
+  /\b(litro|litros|\blt\b|\boz\b|onzas?|vaso|envase|botella|frasco|1\/2|medio litro)\b/;
+
+const listaMedidasAnterior =
+  objeto(contextoAnterior.confirmacion_lista_medidas);
+
+let confirmacionListaMedidas =
+  Object.keys(listaMedidasAnterior).length > 0
+    ? { ...listaMedidasAnterior }
+    : null;
+
+let pideConfirmacionListaMedidas = false;
+
+function textoListaMedidas(pares) {
+  const piezas =
+    (Array.isArray(pares) ? pares : []).map(p =>
+      `${formatoMedidaCm(p.ancho_cm)} cm x ${formatoMedidaCm(p.alto_cm)} cm`
+    );
+
+  if (piezas.length <= 1) {
+    return piezas[0] ?? '';
+  }
+
+  if (piezas.length === 2) {
+    return `${piezas[0]} y de ${piezas[1]}`;
+  }
+
+  return `${piezas.slice(0, -1).join(', ')} y de ${piezas[piezas.length - 1]}`;
+}
+
+if (
+  listaMedidasAnterior.pendiente === true &&
+  Array.isArray(listaMedidasAnterior.pares) &&
+  listaMedidasAnterior.pares.length > 0 &&
+  !derivacionPorCantidad &&
+  !derivacionPorProductoNoP4
+) {
+  if (paresMedidaTurno.length >= 2) {
+    confirmacionListaMedidas = {
+      pendiente: true,
+      pares: paresMedidaTurno,
+      solicitada_at: new Date().toISOString()
+    };
+    pideConfirmacionListaMedidas = true;
+    accion = 'RESPONDER_GENERAL';
+  } else if (paresMedidaTurno.length === 1) {
+    const paresActualizados =
+      listaMedidasAnterior.pares.slice();
+    paresActualizados[paresActualizados.length - 1] =
+      paresMedidaTurno[0];
+    confirmacionListaMedidas = {
+      pendiente: true,
+      pares: paresActualizados,
+      solicitada_at: new Date().toISOString()
+    };
+    pideConfirmacionListaMedidas = true;
+    accion = 'RESPONDER_GENERAL';
+  } else if (
+    AFIRMA_MEDIDAS.test(planoTurno) &&
+    !NIEGA_MEDIDAS.test(planoTurno)
+  ) {
+    const paresConfirmados =
+      listaMedidasAnterior.pares;
+    confirmacionListaMedidas = {
+      pendiente: false,
+      confirmadas: true,
+      pares: paresConfirmados,
+      confirmada_at: new Date().toISOString()
+    };
+    accion = 'COTIZAR_P4';
+    anchoCm = paresConfirmados[0].ancho_cm;
+    altoCm = paresConfirmados[0].alto_cm;
+    if (cantidadCotizable === null) {
+      cantidadSolicitada = 1000;
+      cantidadCotizable = 1000;
+      cantidadAsumida = true;
+    }
+  } else if (
+    NIEGA_MEDIDAS.test(planoTurno) &&
+    !PATRON_RECHAZO_CORTES.test(planoTurno)
+  ) {
+    confirmacionListaMedidas = null;
+    accion = 'PEDIR_MEDIDAS';
+  }
+} else if (
+  paresMedidaTurno.length >= 2 &&
+  PATRON_LISTA_MEDIDAS_ETIQUETADAS.test(planoTurno) &&
+  !derivacionPorCantidad &&
+  !derivacionPorProductoNoP4 &&
+  ['COTIZAR_P4', 'PEDIR_MEDIDAS', 'RESPONDER_GENERAL'].includes(accion)
+) {
+  confirmacionListaMedidas = {
+    pendiente: true,
+    pares: paresMedidaTurno,
+    solicitada_at: new Date().toISOString()
+  };
+  pideConfirmacionListaMedidas = true;
+  accion = 'RESPONDER_GENERAL';
+}
+
 let confirmacionMedidasGrandes =
   Object.keys(confirmacionMedidasAnterior).length > 0
     ? { ...confirmacionMedidasAnterior }
@@ -1469,7 +1580,13 @@ let respuestaSugerida =
     data.respuesta_sugerida
   ) ?? '';
 
-if (pideConfirmacionMedidasGrandes) {
+if (pideConfirmacionListaMedidas) {
+  respuestaSugerida =
+    `Requiere sus etiquetas en las medidas de ${textoListaMedidas(confirmacionListaMedidas.pares)}? ` +
+    'Si es correcto, le cotizamos 1.000 unidades de cada una.';
+}
+
+else if (pideConfirmacionMedidasGrandes) {
   const anchoTxt =
     formatoMedidaCm(
       confirmacionMedidasGrandes?.ancho_cm ?? anchoCm
@@ -1644,17 +1761,23 @@ const coincidenciaFecha =
 
 
 // ------------------------------------------------------
-// 12.2 NO REPETIR PEDIR_MEDIDAS
+// 12.2 REFORZAR PEDIR_MEDIDAS TRAS EL AUTOMÁTICO
 // ------------------------------------------------------
 //
-// Si el último SALIENTE con acción reconocible ya pidió
-// medidas (bot, automatización de WhatsApp Business o
-// humano), no se vuelve a hacer la pregunta completa:
-// - con información nueva en el turno, se agradece y se
-//   pide solo lo que falta;
-// - sin información nueva, no se envía nada.
+// Si el último SALIENTE ya pidió medidas o el
+// requerimiento (FAQ del anuncio, “ausente”, bot o
+// humano), no se repite el mismo saludo ni “No pudimos
+// leer”. Se continúa con un complemento concreto:
+// ancho y alto, para que no parezcan dos automáticos
+// iguales.
+// - con información nueva, se agradece y se pide lo que
+//   falta;
+// - sin dato nuevo, se refuerza una sola vez.
 //
 // ------------------------------------------------------
+
+const RESPUESTA_REFUERZO_MEDIDAS =
+  'Para enviarle el precio indíquenos por favor el ancho y el alto de sus etiquetas en centímetros. Con esos datos le cotizamos de inmediato.';
 
 const ultimoSaliente =
   objeto(contextoIA.ultimo_saliente);
@@ -1680,9 +1803,14 @@ let motivoOmisionEnvio = null;
 
 let preguntaMedidasFaltantes = null;
 
+const convieneRefuerzoMedidas =
+  medidasYaSolicitadas ||
+  ultimoSaliente.accion_equivalente === 'SALUDO' ||
+  ultimoSaliente.accion_equivalente === 'PEDIR_MEDIDAS';
+
 if (
   accion === 'PEDIR_MEDIDAS' &&
-  medidasYaSolicitadas &&
+  convieneRefuerzoMedidas &&
   ajusteRecotizacion !== 'PIDE_OTRAS_MEDIDAS' &&
   !pideConfirmacionMedidasGrandes &&
   !niegaMedidasGrandes
@@ -1700,16 +1828,20 @@ if (
 
     respuestaSugerida =
       `Gracias. ${preguntaMedidasFaltantes}`;
+  } else if (
+    /para enviarle el precio/.test(
+      textoPlano(ultimoSaliente.contenido)
+    )
+  ) {
+    omitirEnvio = true;
+    motivoOmisionEnvio =
+      'MEDIDAS_YA_SOLICITADAS';
   } else {
-    // La publicidad o el bot ya pidieron medidas. No se calla:
-    // se acota qué falta (ancho y alto) para poder cotizar.
-    // Si el texto queda idéntico al último saliente,
-    // "Preparar respuesta comercial" sí lo omite.
     preguntaMedidasFaltantes =
       'el ancho y el alto';
 
     respuestaSugerida =
-      'Para enviarle el precio indíquenos por favor el ancho y el alto de sus etiquetas en centímetros. Con esos datos le cotizamos de inmediato.';
+      RESPUESTA_REFUERZO_MEDIDAS;
   }
 }
 
@@ -1790,13 +1922,24 @@ const ACCIONES_ATENDIBLES_POR_AUTOMATIZACION = [
 const accionAutomatizacion =
   texto(ultimoSaliente.accion_equivalente);
 
+const autoSalienteMs =
+  Date.parse(String(ultimoSaliente.enviado_at ?? ''));
+
+const autoSalienteReciente =
+  !Number.isFinite(autoSalienteMs) ||
+  (Date.now() - autoSalienteMs) <= 10 * 60 * 1000;
+
 const automatizacionAtendioTurno =
   !omitirEnvio &&
   !aplicaMetodologia &&
   !pideConfirmacionMedidasGrandes &&
+  !pideConfirmacionListaMedidas &&
   !niegaMedidasGrandes &&
-  ultimoSaliente.posterior_al_turno === true &&
   ultimoSaliente.origen === 'AUTOMATICO' &&
+  (
+    ultimoSaliente.posterior_al_turno === true ||
+    autoSalienteReciente
+  ) &&
   (
     accionAutomatizacion === accion ||
     (
@@ -1812,15 +1955,33 @@ const automatizacionAtendioTurno =
 let seguimientoTrasAutomatizacion = false;
 
 if (automatizacionAtendioTurno) {
+  const ultimoYaRefuerzoMedidas =
+    /para enviarle el precio/.test(
+      textoPlano(ultimoSaliente.contenido)
+    );
+
   seguimientoTrasAutomatizacion =
-    reglaPreIA !== 'SALUDO_SIMPLE' &&
-    ACCIONES_ATENDIBLES_POR_AUTOMATIZACION.includes(accion) &&
     faltaMedidas &&
-    !medidasYaSolicitadas;
+    !turnoAportaInformacion &&
+    !ultimoYaRefuerzoMedidas &&
+    accion !== 'ENVIAR_DATOS_PAGO' &&
+    accion !== 'COTIZAR_P4';
 
   if (seguimientoTrasAutomatizacion) {
+    accion = 'PEDIR_MEDIDAS';
+    preguntaMedidasFaltantes =
+      'el ancho y el alto';
     respuestaSugerida =
-      '¿En qué medidas necesita sus etiquetas? Indíquenos ancho y alto por favor.';
+      RESPUESTA_REFUERZO_MEDIDAS;
+  } else if (
+    accion === 'PEDIR_MEDIDAS' &&
+    !turnoAportaInformacion &&
+    !ultimoYaRefuerzoMedidas
+  ) {
+    respuestaSugerida =
+      RESPUESTA_REFUERZO_MEDIDAS;
+  } else if (accion === 'PEDIR_MEDIDAS') {
+    // 12.2 ya dejó el complemento o el “solo nos falta…”
   } else {
     omitirEnvio = true;
     motivoOmisionEnvio = 'ACCION_YA_ATENDIDA_POR_AUTOMATIZACION';
@@ -4124,6 +4285,7 @@ const origenImagenCatalogo =
 //
 
 const ACCIONES_NO_REPETIR = [
+  'SALUDO',
   'INFORMAR_UBICACION',
   'INFORMAR_MATERIAL',
   'DERIVAR_HUMANO',
@@ -4142,6 +4304,22 @@ const ACCIONES_NO_REPETIR = [
 function accionEquivalenteRespuesta(textoRespuesta) {
   const plano =
     textoPlano(textoRespuesta);
+
+  if (
+    /\ben que medidas\b|\bancho y alto\b|\bcon mucho gusto le podemos ayudar\b/.test(
+      plano
+    )
+  ) {
+    return 'PEDIR_MEDIDAS';
+  }
+
+  if (
+    /\bcual es su requerimiento\b|\bgracias por comunicarte con pegaso\b|\ble saluda borys\b|\bcomo puedo ayudarle\b|\bbienvenido a pegaso\b/.test(
+      plano
+    )
+  ) {
+    return 'SALUDO';
+  }
 
   if (/\bpermitame un momento por favor\b/.test(plano)) {
     return 'DERIVAR_HUMANO';
@@ -4181,6 +4359,7 @@ const salienteReciente =
 
 if (
   !omitirEnvio &&
+  !pideConfirmacionListaMedidas &&
   salienteReciente &&
   ultimoAccionEq !== null &&
   accionSalida === ultimoAccionEq &&
@@ -4209,6 +4388,234 @@ if (
     motivoOmisionEnvio =
       'ACCION_YA_ENVIADA_EN_CONVERSACION';
   }
+}
+
+
+// ------------------------------------------------------
+// 12.9 RECHAZO DE COTIZACIÓN / CIERRE
+// ------------------------------------------------------
+
+const PATRON_RECHAZO_COTIZACION =
+  /\b(no(,\s*)?(muchas\s+)?gracias|no gracias|ahora no|por ahora no|no por ahora|luego le (aviso|escribo)|despues le (aviso|escribo)|no( lo)? (deseo|quiero)|no me interesa|en otra ocasion)\b/;
+
+const PATRON_CIERRE_AGRADECIMIENTO =
+  /^(muy gentil|muy amable|gracias( a (usted|ti|uds|ustedes))?|ok(i|ey)?|okay|dale|listo|perfecto|quedo atento|quedamos atentos|esta bien|okey|sale)[\s!.]*$/;
+
+if (
+  !turnoAportaInformacion &&
+  !pideConfirmacionListaMedidas &&
+  !pideConfirmacionMedidasGrandes &&
+  accion !== 'ENVIAR_DATOS_PAGO' &&
+  !derivacionPorCantidad
+) {
+  if (PATRON_RECHAZO_COTIZACION.test(planoTurno)) {
+    accion = 'RESPONDER_GENERAL';
+    respuestaSugerida =
+      'Cualquier duda o inquietud hágamela saber, estamos para servirle.';
+    omitirEnvio = false;
+    motivoOmisionEnvio = null;
+  } else if (PATRON_CIERRE_AGRADECIMIENTO.test(planoTurno)) {
+    accion = 'RESPONDER_GENERAL';
+    respuestaSugerida =
+      'Gracias a usted por escribirnos. Quedamos atentos a cualquier requerimiento o inquietud que tenga, estamos para servirle.';
+    omitirEnvio = false;
+    motivoOmisionEnvio = null;
+  }
+}
+
+
+// ------------------------------------------------------
+// 12.10 VEREDICTO COMERCIAL DE LA IMAGEN
+// ------------------------------------------------------
+
+const clasificacionImagen =
+  (
+    Array.isArray(contextoIA.media_turno?.imagenes_clasificacion)
+      ? contextoIA.media_turno.imagenes_clasificacion[0]
+      : null
+  ) ??
+  (
+    Array.isArray(contextoIA.media_turno?.medidas_imagen)
+      ? contextoIA.media_turno.medidas_imagen[0]
+      : null
+  );
+
+if (
+  clasificacionImagen &&
+  contextoIA.media_turno?.comprobante_detectado !== true &&
+  !omitirEnvio &&
+  !pideConfirmacionListaMedidas &&
+  !pideConfirmacionMedidasGrandes &&
+  accion !== 'ENVIAR_DATOS_PAGO' &&
+  accion !== 'COTIZAR_P4' &&
+  !derivacionPorCantidad &&
+  !derivacionPorProductoNoP4 &&
+  !ACCIONES_CATALOGO.includes(accion)
+) {
+  const contenidoImg =
+    String(
+      clasificacionImagen.contenido_detectado ??
+      clasificacionImagen.veredicto_comercial ??
+      ''
+    ).toUpperCase();
+
+  const veredictoImg =
+    String(
+      clasificacionImagen.veredicto_comercial ??
+      ''
+    ).toUpperCase();
+
+  const imgAncho =
+    numero(clasificacionImagen.ancho_cm);
+
+  const imgAlto =
+    numero(clasificacionImagen.alto_cm);
+
+  const esEnvase =
+    contenidoImg === 'ENVASE_O_PRODUCTO' ||
+    veredictoImg === 'FOTO_PRODUCTO';
+
+  const esDiseno =
+    contenidoImg === 'ETIQUETA_O_DISENO' ||
+    veredictoImg === 'DISENO_ETIQUETA';
+
+  const esBoceto =
+    veredictoImg === 'BOCETO';
+
+  const esMedidasEscritas =
+    contenidoImg === 'MEDIDAS_ESCRITAS' ||
+    veredictoImg === 'MEDIDAS_MANUSCRITAS';
+
+  const esReferencia =
+    ['LOGO', 'REFERENCIA_VISUAL'].includes(contenidoImg) ||
+    veredictoImg === 'REFERENCIA_NO_FINAL';
+
+  const esNoRelacionado =
+    contenidoImg === 'NO_RELACIONADO' ||
+    veredictoImg === 'IMAGEN_NO_ETIQUETA';
+
+  if (esMedidasEscritas && imgAncho !== null && imgAlto !== null) {
+    accion = 'COTIZAR_P4';
+    anchoCm = imgAncho;
+    altoCm = imgAlto;
+    if (cantidadCotizable === null) {
+      cantidadSolicitada = 1000;
+      cantidadCotizable = 1000;
+      cantidadAsumida = true;
+    }
+  } else if (esEnvase) {
+    accion = 'RESPONDER_GENERAL';
+    const medidasCotizadasCoinciden =
+      anchoCm !== null &&
+      altoCm !== null &&
+      imgAncho !== null &&
+      imgAlto !== null &&
+      (
+        (
+          igualesNumero(anchoCm, imgAncho) &&
+          igualesNumero(altoCm, imgAlto)
+        ) ||
+        (
+          igualesNumero(anchoCm, imgAlto) &&
+          igualesNumero(altoCm, imgAncho)
+        )
+      );
+
+    if (
+      cotizacionVigente &&
+      imgAncho !== null &&
+      imgAlto !== null &&
+      !medidasCotizadasCoinciden
+    ) {
+      respuestaSugerida =
+        'Recibimos la foto de su producto. Las medidas cotizadas (' +
+        `${formatoMedidaCm(anchoCm)}x${formatoMedidaCm(altoCm)} cm) ` +
+        'no coinciden con las que se ven en la imagen (' +
+        `${formatoMedidaCm(imgAncho)}x${formatoMedidaCm(imgAlto)} cm). ` +
+        '¿Cuál de las dos usamos para la cotización?';
+    } else if (cotizacionVigente) {
+      respuestaSugerida =
+        'Recibimos la foto de su producto. ¿Desea que avancemos con el pedido?';
+    } else {
+      accion = 'PEDIR_MEDIDAS';
+      respuestaSugerida =
+        'Recibimos la foto de su producto. ¿En qué medidas (ancho y alto en centímetros) necesita las etiquetas para ese envase?';
+    }
+  } else if (esBoceto) {
+    accion = 'RESPONDER_GENERAL';
+    respuestaSugerida =
+      'Recibimos su boceto. Para cotizarle indíquenos ancho y alto en centímetros; para producir necesitamos el diseño final aparte.';
+  } else if (esDiseno && faltaMedidas && !cotizacionVigente) {
+    accion = 'PEDIR_MEDIDAS';
+    respuestaSugerida =
+      'Recibimos su diseño de etiqueta. Indíquenos ancho y alto en centímetros para cotizarle.';
+  } else if (esReferencia) {
+    accion = 'RESPONDER_GENERAL';
+    respuestaSugerida =
+      'Recibimos su referencia visual. Para cotizar etiquetas adhesivas indíquenos ancho y alto en centímetros. Si tiene el diseño listo para imprimir, adjúntelo aparte.';
+  } else if (esNoRelacionado) {
+    accion = 'RESPONDER_GENERAL';
+    respuestaSugerida =
+      'Recibimos su imagen. Cuéntenos por favor en qué podemos ayudarle con sus etiquetas adhesivas. Si gusta, adjúntenos aparte el diseño de su etiqueta en el tamaño que requiere para verificarle por favor.';
+  }
+}
+
+
+// ------------------------------------------------------
+// 12.11 NO DECIR "NO PUDIMOS LEER" SI EL TURNO ES LEGIBLE
+// ------------------------------------------------------
+
+if (
+  /no pudimos (leer|visualizar)|podria (escribirnos nuevamente|reenviarlo)|no pudimos leer bien su mensaje/.test(
+    textoPlano(respuestaSugerida)
+  )
+) {
+  accion = 'PEDIR_MEDIDAS';
+  preguntaMedidasFaltantes =
+    'el ancho y el alto';
+  respuestaSugerida =
+    RESPUESTA_REFUERZO_MEDIDAS;
+  omitirEnvio = false;
+  motivoOmisionEnvio = null;
+}
+
+
+const paresParaDetalles =
+  (
+    confirmacionListaMedidas?.confirmadas === true &&
+    Array.isArray(confirmacionListaMedidas.pares)
+      ? confirmacionListaMedidas.pares
+      : null
+  ) ??
+  (
+    paresMedidaTurno.length > 1
+      ? paresMedidaTurno
+      : null
+  );
+
+let detallesSalida =
+  Array.isArray(data.detalles)
+    ? data.detalles
+    : null;
+
+if (
+  accion === 'COTIZAR_P4' &&
+  paresParaDetalles &&
+  paresParaDetalles.length > 0
+) {
+  detallesSalida =
+    paresParaDetalles.map(p => ({
+      cantidad:
+        cantidadCotizable ?? 1000,
+      ancho_cm:
+        p.ancho_cm,
+      alto_cm:
+        p.alto_cm,
+      forma:
+        forma && forma !== 'NO_ESPECIFICADA'
+          ? forma
+          : 'RECTANGULAR'
+    }));
 }
 
 
@@ -4431,6 +4838,13 @@ if (confirmacionMedidasGrandes !== null) {
   delete contextoComercialNuevo.confirmacion_medidas_grandes;
 }
 
+if (confirmacionListaMedidas !== null) {
+  contextoComercialNuevo.confirmacion_lista_medidas =
+    confirmacionListaMedidas;
+} else {
+  delete contextoComercialNuevo.confirmacion_lista_medidas;
+}
+
 
 // ======================================================
 // 14. SALIDA
@@ -4466,6 +4880,12 @@ return [
         altoCm,
 
       forma,
+
+      ...(
+        detallesSalida
+          ? { detalles: detallesSalida }
+          : {}
+      ),
 
       modifico_datos_cotizacion:
         modificoDatosCotizacion,

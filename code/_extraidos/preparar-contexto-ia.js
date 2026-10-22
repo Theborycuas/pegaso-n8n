@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Preparar contexto IA
 // ARCHIVO: code/03-conversacion/preparar-contexto-ia.js
-// VERSION: 4.16
+// VERSION: 4.17
 // ======================================================
 //
 // RESPONSABILIDAD:
@@ -231,6 +231,51 @@ function normalizarTexto(valor) {
     .replace(/[^a-z0-9\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function extraerParesMedidaDeTexto(texto) {
+  const limpio =
+    String(texto ?? '')
+      .replace(/,/g, '.')
+      .replace(/[×*]/g, 'x')
+      .toLowerCase();
+
+  const regex =
+    /(\d+(?:\.\d+)?)\s*(?:cm|centimetros?)?\s*(?:de\s+)?(?:alto|ancho)?\s*(?:x|por)\s*(\d+(?:\.\d+)?)/gi;
+
+  const pares = [];
+  let match;
+
+  while ((match = regex.exec(limpio)) !== null) {
+    const ancho = Number(match[1]);
+    const alto = Number(match[2]);
+
+    if (
+      !Number.isFinite(ancho) ||
+      !Number.isFinite(alto) ||
+      ancho <= 0 ||
+      alto <= 0 ||
+      ancho > 200 ||
+      alto > 200
+    ) {
+      continue;
+    }
+
+    const duplicado =
+      pares.some(p =>
+        (p.ancho_cm === ancho && p.alto_cm === alto) ||
+        (p.ancho_cm === alto && p.alto_cm === ancho)
+      );
+
+    if (!duplicado) {
+      pares.push({
+        ancho_cm: ancho,
+        alto_cm: alto
+      });
+    }
+  }
+
+  return pares;
 }
 
 function distanciaLevenshtein(a, b) {
@@ -583,6 +628,8 @@ const contenidoAnalizado =
 const medidasImagenPorMensaje =
   new Map();
 
+const clasificacionImagenes = [];
+
 
 for (const analisis of analisisImagenes) {
   const mensajeId =
@@ -666,6 +713,44 @@ for (const analisis of analisisImagenes) {
         analisisNormalizado.medidas_visibles
       )
     );
+
+  clasificacionImagenes.push({
+    mensaje_id:
+      mensajeId,
+
+    contenido_detectado:
+      textoONull(
+        analisis.contenido_detectado ??
+        analisisNormalizado.contenido_detectado
+      ),
+
+    veredicto_comercial:
+      textoONull(
+        analisis.veredicto_comercial ??
+        analisisNormalizado.veredicto_comercial
+      ),
+
+    confianza:
+      textoONull(
+        analisis.confianza ??
+        analisisNormalizado.confianza
+      ),
+
+    ancho_cm:
+      anchoCm,
+
+    alto_cm:
+      altoCm,
+
+    diametro_cm:
+      diametroCm,
+
+    resumen:
+      textoONull(
+        analisisNormalizado.resumen_para_cerebro ??
+        analisis.resumen_para_cerebro
+      )
+  });
 
   if (
     medidasDetectadas ||
@@ -864,7 +949,8 @@ for (const m of mensajesTurno) {
     if (
       linea.startsWith(
         '[ARCHIVO NO PROCESABLE'
-      )
+      ) &&
+      extraerParesMedidaDeTexto(m.contenido).length === 0
     ) {
       archivoNoProcesable =
         true;
@@ -1060,6 +1146,9 @@ const mediaTurno = {
 
   medidas_imagen:
     medidasImagenTurno,
+
+  imagenes_clasificacion:
+    clasificacionImagenes,
 
   requiere_revision_humana:
     (
@@ -1489,13 +1578,13 @@ function accionEquivalenteSaliente(contenido) {
     normalizarTexto(texto);
 
   if (
-    /\ben que medidas\b|\bque medidas (requiere|necesita|desea|tendrian|tendria)\b|\bancho y alto\b|\bsolo nos falta el (ancho|alto)\b/.test(plano)
+    /\ben que medidas\b|\bque medidas (requiere|necesita|desea|tendrian|tendria)\b|\bancho y alto\b|\bsolo nos falta el (ancho|alto)\b|\bcon mucho gusto le podemos ayudar\b/.test(plano)
   ) {
     return 'PEDIR_MEDIDAS';
   }
 
   if (
-    /^(hola|buen[oa]s?( dias| tardes| noches)?)\b.*\ben que (podemos|le podemos|puedo|le puedo) ayudarle\b/.test(plano)
+    /\bcual es su requerimiento\b|\bgracias por comunicarte con pegaso\b|\ble saluda borys\b|\bcomo puedo ayudarle\b|\ben que (podemos|le podemos|puedo|le puedo) ayudarle\b|\bbienvenido a pegaso\b/.test(plano)
   ) {
     return 'SALUDO';
   }
@@ -2139,7 +2228,8 @@ const PRODUCTOS_NO_P4 = [
   { patron: /\bplotter\b/, producto: 'plotter' },
   { patron: /\bimanes?\b|\bmagneticos?\b/, producto: 'imanes' },
   { patron: /\bcajas?\b|\bempaques?\b|\bpackaging\b/, producto: 'cajas / empaque' },
-  { patron: /\bservilletas?\b|\bvasos?\b/, producto: 'servilletas / vasos' },
+  { patron: /\bservilletas?\b/, producto: 'servilletas' },
+  { patron: /\bvasos?\b/, producto: 'vasos' },
   { patron: /\bcamisetas?\b|\bpolos?\b|\bgorras?\b|\buniformes?\b|\bsublimacion\b/, producto: 'textil' },
   { patron: /\blanyards?\b|\bcredenciales?\b|\bpuls(era|eras)\b/, producto: 'lanyards / credenciales' },
   { patron: /\bpines?\b|\bbotones?\b|\bllaveros?\b/, producto: 'pines / llaveros' },
@@ -2709,10 +2799,23 @@ if (
     tokens.every(t => VOCABULARIO_SALUDO.has(t)) &&
     tokens.some(t => NUCLEO_SALUDO.has(t));
 
-  const productoNoP4 =
+  const PATRON_ENVASE_A_ETIQUETAR =
+    /\b(vasos?|cajas?|empaques?|botellas?|frascos?|envases?|potes?)\b/;
+
+  const hayParesMedidaTurno =
+    extraerParesMedidaDeTexto(textoTurno).length > 0;
+
+  const productoNoP4Candidato =
     MENCIONA_ETIQUETA.test(textoTurnoPlano)
       ? null
       : PRODUCTOS_NO_P4.find(p => p.patron.test(textoTurnoPlano)) ?? null;
+
+  const productoNoP4 =
+    productoNoP4Candidato &&
+    hayParesMedidaTurno &&
+    PATRON_ENVASE_A_ETIQUETAR.test(productoNoP4Candidato.producto)
+      ? null
+      : productoNoP4Candidato;
 
   const formasPrecioMencionadas =
     [

@@ -19,13 +19,14 @@
 // ======================================================
 // NODO N8N: Normalizar decisión IA
 // ARCHIVO: code/04-cerebro-comercial/normalizar-decision-ia.js
-// VERSION: 2.8
+// VERSION: 2.9
 // RESPONSABILIDAD:
 // - Convertir la decisión YA VALIDADA (de cualquier proveedor) en un contrato único Pegaso con tipos normalizados.
 // - Unir la decisión con el contexto de "Preparar contexto IA" (IDs, prospecto, tipo_actor, contexto_comercial) y resolver ciudad/provincia.
 // - Aplicar la evidencia multimedia del turno (media_turno): comprobante detectado -> REPORTAR_PAGO + DERIVAR_HUMANO + ENVIA_COMPROBANTE
 //   con mensaje de verificación (nunca "gracias por su pago" / "pago confirmado");
 //   imagen/archivo que requiere revisión -> DERIVAR_HUMANO + IMAGEN_REQUIERE_REVISION / ARCHIVO_NO_PROCESABLE
+//   (si el documento trae medidas en el nombre o caption, no se deriva: se cotiza)
 //   (excepto ruta INFORMAR_TARJETAS / INFORMAR_FLYERS / INFORMAR_AFICHES /
 //   INFORMAR_TRIPTICOS / INFORMAR_MEMBRETADAS o mención de esos productos:
 //   no tumbar el catálogo por diseño o meme).
@@ -361,6 +362,11 @@ const comprobanteDetectado =
   mediaTurno.motivo_derivacion === 'ENVIA_COMPROBANTE' ||
   comprobantePorTexto;
 
+const hayMedidasExplicitasTurno =
+  /(\d+(?:[.,]\d+)?)\s*(?:cm)?\s*(?:x|por|×|\*)\s*(\d+(?:[.,]\d+)?)/i.test(
+    textoTurnoCliente
+  );
+
 const esRutaTarjetas =
   accion === 'INFORMAR_TARJETAS' ||
   accion === 'INFORMAR_FLYERS' ||
@@ -392,7 +398,13 @@ if (
   mediaTurno.requiere_revision_humana === true &&
   requiereHumano !== true &&
   !esRutaTarjetas &&
-  ['IMAGEN_REQUIERE_REVISION', 'ARCHIVO_NO_PROCESABLE'].includes(mediaTurno.motivo_derivacion)
+  (
+    mediaTurno.motivo_derivacion === 'IMAGEN_REQUIERE_REVISION' ||
+    (
+      mediaTurno.motivo_derivacion === 'ARCHIVO_NO_PROCESABLE' &&
+      !hayMedidasExplicitasTurno
+    )
+  )
 ) {
   // No tumbar catálogo de tarjetas por una imagen de diseño/meme.
   derivacionPorMedia = 'REVISION_MEDIA';

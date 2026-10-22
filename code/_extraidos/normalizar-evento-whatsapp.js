@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Normalizar evento WhatsApp
 // ARCHIVO: code/01-entrada/normalizar-evento-whatsapp.js
-// VERSION: 2.2
+// VERSION: 2.3
 // RESPONSABILIDAD:
 // - Detectar el origen del webhook:
 //      1. YCloud inbound:
@@ -331,6 +331,7 @@ let mediaId = null;
 let mediaMimeType = null;
 let mediaSha256 = null;
 let mediaLink = null;
+let mediaFilename = null;
 
 let origen = null;
 
@@ -381,7 +382,8 @@ function extraerMediaYCloud(message, tipoMensaje) {
       mimeType: null,
       sha256: null,
       caption: null,
-      link: null
+      link: null,
+      filename: null
     };
   }
 
@@ -400,7 +402,8 @@ function extraerMediaYCloud(message, tipoMensaje) {
       mimeType: null,
       sha256: null,
       caption: null,
-      link: null
+      link: null,
+      filename: null
     };
   }
 
@@ -431,6 +434,13 @@ function extraerMediaYCloud(message, tipoMensaje) {
 
     link:
       media.link ??
+      null,
+
+    filename:
+      media.fileName ??
+      media.filename ??
+      media.file_name ??
+      media.name ??
       null
   };
 }
@@ -616,6 +626,9 @@ if (esYCloudInbound) {
 
   caption =
     media.caption;
+
+  mediaFilename =
+    media.filename;
 
 
   // ----------------------------------------------------
@@ -852,6 +865,9 @@ else if (esYCloudEchoHumano) {
 
   caption =
     media.caption;
+
+  mediaFilename =
+    media.filename;
 
 
   // ----------------------------------------------------
@@ -1097,6 +1113,12 @@ else if (esMeta) {
     caption =
       message.document?.caption ??
       null;
+
+    mediaFilename =
+      message.document?.filename ??
+      message.document?.fileName ??
+      message.document?.name ??
+      null;
   }
 
 
@@ -1325,6 +1347,9 @@ return [
 
         media_link:
           mediaLink,
+
+        media_filename:
+          mediaFilename,
 
 
         // ==============================================

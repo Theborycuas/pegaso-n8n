@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// PREPARAR RESPUESTA COMERCIAL - V2.4
+// PREPARAR RESPUESTA COMERCIAL - V2.5
 // ======================================================
 //
 // Recibe la decisión comercial resuelta.
@@ -140,6 +140,16 @@ return items.map(
       ultimoNorm.length >= 40 &&
       respuestaNorm.slice(0, 48) === ultimoNorm.slice(0, 48);
 
+    const noPudimosLeer =
+      /no pudimos (leer|visualizar)|podria (escribirnos nuevamente|reenviarlo)/.test(
+        respuestaNorm
+      );
+
+    const ultimoYaPidioMedidasORequerimiento =
+      /\ben que medidas|ancho y alto|cual es su requerimiento|con mucho gusto le podemos ayudar/.test(
+        ultimoNorm
+      );
+
     const esDuplicado =
       !omisionSolicitada &&
       ultimoMensaje !== '' &&
@@ -147,7 +157,8 @@ return items.map(
         respuestaNorm === ultimoNorm ||
         mismoPermita ||
         mismaUbicacion ||
-        mismoInicio
+        mismoInicio ||
+        (noPudimosLeer && ultimoYaPidioMedidasORequerimiento)
       );
 
     const omitirEnvio =
