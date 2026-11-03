@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Normalizar decisión IA
 // ARCHIVO: code/04-cerebro-comercial/normalizar-decision-ia.js
-// VERSION: 2.9
+// VERSION: 2.10
 // RESPONSABILIDAD:
 // - Convertir la decisión YA VALIDADA (de cualquier proveedor) en un contrato único Pegaso con tipos normalizados.
 // - Unir la decisión con el contexto de "Preparar contexto IA" (IDs, prospecto, tipo_actor, contexto_comercial) y resolver ciudad/provincia.
@@ -28,7 +28,8 @@
 //   imagen/archivo que requiere revisión -> DERIVAR_HUMANO + IMAGEN_REQUIERE_REVISION / ARCHIVO_NO_PROCESABLE
 //   (si el documento trae medidas en el nombre o caption, no se deriva: se cotiza)
 //   (excepto ruta INFORMAR_TARJETAS / INFORMAR_FLYERS / INFORMAR_AFICHES /
-//   INFORMAR_TRIPTICOS / INFORMAR_MEMBRETADAS o mención de esos productos:
+//   INFORMAR_TRIPTICOS / INFORMAR_MEMBRETADAS / INFORMAR_CALENDARIOS (V2.10)
+//   o mención de esos productos:
 //   no tumbar el catálogo por diseño o meme).
 //   Si la IA ya derivó por otro motivo, se respeta (salvo comprobante frente a motivos no prioritarios).
 // - Convertir solicitud de cuenta/datos bancarios (SOLICITA_DATOS_PAGO o ENVIAR_DATOS_PAGO) en ENVIAR_DATOS_PAGO
@@ -373,11 +374,14 @@ const esRutaTarjetas =
   accion === 'INFORMAR_AFICHES' ||
   accion === 'INFORMAR_TRIPTICOS' ||
   accion === 'INFORMAR_MEMBRETADAS' ||
+  accion === 'INFORMAR_CALENDARIOS' ||
   String(contextoIAMedia.regla_pre_ia ?? '') === 'TARJETAS_PRESENTACION' ||
   String(contextoIAMedia.regla_pre_ia ?? '') === 'FLYERS_VOLANTES' ||
   String(contextoIAMedia.regla_pre_ia ?? '') === 'AFICHES' ||
   String(contextoIAMedia.regla_pre_ia ?? '') === 'TRIPTICOS' ||
   String(contextoIAMedia.regla_pre_ia ?? '') === 'HOJAS_MEMBRETADAS' ||
+  String(contextoIAMedia.regla_pre_ia ?? '') === 'CALENDARIOS' ||
+  /\b(calendarios?|almanaques?)\b/i.test(textoTurnoCliente) ||
   /\btarjetas?\b/i.test(textoTurnoCliente) ||
   /\b(flyers?|flayers?|fliers?|volantes?|vonates?|bolantes?|volates?)\b/i.test(textoTurnoCliente) ||
   /\bafiches?\b/i.test(textoTurnoCliente) ||

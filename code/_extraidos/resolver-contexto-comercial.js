@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.23
+// RESOLVER CONTEXTO COMERCIAL - V3.24
 // ======================================================
 //
 // Objetivo:
@@ -130,6 +130,14 @@
 // - V3.23: los links (y el marcador [ENLACE · …]) se quitan
 //   antes de leer números, medidas y patrones del turno:
 //   su ruta no es cantidad (canva.link/…2533 ≠ 2533).
+// - V3.24: calendarios (pared A3/A4, escritorio, bolsillo).
+//   INFORMAR_CALENDARIOS: lista + imagen CATALOGO_CALENDARIOS
+//   (si existe); el catálogo se marca enviado aunque no haya
+//   imagen. Totalizador: 200/500/1000 (bolsillo 1000), varias
+//   líneas por tipo. FAQ: material (solo si pregunta), entrega
+//   2-3 días hábiles, diseño 1 propuesta + 5 cambios. Salen de
+//   producto no manejado. La metodología de diseño se agrega
+//   también a afiches, trípticos y hojas membretadas.
 //
 // ======================================================
 
@@ -935,6 +943,7 @@ else if (
     'INFORMAR_AFICHES',
     'INFORMAR_TRIPTICOS',
     'INFORMAR_MEMBRETADAS',
+    'INFORMAR_CALENDARIOS',
     'ENVIAR_DATOS_PAGO',
     'REGISTRAR_ACEPTACION',
     'RESPONDER_GENERAL'
@@ -1179,15 +1188,25 @@ const productoTripticos =
 const productoMembretadas =
   texto(contextoIA.producto_membretadas);
 
+const productoCalendarios =
+  texto(contextoIA.producto_calendarios);
+
 const ACCIONES_CATALOGO = [
   'INFORMAR_TARJETAS',
   'INFORMAR_FLYERS',
   'INFORMAR_AFICHES',
   'INFORMAR_TRIPTICOS',
-  'INFORMAR_MEMBRETADAS'
+  'INFORMAR_MEMBRETADAS',
+  'INFORMAR_CALENDARIOS'
 ];
 
 if (
+  reglaPreIA === 'CALENDARIOS' ||
+  accionIA === 'INFORMAR_CALENDARIOS'
+) {
+  accion =
+    'INFORMAR_CALENDARIOS';
+} else if (
   reglaPreIA === 'TARJETAS_PRESENTACION' ||
   accionIA === 'INFORMAR_TARJETAS'
 ) {
@@ -1220,7 +1239,7 @@ if (
 }
 
 const PATRON_PRODUCTO_NO_MANEJADO =
-  /\b(carpetas?|talonarios?|boletos?|formularios?|dipticos?|brochures?|banners?|lonas?|pendones?|roll\s*ups?|rollups?|gigantografias?|plotter|imanes?|magneticos?|cajas?|empaques?|packaging|servilletas?|vasos?|camisetas?|polos?|gorras?|uniformes?|sublimacion|lanyards?|credenciales?|puls(era|eras)|pines?|botones?|llaveros?|calendarios?|agendas?|libretas?|recetarios?|factureros?|sellos?|invitaciones?|displays?|totems?|dummies?|acrilico|foam|mdf|canvas|lienzo)\b|\bentradas? (para|de)\b/;
+  /\b(carpetas?|talonarios?|boletos?|formularios?|dipticos?|brochures?|banners?|lonas?|pendones?|roll\s*ups?|rollups?|gigantografias?|plotter|imanes?|magneticos?|cajas?|empaques?|packaging|servilletas?|vasos?|camisetas?|polos?|gorras?|uniformes?|sublimacion|lanyards?|credenciales?|puls(era|eras)|pines?|botones?|llaveros?|agendas?|libretas?|recetarios?|factureros?|sellos?|invitaciones?|displays?|totems?|dummies?|acrilico|foam|mdf|canvas|lienzo)\b|\bentradas? (para|de)\b/;
 
 const planoTurnoProducto =
   paresMedidaTurno.length > 0
@@ -1240,7 +1259,9 @@ const productoNoManejadoEnTurno =
   productoFlyers === null &&
   productoAfiches === null &&
   productoTripticos === null &&
-  productoMembretadas === null;
+  productoMembretadas === null &&
+  productoCalendarios === null &&
+  !/\b(calendarios?|almanaques?)\b/.test(planoTurno);
 
 const derivacionPorProductoNoP4 =
   (
@@ -1701,6 +1722,22 @@ else if (
 }
 
 else if (
+  accion === 'INFORMAR_CALENDARIOS'
+) {
+  respuestaSugerida =
+    'Le adjunto tamaños y precios de calendarios personalizados 2026:\n\n' +
+    'Calendario de pared A3 (29 x 42 cm)\n' +
+    '• 200: $80 · 500: $110 · 1000: $160\n\n' +
+    'Calendario de pared A4 (21 x 29.7 cm)\n' +
+    '• 200: $65 · 500: $85 · 1000: $110\n\n' +
+    'Calendario de escritorio\n' +
+    '• 200: $90 · 500: $125 · 1000: $165\n\n' +
+    'Calendario de bolsillo (tamaño tarjeta de presentación)\n' +
+    '• 1000: $24\n\n' +
+    '*Precios no incluyen IVA*';
+}
+
+else if (
   accion === 'COTIZAR_P4' ||
   derivacionPorCantidad
 ) {
@@ -2046,14 +2083,37 @@ const MENCIONA_TRIPTICOS_TURNO =
 const MENCIONA_MEMBRETADAS_TURNO =
   /\bhojas? membretadas?\b|\bmembretadas?\b|\bmembretes?\b/;
 
+const MENCIONA_CALENDARIOS_TURNO =
+  /\b(calendarios?|almanaques?)\b/;
+
 const mencionaEtiquetaTurno =
   MENCIONA_ETIQUETA_TURNO.test(mensajeTurnoPlano);
 
-const mencionaTarjetasTurno =
-  MENCIONA_TARJETAS_TURNO.test(mensajeTurnoPlano) ||
+const mencionaCalendariosTurno =
+  MENCIONA_CALENDARIOS_TURNO.test(mensajeTurnoPlano) ||
   mencionaLemas(
     mensajeTurnoPlano,
-    ['tarjeta', 'tarjetas', 'tarejtes', 'estampita', 'estampitas']
+    ['calendario', 'calendarios', 'almanaque', 'almanaques']
+  );
+
+// "Calendario de bolsillo tipo tarjeta" no es la línea de
+// tarjetas de presentación: con calendarios, la tarjeta que
+// describe el formato no cuenta.
+const tarjetaComoFormatoCalendario =
+  mencionaCalendariosTurno &&
+  /\b(tipo|formato|tamano|como|estilo|modelo)(\s+de)?(\s+una?)?\s+tar[ej]\w*/.test(
+    mensajeTurnoPlano
+  ) &&
+  (mensajeTurnoPlano.match(/\btar[ej]\w*/g) ?? []).length === 1;
+
+const mencionaTarjetasTurno =
+  !tarjetaComoFormatoCalendario &&
+  (
+    MENCIONA_TARJETAS_TURNO.test(mensajeTurnoPlano) ||
+    mencionaLemas(
+      mensajeTurnoPlano,
+      ['tarjeta', 'tarjetas', 'tarejtes', 'estampita', 'estampitas']
+    )
   );
 
 const mencionaFlyersTurno =
@@ -2100,7 +2160,8 @@ const mezclaLineasTurno =
     mencionaFlyersTurno,
     mencionaAfichesTurno,
     mencionaTripticosTurno,
-    mencionaMembretadasTurno
+    mencionaMembretadasTurno,
+    mencionaCalendariosTurno
   ].filter(Boolean).length > 1;
 
 if (mezclaLineasTurno) {
@@ -2109,6 +2170,13 @@ if (mezclaLineasTurno) {
 } else if (mencionaEtiquetaTurno) {
   productoLinea =
     'ETIQUETAS';
+} else if (
+  accion === 'INFORMAR_CALENDARIOS' ||
+  productoCalendarios !== null ||
+  mencionaCalendariosTurno
+) {
+  productoLinea =
+    'CALENDARIOS';
 } else if (
   accion === 'INFORMAR_TARJETAS' ||
   productoTarjetas !== null ||
@@ -2153,7 +2221,8 @@ const mencionaOtraLineaCatalogo = (...propias) =>
     mencionaFlyersTurno,
     mencionaAfichesTurno,
     mencionaTripticosTurno,
-    mencionaMembretadasTurno
+    mencionaMembretadasTurno,
+    mencionaCalendariosTurno
   ].some((m, i) => {
     const nombres = [
       'ETIQUETAS',
@@ -2161,7 +2230,8 @@ const mencionaOtraLineaCatalogo = (...propias) =>
       'FLYERS_VOLANTES',
       'AFICHES',
       'TRIPTICOS',
-      'HOJAS_MEMBRETADAS'
+      'HOJAS_MEMBRETADAS',
+      'CALENDARIOS'
     ];
     return m && !propias.includes(nombres[i]);
   });
@@ -2190,6 +2260,10 @@ const esLineaRapida =
   esLineaAfiches ||
   esLineaTripticos ||
   esLineaMembretadas;
+
+const esLineaCalendarios =
+  productoLinea === 'CALENDARIOS' &&
+  !mencionaOtraLineaCatalogo('CALENDARIOS');
 
 
 // ------------------------------------------------------
@@ -2243,6 +2317,104 @@ const PRECIOS_RAPIDA = {
     1000: 65
   }
 };
+
+// V3.24: calendarios. Pared y escritorio: 200, 500 o 1000.
+// Bolsillo (formato tarjeta de presentación): solo 1000.
+const PRECIOS_CALENDARIOS = {
+  PARED_A3: {
+    etiqueta: 'calendarios de pared A3 (29 x 42 cm)',
+    200: 80,
+    500: 110,
+    1000: 160
+  },
+  PARED_A4: {
+    etiqueta: 'calendarios de pared A4 (21 x 29.7 cm)',
+    200: 65,
+    500: 85,
+    1000: 110
+  },
+  ESCRITORIO: {
+    etiqueta: 'calendarios de escritorio',
+    200: 90,
+    500: 125,
+    1000: 165
+  },
+  BOLSILLO: {
+    etiqueta: 'calendarios de bolsillo',
+    1000: 24
+  }
+};
+
+const RESPUESTA_CANTIDAD_CALENDARIOS =
+  'En calendarios de pared y de escritorio trabajamos 200, 500 o 1000 unidades; los de bolsillo, 1000 unidades. ¿De cuántas cotizamos?';
+
+// Con nombre del producto ("calendarios de pared").
+const PATRON_CALENDARIO_NOMBRE =
+  /\b(?:calendarios?|almanaques?)(?:\s+(?:de\s+)?(?:pared|escritorio|mesa|bolsillo))?/g;
+
+// También el tipo suelto ("y 1000 de bolsillo"), solo si la
+// conversación ya está en calendarios.
+const PATRON_CALENDARIO_CON_TIPO =
+  /\b(?:calendarios?|almanaques?)(?:\s+(?:de\s+)?(?:pared|escritorio|mesa|bolsillo))?|\b(?:de\s+)?(?:pared|escritorio|bolsillo)\b/g;
+
+// Texto justo antes de "tarjeta" cuando describe el formato
+// ("tipo tarjeta", "formato de tarjeta", "tamaño tarjeta").
+const PATRON_TARJETA_COMO_FORMATO_PREVIO =
+  /\b(tipo|formato|tamano|como|estilo|modelo)(\s+de)?(\s+una?)?\s*$/;
+
+const PATRON_TARJETA_COMO_FORMATO =
+  /\b(tipo|formato|tamano|como|estilo|modelo)(\s+de)?(\s+una?)?\s+tar[ej]\w*/;
+
+function detectarTipoCalendario(texto) {
+  const t = String(texto ?? '');
+
+  if (/\bbolsillo\b/.test(t)) {
+    return 'BOLSILLO';
+  }
+
+  if (/\b(escritorio|de mesa)\b/.test(t)) {
+    return 'ESCRITORIO';
+  }
+
+  const a3 = /\ba3\b|\b29(\.7)?\s*x\s*42\b/.test(t);
+  const a4 = /\ba4\b|\b21\s*x\s*29/.test(t);
+
+  if (a3 && !a4) {
+    return 'PARED_A3';
+  }
+
+  if (a4 && !a3) {
+    return 'PARED_A4';
+  }
+
+  if (/\bpared\b/.test(t)) {
+    return 'PARED';
+  }
+
+  return null;
+}
+
+function esAnioCalendario(n) {
+  return n >= 2024 && n <= 2035;
+}
+
+// Cantidad suelta (200, 500, 1000, "mil"), sin años ni medidas.
+function cantidadSueltaCalendario(texto) {
+  const t = String(texto ?? '');
+
+  if (/\bmil\b/.test(t)) {
+    return 1000;
+  }
+
+  for (const m of t.matchAll(/\b(\d{1,3}(?:[.,]\d{3})|\d{2,5})\b(?!\s*(?:x|cm|mm|\*|gr))/g)) {
+    const n = Number(m[1].replace(/[.,]/g, ''));
+    if (Number.isFinite(n) && !esAnioCalendario(n) && n >= 50) {
+      return n;
+    }
+  }
+
+  return null;
+}
 
 const PATRONES_PRODUCTO_CATALOGO = {
   TARJETAS_PRESENTACION:
@@ -2375,6 +2547,20 @@ function cantidadAntesProducto(texto, index) {
 function faltantesLineaCatalogo(linea) {
   const faltantes = [];
 
+  if (linea.producto === 'CALENDARIOS') {
+    if (!linea.tipo) {
+      faltantes.push('tipo_calendario');
+    } else if (linea.tipo === 'PARED') {
+      faltantes.push('tamano_calendario');
+    }
+
+    if (linea.cantidad == null && linea.tipo !== 'BOLSILLO') {
+      faltantes.push('cantidad_calendario');
+    }
+
+    return faltantes;
+  }
+
   if (linea.producto === 'TARJETAS_PRESENTACION' && !linea.acabado) {
     faltantes.push('acabado');
   }
@@ -2391,9 +2577,53 @@ function faltantesLineaCatalogo(linea) {
   return faltantes;
 }
 
-function extraerLineasCatalogo(texto) {
+function indicesCalendario(texto, conTipoSuelto) {
+  const patron =
+    new RegExp(
+      (conTipoSuelto ? PATRON_CALENDARIO_CON_TIPO : PATRON_CALENDARIO_NOMBRE).source,
+      'g'
+    );
+
+  const hits = [];
+  let coincidencia;
+  while ((coincidencia = patron.exec(texto)) !== null) {
+    hits.push({
+      clave: 'CALENDARIOS',
+      index: coincidencia.index
+    });
+  }
+  return hits;
+}
+
+function cantidadLineaCalendario(texto, index, chunk) {
+  const antes =
+    cantidadAntesProducto(texto, index);
+
+  if (antes !== null && !esAnioCalendario(antes)) {
+    return antes;
+  }
+
+  return cantidadSueltaCalendario(chunk);
+}
+
+function extraerLineasCatalogo(texto, opciones = {}) {
+  const hitsCalendario =
+    indicesCalendario(texto, opciones.contextoCalendario === true);
+
   const hits = Object.keys(PATRONES_PRODUCTO_CATALOGO)
     .flatMap(clave => indicesProductoCatalogo(texto, clave))
+    // "calendario de bolsillo tipo tarjeta": la tarjeta
+    // describe el formato del calendario, no es otra línea.
+    .filter(hit =>
+      !(
+        hit.clave === 'TARJETAS_PRESENTACION' &&
+        hitsCalendario.length > 0 &&
+        PATRON_TARJETA_COMO_FORMATO_PREVIO.test(
+          texto.slice(Math.max(0, hit.index - 24), hit.index)
+        )
+      )
+    )
+    .concat(hitsCalendario)
     .sort((a, b) => a.index - b.index);
 
   return hits.map((hit, i) => {
@@ -2404,6 +2634,25 @@ function extraerLineasCatalogo(texto) {
 
     const chunk =
       texto.slice(hit.index, fin);
+
+    if (hit.clave === 'CALENDARIOS') {
+      const linea = {
+        producto: hit.clave,
+        cantidad: cantidadLineaCalendario(texto, hit.index, chunk),
+        tipo: detectarTipoCalendario(chunk),
+        acabado: null,
+        puntas: false,
+        tamano: null,
+        caras: null,
+        diseno_listo: false,
+        sin_diseno: false
+      };
+
+      return {
+        ...linea,
+        faltantes: faltantesLineaCatalogo(linea)
+      };
+    }
 
     const cantidad =
       cantidadAntesProducto(texto, hit.index);
@@ -2462,7 +2711,56 @@ function extraerLineasCatalogo(texto) {
   });
 }
 
-function fusionarLineasCatalogo(previas, nuevas) {
+// Calendarios admite varias líneas (una por tipo). Una línea
+// nueva sin tipo, o un tipo que completa uno parcial (PARED →
+// PARED_A4), se fusiona con la anterior.
+function fusionarCalendarios(previas, nuevas) {
+  const lineas =
+    previas.map(l => ({ ...l }));
+
+  for (const nueva of nuevas) {
+    const destino =
+      lineas.find(l => l.tipo && l.tipo === nueva.tipo) ??
+      (
+        nueva.tipo === null && lineas.length === 1
+          ? lineas[0]
+          : null
+      ) ??
+      lineas.find(l =>
+        l.tipo === null ||
+        (l.tipo === 'PARED' && /^PARED_/.test(nueva.tipo ?? ''))
+      ) ??
+      null;
+
+    if (!destino) {
+      lineas.push({ ...nueva });
+      continue;
+    }
+
+    destino.cantidad = nueva.cantidad ?? destino.cantidad;
+    destino.tipo =
+      nueva.tipo && (destino.tipo === null || destino.tipo === 'PARED' || nueva.tipo === destino.tipo)
+        ? nueva.tipo
+        : destino.tipo;
+    destino.faltantes = faltantesLineaCatalogo(destino);
+  }
+
+  return lineas;
+}
+
+function fusionarLineasCatalogo(previasTodas, nuevasTodas) {
+  const calendarios =
+    fusionarCalendarios(
+      previasTodas.filter(l => l.producto === 'CALENDARIOS'),
+      nuevasTodas.filter(l => l.producto === 'CALENDARIOS')
+    );
+
+  const previas =
+    previasTodas.filter(l => l.producto !== 'CALENDARIOS');
+
+  const nuevas =
+    nuevasTodas.filter(l => l.producto !== 'CALENDARIOS');
+
   const porProducto = {};
 
   for (const linea of previas) {
@@ -2495,7 +2793,7 @@ function fusionarLineasCatalogo(previas, nuevas) {
     };
   }
 
-  return Object.values(porProducto);
+  return Object.values(porProducto).concat(calendarios);
 }
 
 function aplicarOpcionesSueltasCatalogo(lineas, texto) {
@@ -2511,7 +2809,45 @@ function aplicarOpcionesSueltasCatalogo(lineas, texto) {
   const caras =
     detectarCarasFlyer(texto);
 
+  const tipoCalendario =
+    detectarTipoCalendario(texto);
+
+  const cantidadCalendario =
+    cantidadSueltaCalendario(texto);
+
+  const lineasCalendarioIncompletas =
+    lineas.filter(l =>
+      l.producto === 'CALENDARIOS' &&
+      (l.faltantes ?? []).length > 0
+    );
+
   return lineas.map(linea => {
+    if (linea.producto === 'CALENDARIOS') {
+      // Una respuesta suelta ("A4", "500") completa la única
+      // línea de calendario que está esperando datos.
+      if (
+        lineasCalendarioIncompletas.length !== 1 ||
+        lineasCalendarioIncompletas[0] !== linea
+      ) {
+        return linea;
+      }
+
+      const mezclada = {
+        ...linea,
+        tipo:
+          tipoCalendario &&
+          (linea.tipo === null || (linea.tipo === 'PARED' && /^PARED_/.test(tipoCalendario)))
+            ? tipoCalendario
+            : linea.tipo,
+        cantidad: linea.cantidad ?? cantidadCalendario
+      };
+
+      return {
+        ...mezclada,
+        faltantes: faltantesLineaCatalogo(mezclada)
+      };
+    }
+
     if (linea.producto === 'TARJETAS_PRESENTACION') {
       const mezclada = {
         ...linea,
@@ -2611,7 +2947,43 @@ function cotizarLineaRapida(linea) {
   };
 }
 
+function cotizarLineaCalendario(linea) {
+  const tabla =
+    PRECIOS_CALENDARIOS[linea.tipo];
+
+  const cantidad =
+    linea.cantidad ?? (linea.tipo === 'BOLSILLO' ? 1000 : null);
+
+  if (!tabla || cantidad === null) {
+    return { ...linea, cantidad, error: 'FALTA' };
+  }
+
+  if (tabla[cantidad] == null) {
+    // Se descarta la cantidad inválida para que la respuesta
+    // siguiente ("500") complete la línea.
+    const sinCantidad = { ...linea, cantidad: null };
+    return {
+      ...sinCantidad,
+      cantidad_pedida: cantidad,
+      faltantes: faltantesLineaCatalogo(sinCantidad),
+      error: 'NO_CANTIDAD_CALENDARIO'
+    };
+  }
+
+  return {
+    ...linea,
+    cantidad,
+    error: null,
+    precio: tabla[cantidad],
+    etiqueta: `${cantidad} ${tabla.etiqueta}`
+  };
+}
+
 function cotizarLineaCatalogo(linea) {
+  if (linea.producto === 'CALENDARIOS') {
+    return cotizarLineaCalendario(linea);
+  }
+
   if (PRODUCTOS_RAPIDA.includes(linea.producto)) {
     return cotizarLineaRapida(linea);
   }
@@ -2720,6 +3092,18 @@ function formatoTotalPedido(valor) {
 }
 
 function preguntaFaltanteCatalogo(faltante, producto) {
+  if (producto === 'CALENDARIOS' && faltante === 'tipo_calendario') {
+    return 'en calendarios: el tipo (de pared A3, de pared A4, de escritorio o de bolsillo)';
+  }
+
+  if (producto === 'CALENDARIOS' && faltante === 'tamano_calendario') {
+    return 'en calendarios de pared: el tamaño (A3 de 29 x 42 cm o A4 de 21 x 29.7 cm)';
+  }
+
+  if (producto === 'CALENDARIOS' && faltante === 'cantidad_calendario') {
+    return 'en calendarios: la cantidad (200, 500 o 1000)';
+  }
+
   if (producto === 'TARJETAS_PRESENTACION' && faltante === 'acabado') {
     return 'en tarjetas: el acabado (UV brillante, Mate, Mate + UV selectivo o Mate + Pan de Oro)';
   }
@@ -2766,6 +3150,17 @@ function armarRespuestaTotalCatalogo(lineasCotizadas, destinoEnvio) {
       estado: 'NO_CANTIDAD_RAPIDA',
       respuesta:
         'En afiches, trípticos y hojas membretadas trabajamos 500 o 1000 unidades. ¿De cuántas cotizamos?'
+    };
+  }
+
+  const noCantidadCalendario =
+    lineasCotizadas.find(l => l.error === 'NO_CANTIDAD_CALENDARIO');
+
+  if (noCantidadCalendario) {
+    // FALTA_DATOS: el siguiente turno sigue el pedido.
+    return {
+      estado: 'FALTA_DATOS',
+      respuesta: RESPUESTA_CANTIDAD_CALENDARIOS
     };
   }
 
@@ -2921,8 +3316,21 @@ const catalogoMembretadasPrevio =
     objeto(contextoAnterior.catalogo_membretadas).enviada_at
   ) !== null;
 
+const catalogoCalendariosPrevio =
+  texto(
+    objeto(contextoAnterior.catalogo_calendarios).enviada_at
+  ) !== null;
+
+const contextoCalendario =
+  mencionaCalendariosTurno ||
+  productoLineaAnterior === 'CALENDARIOS' ||
+  lineasPedidoPrevias.some(l => l.producto === 'CALENDARIOS');
+
 const lineasCatalogoTurno =
-  extraerLineasCatalogo(mensajeTurnoPlano);
+  extraerLineasCatalogo(
+    mensajeTurnoPlano,
+    { contextoCalendario }
+  );
 
 let lineasCatalogo =
   fusionarLineasCatalogo(
@@ -2997,8 +3405,14 @@ const catalogoPrevioPorProducto = {
 
 const lineasRapidaSinCatalogo =
   lineasCatalogo.some(l =>
-    PRODUCTOS_RAPIDA.includes(l.producto) &&
-    catalogoPrevioPorProducto[l.producto] !== true
+    (
+      PRODUCTOS_RAPIDA.includes(l.producto) &&
+      catalogoPrevioPorProducto[l.producto] !== true
+    ) ||
+    (
+      l.producto === 'CALENDARIOS' &&
+      !catalogoCalendariosPrevio
+    )
   );
 
 const variasLineasCompletas =
@@ -3064,8 +3478,20 @@ const debeTotalizarCatalogo =
         detectarTamanoFlyer(mensajeTurnoPlano) !== null ||
         detectarCarasFlyer(mensajeTurnoPlano) !== null ||
         detectarDisenoListoCatalogo(mensajeTurnoPlano) ||
-        detectarSinDisenoCatalogo(mensajeTurnoPlano)
+        detectarSinDisenoCatalogo(mensajeTurnoPlano) ||
+        (
+          lineasCatalogo.some(l => l.producto === 'CALENDARIOS') &&
+          (
+            detectarTipoCalendario(mensajeTurnoPlano) !== null ||
+            cantidadSueltaCalendario(mensajeTurnoPlano) !== null
+          )
+        )
       )
+    ) ||
+    (
+      PIDE_TOTAL_CATALOGO &&
+      mencionaCalendariosTurno &&
+      catalogoCalendariosPrevio
     ) ||
     (
       PIDE_TOTAL_CATALOGO &&
@@ -3161,6 +3587,7 @@ if (debeTotalizarCatalogo) {
         lineas: lineasCotizadas.map(l => ({
           producto: l.producto,
           cantidad: l.cantidad ?? null,
+          tipo: l.tipo ?? null,
           acabado: l.acabado ?? null,
           puntas: l.puntas === true,
           tamano: l.tamano ?? null,
@@ -3193,7 +3620,8 @@ if (debeTotalizarCatalogo) {
         mencionaFlyersTurno,
         mencionaAfichesTurno,
         mencionaTripticosTurno,
-        mencionaMembretadasTurno
+        mencionaMembretadasTurno,
+        mencionaCalendariosTurno
       ].filter(Boolean).length > 1
     ) {
       productoLinea =
@@ -3359,11 +3787,13 @@ if (
   !esLineaTarjetas &&
   !esLineaFlyers &&
   !esLineaRapida &&
+  !esLineaCalendarios &&
   !mencionaTarjetasTurno &&
   !mencionaFlyersTurno &&
   !mencionaAfichesTurno &&
   !mencionaTripticosTurno &&
   !mencionaMembretadasTurno &&
+  !mencionaCalendariosTurno &&
   accion !== 'ENVIAR_DATOS_PAGO' &&
   !derivacionPorProductoNoP4
 ) {
@@ -3470,6 +3900,7 @@ const enviarImagenInformativa =
   !esLineaTarjetas &&
   !esLineaFlyers &&
   !esLineaRapida &&
+  !esLineaCalendarios &&
   !ACCIONES_CATALOGO.includes(accion) &&
   imagenInformativa !== null &&
   !omitirEnvio &&
@@ -3731,6 +4162,69 @@ const primerEnvioCatalogoRapida =
   primerEnvioCatalogoTripticos ||
   primerEnvioCatalogoMembretadas;
 
+// V3.24: calendarios. La imagen sale de la fila
+// CATALOGO_CALENDARIOS de configuracion_bot (sin URL por
+// defecto). Sin imagen se envía solo la lista, y el catálogo
+// igual queda marcado como enviado para no repetirlo.
+const IMAGEN_CALENDARIOS_DEFAULT = null;
+
+const RESPUESTA_CIERRE_CATALOGO_CALENDARIOS =
+  'Le adjunto tamaños y precios de calendarios personalizados 2026:\n\n' +
+  'Calendario de pared A3 (29 x 42 cm)\n' +
+  '• 200: $80 · 500: $110 · 1000: $160\n\n' +
+  'Calendario de pared A4 (21 x 29.7 cm)\n' +
+  '• 200: $65 · 500: $85 · 1000: $110\n\n' +
+  'Calendario de escritorio\n' +
+  '• 200: $90 · 500: $125 · 1000: $165\n\n' +
+  'Calendario de bolsillo (tamaño tarjeta de presentación)\n' +
+  '• 1000: $24\n\n' +
+  '*Precios no incluyen IVA*';
+
+// Diseño de impresión directa (calendarios, afiches,
+// trípticos, hojas membretadas).
+const RESPUESTA_METODOLOGIA_DISENO_IMPRESION =
+  'Realizamos 1 propuesta de diseño con posibilidad de 5 cambios sobre lo propuesto. ' +
+  'Debe tener listo su logo, slogan, fotos e información de direcciones y contactos.';
+
+const imagenCalendarios =
+  resolverImagenCatalogo('CATALOGO_CALENDARIOS', IMAGEN_CALENDARIOS_DEFAULT);
+
+const urlImagenCalendarios =
+  imagenCalendarios.url;
+
+const primerEnvioCatalogoCalendarios =
+  accion === 'INFORMAR_CALENDARIOS' &&
+  !omitirEnvio &&
+  !catalogoCalendariosPrevio;
+
+// Línea de calendario completa escrita en este turno
+// ("500 calendarios de escritorio"): se cotiza.
+const lineaCalendarioTurno =
+  lineasCatalogoTurno.length > 0
+    ? fusionarCalendarios(
+        [],
+        lineasCatalogoTurno.filter(l => l.producto === 'CALENDARIOS')
+      )
+    : [];
+
+function textoPrecioCalendarios(lineas) {
+  const cotizadas =
+    lineas
+      .filter(l => (l.faltantes ?? []).length === 0)
+      .map(cotizarLineaCalendario)
+      .filter(l => l.error === null);
+
+  if (cotizadas.length === 0) {
+    return null;
+  }
+
+  return cotizadas
+    .map(l =>
+      `Los ${l.etiqueta} le saldrían en $${Number(l.precio).toFixed(2)} dólares.`
+    )
+    .join('\n');
+}
+
 
 // ------------------------------------------------------
 // 12.7 RESPUESTAS DE TARJETAS (SIN MEZCLAR ETIQUETAS)
@@ -3806,7 +4300,7 @@ let textoSaludoTarjetas = null;
 
 let derivacionPorFlyerDesconocido = false;
 
-if (enviarVideosTarjetas || primerEnvioCatalogoFlyers || primerEnvioCatalogoRapida) {
+if (enviarVideosTarjetas || primerEnvioCatalogoFlyers || primerEnvioCatalogoRapida || primerEnvioCatalogoCalendarios) {
   if (sesionConversacionalNueva) {
     textoSaludoTarjetas =
       `${saludoHorarioTarjetas(mensajeTurnoPlano)}. Con gusto atenderemos su requerimiento`;
@@ -3849,6 +4343,27 @@ if (enviarVideosTarjetas || primerEnvioCatalogoFlyers || primerEnvioCatalogoRapi
     if (/\b500\b/.test(mensajeTurnoPlano)) {
       respuestaSugerida +=
         '\n\nSí es posible imprimir 500 hojas membretadas; le saldrían en $50.';
+    }
+  }
+
+  if (primerEnvioCatalogoCalendarios) {
+    respuestaSugerida =
+      RESPUESTA_CIERRE_CATALOGO_CALENDARIOS;
+
+    const precioPedido =
+      textoPrecioCalendarios(lineaCalendarioTurno);
+
+    if (precioPedido) {
+      respuestaSugerida +=
+        `\n\n${precioPedido}`;
+    } else if (
+      lineaCalendarioTurno.some(l =>
+        l.cantidad != null &&
+        cotizarLineaCalendario(l).error === 'NO_CANTIDAD_CALENDARIO'
+      )
+    ) {
+      respuestaSugerida +=
+        `\n\n${RESPUESTA_CANTIDAD_CALENDARIOS}`;
     }
   }
 } else if (
@@ -4071,7 +4586,8 @@ if (enviarVideosTarjetas || primerEnvioCatalogoFlyers || primerEnvioCatalogoRapi
           material:
             'Los afiches se imprimen en papel Couche de 150 gr, tamaño A3 (29.7 x 42 cm), full color a un solo lado.',
           diseno:
-            'Si ya tiene el diseño listo para imprimir, 1000 afiches le quedan en $90. Si no, el valor de 1000 es $100 (incluye diseño).',
+            'Si ya tiene el diseño listo para imprimir, 1000 afiches le quedan en $90. Si no, el valor de 1000 es $100 (incluye diseño). ' +
+            RESPUESTA_METODOLOGIA_DISENO_IMPRESION,
           desconocido:
             /\b(a[012456]|oficio|carta|tabloide|plastific|laminad|uv select|pantone|oro|urgente|adhesiv|sticker|etiqueta)\b/
         }
@@ -4084,7 +4600,8 @@ if (enviarVideosTarjetas || primerEnvioCatalogoFlyers || primerEnvioCatalogoRapi
             material:
               'Los trípticos se imprimen tamaño A4 (21 x 29.7 cm), full color a ambos lados, doblados y cortados, en papel Couche de 150 gr.',
             diseno:
-              'Debe enviarnos el diseño listo. Si no tiene diseño, le sale en $15 adicionales.',
+              'Debe enviarnos el diseño listo. Si no tiene diseño, le sale en $15 adicionales. ' +
+              RESPUESTA_METODOLOGIA_DISENO_IMPRESION,
             desconocido:
               /\b(dipticos?|a[12356]|oficio|plastific|laminad|urgente|adhesiv|sticker|etiqueta)\b/
           }
@@ -4096,7 +4613,8 @@ if (enviarVideosTarjetas || primerEnvioCatalogoFlyers || primerEnvioCatalogoRapi
             material:
               'Las hojas membretadas se imprimen en papel Bond de 75 gr, tamaño A4 (21 x 29.7 cm), full color a un solo lado.',
             diseno:
-              'Los valores publicados de hojas membretadas incluyen el diseño.',
+              'Los valores publicados de hojas membretadas incluyen el diseño. ' +
+              RESPUESTA_METODOLOGIA_DISENO_IMPRESION,
             desconocido:
               /\b(couche|a[12356]|oficio|plastific|laminad|ambos lados|2 lados|urgente|adhesiv|sticker|etiqueta)\b/
           };
@@ -4157,6 +4675,154 @@ if (enviarVideosTarjetas || primerEnvioCatalogoFlyers || primerEnvioCatalogoRapi
   } else if (
     preguntaAbiertaRapida &&
     !['INFORMAR_DISENO'].includes(accion)
+  ) {
+    accion = 'DERIVAR_HUMANO';
+    derivacionPorFlyerDesconocido = true;
+    respuestaSugerida =
+      'Permítame un momento por favor, verificamos su requerimiento.';
+  }
+} else if (
+  totalCatalogo === null &&
+  esLineaCalendarios &&
+  accion !== 'ENVIAR_DATOS_PAGO' &&
+  !omitirEnvio &&
+  !['INFORMAR_UBICACION', 'INFORMAR_METODOLOGIA_PAGO'].includes(accion)
+) {
+  // ----------------------------------------------------
+  // CALENDARIOS (V3.24): FAQ después del catálogo.
+  // Material solo si lo pregunta. Entrega y pago como en
+  // impresión directa (afiches, trípticos, membretadas).
+  // ----------------------------------------------------
+
+  const PATRON_MATERIAL_CALENDARIO =
+    /\b(material|couche|papel|cartulina|gramaje|plegable)\b/;
+
+  const PATRON_ENTREGA_CALENDARIO =
+    /\b(tiempo de entrega|tiempos? de (produccion|entrega)|demora|para cuando (estan|salen|quedan)|cuando (me )?(las |los )?(entregan|tienen|salen)|en cuantos dias|cuanto (se )?demora|dias habiles)\b/;
+
+  const PATRON_DISENO_CALENDARIO =
+    /\b(diseno|disenan|disenar|arte|pdf|listo para imprimir|propuesta|cambios)\b/;
+
+  const PATRON_PRECIO_CALENDARIO =
+    /\b(precio|precios|vale|valor|cuanto (sale|cuesta|queda|es)|a como)\b/;
+
+  const PATRON_MINIMO_CALENDARIO =
+    /\b(minimo|minimos|menos de)\b/;
+
+  const PATRON_DESCONOCIDO_CALENDARIO =
+    /\b(a[01256]|oficio|carta|tabloide|plastific\w*|laminad\w*|pantone|pan de oro|relieve|urgente|anillad\w*|espiral|agendas?)\b/;
+
+  const preguntaAbiertaCalendario =
+    /\?/.test(mensajeTurnoPlano) ||
+    /\b(pueden|podemos|hacen|hacemos|tienen|se puede|se podra)\b/.test(
+      mensajeTurnoPlano
+    );
+
+  const tipoCalendarioConocido =
+    detectarTipoCalendario(mensajeTurnoPlano) ??
+    (
+      lineasCatalogo.filter(l => l.producto === 'CALENDARIOS').length === 1
+        ? lineasCatalogo.find(l => l.producto === 'CALENDARIOS').tipo
+        : null
+    );
+
+  const materialCalendario =
+    tipoCalendarioConocido === 'ESCRITORIO'
+      ? 'Los calendarios de escritorio se imprimen en cartulina plegable .14.'
+      : tipoCalendarioConocido === 'BOLSILLO'
+        ? 'Los calendarios de bolsillo se imprimen en papel Couche de 300 gr.'
+        : /^PARED/.test(tipoCalendarioConocido ?? '')
+          ? 'Los calendarios de pared se imprimen en papel Couche de 300 gr.'
+          : 'Los calendarios de pared y de bolsillo se imprimen en papel Couche de 300 gr; los de escritorio, en cartulina plegable .14.';
+
+  const lineasCalendarioDelTurno =
+    lineaCalendarioTurno.filter(l =>
+      l.tipo !== null || l.cantidad != null
+    );
+
+  if (PATRON_DESCONOCIDO_CALENDARIO.test(mensajeTurnoPlano)) {
+    accion = 'DERIVAR_HUMANO';
+    derivacionPorFlyerDesconocido = true;
+    respuestaSugerida =
+      'Permítame un momento por favor, verificamos su requerimiento.';
+  } else if (
+    accion === 'INFORMAR_MATERIAL' ||
+    PATRON_MATERIAL_CALENDARIO.test(mensajeTurnoPlano)
+  ) {
+    respuestaSugerida =
+      materialCalendario;
+
+    accion = 'INFORMAR_MATERIAL';
+  } else if (
+    accion === 'INFORMAR_DISENO' ||
+    PATRON_DISENO_CALENDARIO.test(mensajeTurnoPlano)
+  ) {
+    respuestaSugerida =
+      RESPUESTA_METODOLOGIA_DISENO_IMPRESION;
+
+    accion = 'INFORMAR_DISENO';
+  } else if (
+    accion === 'INFORMAR_ENTREGA' ||
+    accion === 'INFORMAR_METODOLOGIA' ||
+    aplicaMetodologia ||
+    PATRON_ENTREGA_CALENDARIO.test(mensajeTurnoPlano)
+  ) {
+    respuestaSugerida =
+      'La entrega es de 2 a 3 días hábiles.';
+
+    accion = 'INFORMAR_ENTREGA';
+  } else if (
+    accion === 'INFORMAR_MINIMO' ||
+    PATRON_MINIMO_CALENDARIO.test(mensajeTurnoPlano)
+  ) {
+    respuestaSugerida =
+      'En calendarios de pared y de escritorio el mínimo es de 200 unidades; los de bolsillo se trabajan en 1000 unidades.';
+
+    accion = 'INFORMAR_MINIMO';
+  } else if (lineasCalendarioDelTurno.length > 0) {
+    // "500 de escritorio", "de pared A4": precio o lo que falta.
+    const precioPedido =
+      textoPrecioCalendarios(lineasCalendarioDelTurno);
+
+    const cantidadInvalida =
+      lineasCalendarioDelTurno.some(l =>
+        l.cantidad != null &&
+        cotizarLineaCalendario(l).error === 'NO_CANTIDAD_CALENDARIO'
+      );
+
+    const preguntas = [
+      ...new Set(
+        lineasCalendarioDelTurno
+          .flatMap(l => (l.faltantes ?? []).map(f => preguntaFaltanteCatalogo(f, 'CALENDARIOS')))
+          .filter(Boolean)
+      )
+    ];
+
+    accion = 'RESPONDER_GENERAL';
+
+    respuestaSugerida =
+      cantidadInvalida
+        ? RESPUESTA_CANTIDAD_CALENDARIOS
+        : precioPedido
+          ? `${precioPedido}\n*Precios no incluyen IVA*`
+          : preguntas.length > 0
+            ? 'Para cotizarle me falta:\n\n' + preguntas.map(p => `• ${p}.`).join('\n')
+            : RESPUESTA_CIERRE_CATALOGO_CALENDARIOS;
+  } else if (
+    PATRON_PRECIO_CALENDARIO.test(mensajeTurnoPlano) ||
+    accion === 'INFORMAR_CALENDARIOS' ||
+    accion === 'COTIZAR_P4' ||
+    accion === 'PEDIR_MEDIDAS'
+  ) {
+    respuestaSugerida =
+      RESPUESTA_CIERRE_CATALOGO_CALENDARIOS;
+
+    if (['COTIZAR_P4', 'PEDIR_MEDIDAS', 'DERIVAR_HUMANO'].includes(accion)) {
+      accion = 'RESPONDER_GENERAL';
+    }
+  } else if (
+    preguntaAbiertaCalendario &&
+    !['INFORMAR_DISENO', 'RESPONDER_GENERAL'].includes(accion)
   ) {
     accion = 'DERIVAR_HUMANO';
     derivacionPorFlyerDesconocido = true;
@@ -4275,14 +4941,32 @@ const enviarImagenMembretadas =
     RESPUESTA_CIERRE_CATALOGO_MEMBRETADAS
   );
 
+const enviarImagenCalendarios =
+  !omitirEnvio &&
+  urlImagenCalendarios !== null &&
+  String(respuestaSugerida ?? '').startsWith(
+    RESPUESTA_CIERRE_CATALOGO_CALENDARIOS
+  );
+
+// El catálogo de calendarios se marca enviado con la lista,
+// haya o no imagen configurada.
+const marcarCatalogoCalendarios =
+  !omitirEnvio &&
+  String(respuestaSugerida ?? '').startsWith(
+    RESPUESTA_CIERRE_CATALOGO_CALENDARIOS
+  );
+
 const enviarImagenCatalogo =
   enviarImagenFlyers ||
   enviarImagenAfiches ||
   enviarImagenTripticos ||
-  enviarImagenMembretadas;
+  enviarImagenMembretadas ||
+  enviarImagenCalendarios;
 
 const urlImagenCatalogo =
-  enviarImagenAfiches
+  enviarImagenCalendarios
+    ? urlImagenCalendarios
+    : enviarImagenAfiches
     ? urlImagenAfiches
     : enviarImagenTripticos
       ? urlImagenTripticos
@@ -4325,7 +5009,8 @@ const ACCIONES_NO_REPETIR = [
   'INFORMAR_TARJETAS',
   'INFORMAR_AFICHES',
   'INFORMAR_TRIPTICOS',
-  'INFORMAR_MEMBRETADAS'
+  'INFORMAR_MEMBRETADAS',
+  'INFORMAR_CALENDARIOS'
 ];
 
 function accionEquivalenteRespuesta(textoRespuesta) {
@@ -4791,6 +5476,17 @@ const contextoComercialNuevo = {
   ),
 
   ...(
+    marcarCatalogoCalendarios && !catalogoCalendariosPrevio
+      ? {
+          catalogo_calendarios: {
+            url: enviarImagenCalendarios ? imagenCalendarios.origen : null,
+            enviada_at: new Date().toISOString()
+          }
+        }
+      : {}
+  ),
+
+  ...(
     productoLinea
       ? { producto_linea: productoLinea }
       : {}
@@ -5114,6 +5810,14 @@ return [
         (
           accion === 'INFORMAR_MEMBRETADAS'
             ? 'hojas membretadas'
+            : null
+        ),
+
+      producto_calendarios:
+        productoCalendarios ??
+        (
+          accion === 'INFORMAR_CALENDARIOS'
+            ? 'calendarios'
             : null
         ),
 

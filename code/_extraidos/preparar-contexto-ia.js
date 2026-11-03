@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Preparar contexto IA
 // ARCHIVO: code/03-conversacion/preparar-contexto-ia.js
-// VERSION: 4.18
+// VERSION: 4.19
 // ======================================================
 //
 // RESPONSABILIDAD:
@@ -84,6 +84,12 @@
 //   de archivo. Expone mensaje_actual_original y
 //   enlaces_turno. Una cotización no se clasifica como
 //   INFORMAR_UBICACION aunque pregunte la ciudad.
+// - V4.19: calendarios (pared A3/A4, escritorio, bolsillo)
+//   salen de PRODUCTO_NO_P4. Primer contacto → regla
+//   CALENDARIOS / INFORMAR_CALENDARIOS (imagen + precios).
+//   "Calendario tipo/formato tarjeta" no abre el catálogo
+//   de tarjetas (el de bolsillo es formato tarjeta).
+//   Expone producto_calendarios.
 // - Reglas pre-IA solo para texto sin multimedia:
 //   SALUDO_SIMPLE (respuesta corta fija), PRODUCTO_NO_P4
 //   (DERIVAR_HUMANO + COTIZACION_ESPECIAL) y
@@ -2324,6 +2330,19 @@ const PRODUCTOS_MEMBRETADAS = [
   }
 ];
 
+// V4.19: calendarios de pared (A3/A4), de escritorio y de
+// bolsillo (formato tarjeta de presentación).
+const LEMAS_CALENDARIOS = [
+  'calendario', 'calendarios', 'almanaque', 'almanaques'
+];
+
+const PRODUCTOS_CALENDARIOS = [
+  {
+    patron: /\bcalendarios?\b|\balmanaques?\b/,
+    producto: 'calendarios'
+  }
+];
+
 const PRODUCTOS_NO_P4 = [
   { patron: /\bcarpetas?\b/, producto: 'carpetas' },
   { patron: /\btalonarios?\b/, producto: 'talonarios' },
@@ -2345,7 +2364,7 @@ const PRODUCTOS_NO_P4 = [
   { patron: /\bcamisetas?\b|\bpolos?\b|\bgorras?\b|\buniformes?\b|\bsublimacion\b/, producto: 'textil' },
   { patron: /\blanyards?\b|\bcredenciales?\b|\bpuls(era|eras)\b/, producto: 'lanyards / credenciales' },
   { patron: /\bpines?\b|\bbotones?\b|\bllaveros?\b/, producto: 'pines / llaveros' },
-  { patron: /\bcalendarios?\b|\bagendas?\b|\blibretas?\b/, producto: 'calendarios / agendas' },
+  { patron: /\bagendas?\b|\blibretas?\b/, producto: 'agendas / libretas' },
   { patron: /\brecetarios?\b|\bfactureros?\b|\bsellos?\b/, producto: 'recetarios / sellos' },
   { patron: /\binvitaciones?\b/, producto: 'invitaciones' },
   { patron: /\bdisplays?\b|\btotems?\b|\bdummies?\b/, producto: 'displays' },
@@ -2396,6 +2415,20 @@ const RESPUESTA_CIERRE_MEMBRETADAS =
   'Le adjunto tamaños y precios de hojas membretadas:\n\n' +
   '1000 hojas membretadas A4 (21 x 29.7 cm)\n' +
   '• Full color, 1 lado, papel Bond 75 gr: $65\n\n' +
+  '*Precios no incluyen IVA*';
+
+// Misma lista que RESPUESTA_CIERRE_CATALOGO_CALENDARIOS del
+// resolver (si cambia un precio, cambiar ambos).
+const RESPUESTA_CIERRE_CALENDARIOS =
+  'Le adjunto tamaños y precios de calendarios personalizados 2026:\n\n' +
+  'Calendario de pared A3 (29 x 42 cm)\n' +
+  '• 200: $80 · 500: $110 · 1000: $160\n\n' +
+  'Calendario de pared A4 (21 x 29.7 cm)\n' +
+  '• 200: $65 · 500: $85 · 1000: $110\n\n' +
+  'Calendario de escritorio\n' +
+  '• 200: $90 · 500: $125 · 1000: $165\n\n' +
+  'Calendario de bolsillo (tamaño tarjeta de presentación)\n' +
+  '• 1000: $24\n\n' +
   '*Precios no incluyen IVA*';
 
 
@@ -2655,13 +2688,32 @@ let productoTripticosDetectado = null;
 
 let productoMembretadasDetectado = null;
 
+let productoCalendariosDetectado = null;
+
 let divisionDisenosDetectada = null;
 
 const textoTurnoPlano =
   normalizarTexto(textoTurno);
 
+// "Calendario de bolsillo tipo tarjeta" es calendario, no
+// tarjetas de presentación: con calendarios, la tarjeta que
+// describe el formato no abre el catálogo de tarjetas.
+const mencionaCalendarios =
+  textoTurnoPlano !== '' &&
+  (
+    PRODUCTOS_CALENDARIOS.some(p => p.patron.test(textoTurnoPlano)) ||
+    mencionaLemas(textoTurnoPlano, LEMAS_CALENDARIOS)
+  );
+
+const tarjetaComoFormatoCalendario =
+  mencionaCalendarios &&
+  /\b(tipo|formato|tamano|como|estilo|modelo)( de)?( una?)? tar[ej]\w*/.test(
+    textoTurnoPlano
+  ) &&
+  (textoTurnoPlano.match(/\btar[ej]\w*/g) ?? []).length === 1;
+
 const productoTarjetas =
-  textoTurnoPlano !== ''
+  textoTurnoPlano !== '' && !tarjetaComoFormatoCalendario
     ? (
         PRODUCTOS_TARJETAS.find(p => p.patron.test(textoTurnoPlano)) ??
         (
@@ -2743,6 +2795,16 @@ const catalogoMembretadasYaEnviado =
     objeto(contextoComercial.catalogo_membretadas).enviada_at ?? ''
   ).trim() !== '';
 
+const productoCalendarios =
+  mencionaCalendarios
+    ? { producto: 'calendarios' }
+    : null;
+
+const catalogoCalendariosYaEnviado =
+  String(
+    objeto(contextoComercial.catalogo_calendarios).enviada_at ?? ''
+  ).trim() !== '';
+
 const mezclaTarjetasYFlyers =
   productoTarjetas !== null &&
   productoFlyers !== null;
@@ -2753,7 +2815,8 @@ const mezclaCatalogoImpreso =
     productoFlyers,
     productoAfiches,
     productoTripticos,
-    productoMembretadas
+    productoMembretadas,
+    productoCalendarios
   ].filter(Boolean).length > 1;
 
 const mezclaEtiquetasYCatalogo =
@@ -2763,7 +2826,8 @@ const mezclaEtiquetasYCatalogo =
     productoFlyers !== null ||
     productoAfiches !== null ||
     productoTripticos !== null ||
-    productoMembretadas !== null
+    productoMembretadas !== null ||
+    productoCalendarios !== null
   );
 
 const PIDE_PRECIO_CATALOGO =
@@ -2800,6 +2864,25 @@ if (mezclaCatalogoImpreso || mezclaEtiquetasYCatalogo) {
   productoAfichesDetectado = productoAfiches?.producto ?? null;
   productoTripticosDetectado = productoTripticos?.producto ?? null;
   productoMembretadasDetectado = productoMembretadas?.producto ?? null;
+  productoCalendariosDetectado = productoCalendarios?.producto ?? null;
+} else if (
+  productoCalendarios &&
+  !catalogoCalendariosYaEnviado
+) {
+  reglaPreIA = 'CALENDARIOS';
+  productoCalendariosDetectado = productoCalendarios.producto;
+
+  decisionPreIA = {
+    ...decisionBase(),
+    intencion: 'CONSULTAR_PRECIO',
+    accion: 'INFORMAR_CALENDARIOS',
+    producto: 'calendarios',
+    requiere_humano: false,
+    motivo_derivacion: 'NINGUNO',
+    respuesta_sugerida: RESPUESTA_CIERRE_CALENDARIOS
+  };
+} else if (productoCalendarios) {
+  productoCalendariosDetectado = productoCalendarios.producto;
 } else if (
   productoTarjetas &&
   !catalogoTarjetasYaEnviado &&
@@ -2946,7 +3029,8 @@ if (
     productoFlyers === null &&
     productoAfiches === null &&
     productoTripticos === null &&
-    productoMembretadas === null;
+    productoMembretadas === null &&
+    productoCalendarios === null;
 
   if (esSaludoSimple) {
     reglaPreIA = 'SALUDO_SIMPLE';
@@ -3329,6 +3413,9 @@ return [
 
       producto_membretadas:
         productoMembretadasDetectado,
+
+      producto_calendarios:
+        productoCalendariosDetectado,
 
       division_disenos:
         divisionDisenosDetectada,
