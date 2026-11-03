@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.22
+// RESOLVER CONTEXTO COMERCIAL - V3.23
 // ======================================================
 //
 // Objetivo:
@@ -127,6 +127,9 @@
 // - V3.20: producto o material que no manejamos (carpetas,
 //   banners, cajas, etc.) → DERIVAR_HUMANO con motivo
 //   PRODUCTO_NO_P4, sin el texto de 6.000 etiquetas.
+// - V3.23: los links (y el marcador [ENLACE · …]) se quitan
+//   antes de leer números, medidas y patrones del turno:
+//   su ruta no es cantidad (canva.link/…2533 ≠ 2533).
 //
 // ======================================================
 
@@ -436,12 +439,32 @@ const formaAnterior =
 //
 // ------------------------------------------------------
 
-const textoTurnoCrudo =
+// V3.23: un link (o su marcador [ENLACE · …] puesto por
+// Preparar contexto IA) no aporta cantidad, medidas ni
+// palabras del cliente: canva.link/6cckyn2fzpp2533 no son
+// 2533 etiquetas. Un nombre de archivo ("etiqueta
+// 10x5cm.pdf") no tiene dominio con "/" y se conserva.
+function quitarEnlaces(valor) {
+  return String(valor ?? '')
+    .replace(/\[ENLACE[^\]]*\]/g, ' ')
+    .replace(
+      /\b(?:https?:\/\/|www\.)[^\s<>"']+|\b(?:[a-z0-9-]+\.)+[a-z]{2,}\/[^\s<>"']*/gi,
+      ' '
+    );
+}
+
+const textoTurnoConEnlaces =
   String(
     contextoIA.mensaje_actual ??
     data.mensaje_actual ??
     ''
   );
+
+const turnoTraeEnlace =
+  /\[ENLACE|https?:\/\/|www\./i.test(textoTurnoConEnlaces);
+
+const textoTurnoCrudo =
+  quitarEnlaces(textoTurnoConEnlaces);
 
 const planoTurno =
   textoPlano(textoTurnoCrudo);
@@ -492,9 +515,11 @@ const turnoSoloTexto =
   numero(contextoIA.media_turno?.cantidad_media) === null ||
   numero(contextoIA.media_turno?.cantidad_media) === 0;
 
+// Un turno que solo trae un link también se verifica: sin
+// números escritos fuera del link no hay cantidad ni medidas.
 const verificarNumerosTurno =
   turnoSoloTexto &&
-  planoTurno !== '' &&
+  (planoTurno !== '' || turnoTraeEnlace) &&
   !NUMEROS_EN_PALABRAS.test(planoTurno);
 
 function cantidadEscrita(valor) {
@@ -1750,8 +1775,10 @@ const PATRON_PROMESA =
 
 const mensajeTurnoPlano =
   textoPlano(
-    contextoIA.mensaje_actual ??
-    data.mensaje_actual
+    quitarEnlaces(
+      contextoIA.mensaje_actual ??
+      data.mensaje_actual
+    )
   );
 
 const coincidenciaFecha =

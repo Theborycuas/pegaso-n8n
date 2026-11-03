@@ -18,8 +18,13 @@
 
 // ======================================================
 // PREPARAR MENSAJE COTIZACIÓN
-// PEGASO ADHESIVOS - V2.10
+// PEGASO ADHESIVOS - V2.11
 // ======================================================
+//
+// V2.11: la primera cotización cierra con "¿Desde qué
+// ciudad nos escribe disculpe?" si la ciudad no se conoce
+// y no se preguntó antes. Si ya se conoce, sigue pidiendo
+// el diseño.
 //
 // V2.10: si hay mix etiquetas + flyers/tarjetas, se
 // anexa el bloque de catálogo (con *Precios no incluyen
@@ -463,6 +468,49 @@ const cierreComparacionYaEnviado =
   );
 
 
+// ------------------------------------------------------
+// CIUDAD (V2.11)
+// ------------------------------------------------------
+//
+// La primera cotización cierra preguntando la ciudad si
+// todavía no se conoce: engancha mejor que pedir el
+// diseño. La respuesta del cliente la atiende el cerebro
+// (sección 16 del prompt) y ahí se pide el diseño.
+// Se pregunta una sola vez: si ya se preguntó en los
+// salientes recientes, se usa el cierre normal.
+//
+// ------------------------------------------------------
+
+const PREGUNTA_CIUDAD =
+  '¿Desde qué ciudad nos escribe disculpe?';
+
+const ciudadConocida =
+  textoONull(decision.prospecto_ciudad) ??
+  textoONull(decision.ciudad_detectada) ??
+  textoONull(contextoIA.prospecto_ciudad) ??
+  textoONull(decision.contexto_comercial?.ubicacion?.ciudad) ??
+  textoONull(contextoIA.contexto_comercial?.ubicacion?.ciudad);
+
+function normalizarPlano(texto) {
+  return String(texto ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+const ciudadYaPreguntada =
+  mensajesSalientesRecientes.some(
+    texto =>
+      /desde que ciudad nos escribe|de que ciudad nos escribe/.test(
+        normalizarPlano(texto)
+      )
+  );
+
+const preguntarCiudad =
+  !ciudadConocida &&
+  !ciudadYaPreguntada;
+
+
 // ======================================================
 // 9. RESOLVER CIERRE DE COTIZACIÓN
 // ======================================================
@@ -495,6 +543,14 @@ function resolverCierreCotizacion({
   if (
     cantidadCotizacionesPrevias <= 0
   ) {
+
+    if (preguntarCiudad) {
+
+      return multiplesOpcionesActuales
+        ? 'Le dejo estas opciones para que pueda compararlas. ' + PREGUNTA_CIUDAD
+        : PREGUNTA_CIUDAD;
+
+    }
 
     if (multiplesOpcionesActuales) {
 
@@ -868,6 +924,9 @@ return [
 
       cierre_comparacion_ya_enviado:
         cierreComparacionYaEnviado,
+
+      cierre_pregunta_ciudad:
+        cierreCotizacion.includes(PREGUNTA_CIUDAD),
 
       multiples_opciones_en_cotizacion:
         detalles.length > 1,

@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Preparar contexto IA
 // ARCHIVO: code/03-conversacion/preparar-contexto-ia.js
-// VERSION: 4.17
+// VERSION: 4.18
 // ======================================================
 //
 // RESPONSABILIDAD:
@@ -78,6 +78,12 @@
 // - V4.16: PRODUCTO_NO_P4 usa motivo PRODUCTO_NO_P4 (no
 //   el texto de 6.000 etiquetas). Más trabajos que no
 //   manejamos (banners, lonas, cajas, textil, etc.).
+// - V4.18: los links del turno y del historial se reemplazan
+//   por [ENLACE · servicio=… · tipo=…] (sin dígitos) para
+//   que su ruta no se lea como cantidad, medida o nombre
+//   de archivo. Expone mensaje_actual_original y
+//   enlaces_turno. Una cotización no se clasifica como
+//   INFORMAR_UBICACION aunque pregunte la ciudad.
 // - Reglas pre-IA solo para texto sin multimedia:
 //   SALUDO_SIMPLE (respuesta corta fija), PRODUCTO_NO_P4
 //   (DERIVAR_HUMANO + COTIZACION_ESPECIAL) y
@@ -118,6 +124,90 @@ function esMarcadorInterno(contenido) {
 }
 
 const OFFSET_HORA_ECUADOR = -5;
+
+
+// ======================================================
+// 0.1 ENLACES (V4.18)
+// ======================================================
+//
+// Un link (Canva, Drive, WeTransfer, Facebook…) no es un
+// nombre de archivo: su ruta es un identificador opaco y
+// sus números NO son cantidad ni medidas
+// (canva.link/6cckyn2fzpp2533 no son 2533 etiquetas).
+// El cerebro y las reglas reciben el link reemplazado por
+// un marcador sin dígitos:
+//   [ENLACE · servicio=Canva · tipo=DISENO]
+// Un nombre de archivo ("etiqueta 10x5cm.pdf", "logo.ai")
+// no tiene dominio ni "/" y NO se toca: sus medidas valen.
+//
+// ======================================================
+
+const SERVICIOS_ENLACE = [
+  { patron: /(^|\.)canva\.(com|link)$/, servicio: 'Canva', tipo: 'DISENO' },
+  { patron: /(^|\.)figma\.com$/, servicio: 'Figma', tipo: 'DISENO' },
+  { patron: /(^|\.)(adobe\.com|adobe\.ly|behance\.net)$/, servicio: 'Adobe', tipo: 'DISENO' },
+  { patron: /(^|\.)(freepik\.(com|es)|pinterest\.(com|es)|pin\.it)$/, servicio: 'Banco de imagenes', tipo: 'REFERENCIA' },
+  { patron: /^(drive|docs)\.google\.com$/, servicio: 'Google Drive', tipo: 'ARCHIVO' },
+  { patron: /(^|\.)(dropbox\.com|db\.tt)$/, servicio: 'Dropbox', tipo: 'ARCHIVO' },
+  { patron: /(^|\.)(wetransfer\.com|we\.tl)$/, servicio: 'WeTransfer', tipo: 'ARCHIVO' },
+  { patron: /(^|\.)(onedrive\.live\.com|1drv\.ms|sharepoint\.com)$/, servicio: 'OneDrive', tipo: 'ARCHIVO' },
+  { patron: /(^|\.)mega\.(nz|io)$/, servicio: 'MEGA', tipo: 'ARCHIVO' },
+  { patron: /(^|\.)(photos\.app\.goo\.gl|photos\.google\.com|icloud\.com)$/, servicio: 'Fotos', tipo: 'ARCHIVO' },
+  { patron: /(^|\.)(maps\.app\.goo\.gl|maps\.google\.com)$/, servicio: 'Mapa', tipo: 'UBICACION' },
+  { patron: /(^|\.)(facebook\.com|fb\.com|fb\.me|fb\.watch|instagram\.com|instagr\.am|tiktok\.com|youtube\.com|youtu\.be|wa\.me|whatsapp\.com)$/, servicio: 'Red social', tipo: 'REFERENCIA' }
+];
+
+// Con esquema o www; o dominio seguido de "/" (canva.link/xyz).
+const PATRON_ENLACE =
+  /\b(?:https?:\/\/|www\.)[^\s<>"']+|\b(?:[a-z0-9-]+\.)+[a-z]{2,}\/[^\s<>"']*/gi;
+
+function limpiarFinEnlace(url) {
+  return String(url).replace(/[.,;:!?)\]}>]+$/, '');
+}
+
+function clasificarEnlace(url) {
+  const dominio =
+    String(url)
+      .toLowerCase()
+      .replace(/^https?:\/\//, '')
+      .replace(/^www\./, '')
+      .split(/[/?#]/)[0]
+      .replace(/:\d+$/, '');
+
+  const servicio =
+    SERVICIOS_ENLACE.find(s => s.patron.test(dominio));
+
+  return {
+    url,
+    dominio,
+    servicio: servicio?.servicio ?? 'Web',
+    tipo: servicio?.tipo ?? 'WEB'
+  };
+}
+
+function detectarEnlaces(valor) {
+  return (String(valor ?? '').match(PATRON_ENLACE) ?? [])
+    .map(limpiarFinEnlace)
+    .filter(Boolean)
+    .map(clasificarEnlace);
+}
+
+function marcadorEnlace(enlace) {
+  return `[ENLACE · servicio=${enlace.servicio} · tipo=${enlace.tipo}]`;
+}
+
+function reemplazarEnlaces(valor) {
+  return String(valor ?? '').replace(
+    PATRON_ENLACE,
+    coincidencia => {
+      const url = limpiarFinEnlace(coincidencia);
+      const sobrante = coincidencia.slice(url.length);
+      return url
+        ? marcadorEnlace(clasificarEnlace(url)) + sobrante
+        : coincidencia;
+    }
+  );
+}
 
 
 // ======================================================
@@ -889,7 +979,7 @@ const mensajesTurno =
 // 4.3 TEXTO FINAL DEL TURNO
 // ======================================================
 
-const textoTurno =
+const textoTurnoOriginal =
   mensajesTurno
     .map(m =>
       textoONull(
@@ -898,6 +988,13 @@ const textoTurno =
     )
     .filter(Boolean)
     .join('\n');
+
+// V4.18: los links llegan como marcador sin dígitos.
+const enlacesTurno =
+  detectarEnlaces(textoTurnoOriginal);
+
+const textoTurno =
+  reemplazarEnlaces(textoTurnoOriginal);
 
 
 const medidasImagenTurno =
@@ -1451,7 +1548,7 @@ const historial =
 
 
       contenido =
-        String(
+        reemplazarEnlaces(
           contenido ?? ''
         )
           .trim()
@@ -1576,6 +1673,21 @@ function accionEquivalenteSaliente(contenido) {
 
   const plano =
     normalizarTexto(texto);
+
+  // V4.18: una cotización no equivale a ninguna acción
+  // informativa, aunque cierre preguntando la ciudad
+  // ("¿Desde qué ciudad nos escribe disculpe?"). Si se
+  // tomara como INFORMAR_UBICACION, la respuesta a la
+  // ciudad o a "¿dónde están?" se omitiría por repetida.
+  if (
+    /\ble adjunto la cotizacion\b/.test(plano) ||
+    (
+      /\betiquetas adhesivas\b/.test(plano) &&
+      /\ble saldrian en\b/.test(plano)
+    )
+  ) {
+    return null;
+  }
 
   if (
     /\ben que medidas\b|\bque medidas (requiere|necesita|desea|tendrian|tendria)\b|\bancho y alto\b|\bsolo nos falta el (ancho|alto)\b|\bcon mucho gusto le podemos ayudar\b/.test(plano)
@@ -3045,6 +3157,14 @@ return [
 
       mensaje_actual:
         textoTurno,
+
+      // V4.18: texto con los links completos (para humanos)
+      // y links detectados en el turno.
+      mensaje_actual_original:
+        textoTurnoOriginal,
+
+      enlaces_turno:
+        enlacesTurno,
 
       mensaje_disparador:
         (
