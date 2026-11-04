@@ -25,8 +25,8 @@ Un reporte por intervención sobre el workflow **SISTEMA AUTOMATIZADO PEGASO**: 
 | 2026-10-20 | [Anti-repetición, medidas con * y mix etiquetas + flyers](2026-10-20-anti-repeticion-mix.md) | Implementado en local, sin publicar ni commit |
 | 2026-10-21 | [Auto-reply, cierre, archivos con medidas e interpretación de imagen](2026-10-21-auto-cierre-archivo-imagen.md) | Implementado en local, sin publicar ni commit |
 | 2026-11-03 | [Links del cliente y pregunta de ciudad tras la cotización](2026-11-03-enlaces-y-ciudad-tras-cotizacion.md) | Implementado en local, sin publicar ni commit |
-| 2026-11-03 | [Calendarios personalizados 2026](2026-11-03-calendarios.md) | Publicado (commit `c65cdad`); requiere crear `CATALOGO_CALENDARIOS` en `configuracion_bot` |
-| 2026-11-03 | [Diseño de etiqueta recibido: cierre sin derivar, y fajillas](2026-11-03-diseno-recibido-etiquetas.md) | Implementado en local, sin publicar ni commit; `IMAGEN_TRABAJOS` opcional en `configuracion_bot` |
+| 2026-11-03 | [Calendarios personalizados 2026](2026-11-03-calendarios.md) | Publicado (commit `c65cdad`); la imagen por defecto y el texto corto (§7) están en local, sin publicar ni commit |
+| 2026-11-03 | [Diseño de etiqueta recibido: cierre sin derivar, y fajillas](2026-11-03-diseno-recibido-etiquetas.md) | Publicado (commit `47fdfdb`); `IMAGEN_TRABAJOS` opcional en `configuracion_bot` |
 
 ## Convenciones
 

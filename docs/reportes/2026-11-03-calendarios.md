@@ -1,7 +1,7 @@
 # Calendarios personalizados 2026
 
 **Fecha:** 3 de noviembre de 2026 · **Workflow:** SISTEMA AUTOMATIZADO PEGASO (`09OF22FOxihypeeh`)
-**Estado:** Implementado en local (código + `edit.json`, validadores OK). **No** publicado en n8n, sin commit ni `git push`. Falta cargar la imagen del catálogo en `configuracion_bot` (§5).
+**Estado:** Publicado (commit `c65cdad`). **Actualización 3 nov:** imagen del catálogo con URL por defecto y texto corto (§7), en local, sin publicar ni commit.
 
 El bot atiende y vende calendarios en tres presentaciones: de pared (A3 y A4), de escritorio y de bolsillo. Antes, "calendarios" estaba en la lista de productos que no manejamos y se derivaba a humano.
 
@@ -92,3 +92,21 @@ SET valor_json = EXCLUDED.valor_json,
 - **Calendario de bolsillo:** se describe como "tamaño tarjeta de presentación"; no se indica acabado.
 - **Diseño:** el texto no dice si el diseño está incluido en el precio del calendario; solo explica la metodología.
 - La lista de precios está en `Preparar contexto IA` y en dos puntos de `Resolver contexto comercial`: si cambia un precio, cambiar los tres (y la tabla `PRECIOS_CALENDARIOS`).
+
+---
+
+## 7. Actualización: imagen del catálogo y texto corto
+
+Cuando el prospecto pregunta por calendarios por primera vez, el bot envía la imagen del catálogo y luego el texto:
+
+```
+[imagen] https://pegasoadhesivos.com/wp-content/uploads/2026/11/Artes-Calendarios_Mesa-de-trabajo-1-copia-5.png
+Le adjunto los precios, modelos y cantidades
+```
+
+- Material, entrega, diseño y mínimo se responden solo cuando el cliente los pregunta (§2).
+- Si el primer mensaje ya trae tipo y cantidad ("precio de 500 calendarios de escritorio"), se añade ese precio debajo.
+- La URL queda como valor por defecto en `Resolver contexto comercial` (V3.26), igual que afiches, trípticos y hojas membretadas: **no hace falta** crear la fila en `configuracion_bot`. La fila `CATALOGO_CALENDARIOS` (§5) sirve para cambiar la imagen sin publicar el workflow, o para desactivarla con `"activo": false`.
+- Si la imagen está desactivada, el bot envía la lista completa de precios en texto (para que el mensaje no quede sin información).
+- La imagen se envía por el CDN de WordPress (`i0.wp.com`, igual que los otros catálogos): se comprobó que responde (PNG de 315 KB; el original pesa 3 MB).
+- Prompt §27E de los tres cerebros: el texto del primer contacto es el corto y el resto se informa cuando lo pregunte.

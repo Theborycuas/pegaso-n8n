@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.25
+// RESOLVER CONTEXTO COMERCIAL - V3.26
 // ======================================================
 //
 // Objetivo:
@@ -147,6 +147,10 @@
 //   la metodología va a humano (ARCHIVO_DISENO). No se vuelve
 //   a pedir el diseño si ya llegó. Fajillas → "No trabajamos
 //   con fajillas plásticas…".
+// - V3.26: calendarios con imagen por defecto
+//   (Artes-Calendarios_Mesa-de-trabajo-1-copia-5.png) y texto
+//   "Le adjunto los precios, modelos y cantidades"; sin imagen,
+//   la lista completa.
 //
 // ======================================================
 
@@ -4184,13 +4188,19 @@ const primerEnvioCatalogoRapida =
   primerEnvioCatalogoTripticos ||
   primerEnvioCatalogoMembretadas;
 
-// V3.24: calendarios. La imagen sale de la fila
-// CATALOGO_CALENDARIOS de configuracion_bot (sin URL por
-// defecto). Sin imagen se envía solo la lista, y el catálogo
-// igual queda marcado como enviado para no repetirlo.
-const IMAGEN_CALENDARIOS_DEFAULT = null;
+// V3.24: calendarios. V3.26: la imagen del catálogo
+// (precios, modelos y cantidades) tiene URL por defecto; la
+// fila CATALOGO_CALENDARIOS de configuracion_bot la puede
+// reemplazar o desactivar. Con imagen el texto es corto y el
+// resto se informa cuando pregunte; sin imagen se envía la
+// lista completa. El catálogo queda marcado como enviado.
+const IMAGEN_CALENDARIOS_DEFAULT =
+  'https://pegasoadhesivos.com/wp-content/uploads/2026/11/Artes-Calendarios_Mesa-de-trabajo-1-copia-5.png';
 
-const RESPUESTA_CIERRE_CATALOGO_CALENDARIOS =
+const RESPUESTA_CIERRE_CATALOGO_CALENDARIOS_CON_IMAGEN =
+  'Le adjunto los precios, modelos y cantidades';
+
+const RESPUESTA_LISTA_CALENDARIOS =
   'Le adjunto tamaños y precios de calendarios personalizados 2026:\n\n' +
   'Calendario de pared A3 (29 x 42 cm)\n' +
   '• 200: $80 · 500: $110 · 1000: $160\n\n' +
@@ -4213,6 +4223,11 @@ const imagenCalendarios =
 
 const urlImagenCalendarios =
   imagenCalendarios.url;
+
+const RESPUESTA_CIERRE_CATALOGO_CALENDARIOS =
+  urlImagenCalendarios !== null
+    ? RESPUESTA_CIERRE_CATALOGO_CALENDARIOS_CON_IMAGEN
+    : RESPUESTA_LISTA_CALENDARIOS;
 
 const primerEnvioCatalogoCalendarios =
   accion === 'INFORMAR_CALENDARIOS' &&
