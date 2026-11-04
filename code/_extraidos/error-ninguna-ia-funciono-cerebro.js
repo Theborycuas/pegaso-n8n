@@ -48,7 +48,7 @@ return [
       requiere_notificacion: true,
       clasificacion_prospecto: 'C',
       respuesta_sugerida:
-        'Permítame un momento por favor, verificamos su requerimiento.',
+        'Permítame un momento por favor, ya verificamos su requerimiento.',
       details: [],
       cantidad_detalles: 0,
       source: 'NONE'

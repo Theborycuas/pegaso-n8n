@@ -303,7 +303,7 @@ else if (
 ) {
 
   mensaje =
-    'Permítame un momento por favor, verificamos su requerimiento.';
+    'Permítame un momento por favor, ya verificamos su requerimiento.';
 
 }
 

@@ -1,7 +1,7 @@
 # Calendarios sin pedir medidas, misma medida en varios diseños y pregunta por el logo
 
 **Fecha:** 4 de noviembre de 2026 · **Workflow:** SISTEMA AUTOMATIZADO PEGASO (`09OF22FOxihypeeh`)
-**Estado:** Implementado en local (código + `edit.json`, validadores OK). **No** publicado en n8n, sin commit ni `git push`.
+**Estado:** Publicado (commit `a4130f6`).
 
 ---
 

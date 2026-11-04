@@ -2380,7 +2380,7 @@ const MENCIONA_ETIQUETA =
   /\b(etiquetas?|stickers?|adhesiv[oa]s?|calcomanias?|pegatinas?|rotulos?|vinil|viniles)\b/;
 
 const RESPUESTA_TRANSICION_NO_P4 =
-  'Permítame un momento por favor, verificamos su requerimiento.';
+  'Permítame un momento por favor, ya verificamos su requerimiento.';
 
 const RESPUESTA_PRECIO_FORMA_TROQUEL =
   'Así es, desde los 5 cm para abajo se usa troquel para realizar los cortes por lo que el precio es el mismo, sea rectangular, circular o troquelado';

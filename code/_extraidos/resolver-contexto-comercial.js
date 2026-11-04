@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.27
+// RESOLVER CONTEXTO COMERCIAL - V3.28
 // ======================================================
 //
 // Objetivo:
@@ -158,6 +158,12 @@
 //   cotización > $70 que preguntan por el diseño → "¿Usted
 //   cuenta con su logo disculpe?" → sí: metodología con
 //   propuesta (5 cambios) y 50/50; no: no creamos logos.
+// - V3.28: IVA y envío con respuesta fija en todas las líneas
+//   (solo etiquetas incluyen IVA; envío no incluido, ~$5.00,
+//   y se pregunta la ciudad si no se conoce). Una pregunta
+//   cuya respuesta repetiría el último saliente ya no queda en
+//   silencio: deriva con "Permítame un momento por favor, ya
+//   verificamos su requerimiento.".
 //
 // ======================================================
 
@@ -4368,6 +4374,10 @@ let textoSaludoTarjetas = null;
 
 let derivacionPorFlyerDesconocido = false;
 
+// Solo términos fuera de catálogo (no preguntas abiertas):
+// la regla de IVA/envío no deshace esta derivación.
+let derivacionPorTerminoDesconocido = false;
+
 if (enviarVideosTarjetas || primerEnvioCatalogoFlyers || primerEnvioCatalogoRapida || primerEnvioCatalogoCalendarios) {
   if (sesionConversacionalNueva) {
     textoSaludoTarjetas =
@@ -4543,8 +4553,9 @@ if (enviarVideosTarjetas || primerEnvioCatalogoFlyers || primerEnvioCatalogoRapi
   if (PATRON_DESCONOCIDO_FLYERS.test(mensajeClienteTurnoPlano)) {
     accion = 'DERIVAR_HUMANO';
     derivacionPorFlyerDesconocido = true;
+    derivacionPorTerminoDesconocido = true;
     respuestaSugerida =
-      'Permítame un momento por favor, verificamos su requerimiento.';
+      'Permítame un momento por favor, ya verificamos su requerimiento.';
   } else if (
     accion === 'INFORMAR_MINIMO' ||
     PATRON_MINIMO_CATALOGO.test(mensajeTurnoPlano)
@@ -4611,7 +4622,7 @@ if (enviarVideosTarjetas || primerEnvioCatalogoFlyers || primerEnvioCatalogoRapi
     accion = 'DERIVAR_HUMANO';
     derivacionPorFlyerDesconocido = true;
     respuestaSugerida =
-      'Permítame un momento por favor, verificamos su requerimiento.';
+      'Permítame un momento por favor, ya verificamos su requerimiento.';
   }
 } else if (
   totalCatalogo === null &&
@@ -4690,8 +4701,9 @@ if (enviarVideosTarjetas || primerEnvioCatalogoFlyers || primerEnvioCatalogoRapi
   if (cfgRapida.desconocido.test(mensajeClienteTurnoPlano)) {
     accion = 'DERIVAR_HUMANO';
     derivacionPorFlyerDesconocido = true;
+    derivacionPorTerminoDesconocido = true;
     respuestaSugerida =
-      'Permítame un momento por favor, verificamos su requerimiento.';
+      'Permítame un momento por favor, ya verificamos su requerimiento.';
   } else if (PATRON_500_RAPIDA.test(mensajeTurnoPlano)) {
     respuestaSugerida =
       cfgRapida.quinientos;
@@ -4747,7 +4759,7 @@ if (enviarVideosTarjetas || primerEnvioCatalogoFlyers || primerEnvioCatalogoRapi
     accion = 'DERIVAR_HUMANO';
     derivacionPorFlyerDesconocido = true;
     respuestaSugerida =
-      'Permítame un momento por favor, verificamos su requerimiento.';
+      'Permítame un momento por favor, ya verificamos su requerimiento.';
   }
 } else if (
   totalCatalogo === null &&
@@ -4811,8 +4823,9 @@ if (enviarVideosTarjetas || primerEnvioCatalogoFlyers || primerEnvioCatalogoRapi
   if (PATRON_DESCONOCIDO_CALENDARIO.test(mensajeClienteTurnoPlano)) {
     accion = 'DERIVAR_HUMANO';
     derivacionPorFlyerDesconocido = true;
+    derivacionPorTerminoDesconocido = true;
     respuestaSugerida =
-      'Permítame un momento por favor, verificamos su requerimiento.';
+      'Permítame un momento por favor, ya verificamos su requerimiento.';
   } else if (
     accion === 'INFORMAR_MATERIAL' ||
     PATRON_MATERIAL_CALENDARIO.test(mensajeTurnoPlano)
@@ -4895,7 +4908,7 @@ if (enviarVideosTarjetas || primerEnvioCatalogoFlyers || primerEnvioCatalogoRapi
     accion = 'DERIVAR_HUMANO';
     derivacionPorFlyerDesconocido = true;
     respuestaSugerida =
-      'Permítame un momento por favor, verificamos su requerimiento.';
+      'Permítame un momento por favor, ya verificamos su requerimiento.';
   }
 }
 
@@ -5602,13 +5615,16 @@ if (
   PATRON_FAJILLAS.test(mensajeTurnoPlano)
 ) {
   accion = 'RESPONDER_GENERAL';
+  // V3.28: si ya se dijo, otra redacción (no repetir ni callar).
   respuestaSugerida =
-    RESPUESTA_FAJILLAS +
-    (
-      faltaMedidas && !cotizacionVigente
-        ? ' ¿En qué medidas necesita sus etiquetas? Indíquenos ancho y alto por favor.'
-        : ''
-    );
+    /^no trabajamos con fajillas/.test(textoPlano(ultimoSaliente.contenido))
+      ? 'No, nuestras etiquetas no son fajillas plásticas como las de Tesalia o Dasani; son 100% adhesivas.'
+      : RESPUESTA_FAJILLAS +
+        (
+          faltaMedidas && !cotizacionVigente
+            ? ' ¿En qué medidas necesita sus etiquetas? Indíquenos ancho y alto por favor.'
+            : ''
+        );
   limpiarDerivacionIA = true;
   omitirEnvio = false;
   motivoOmisionEnvio = null;
@@ -5842,6 +5858,267 @@ if (
 }
 
 
+// ------------------------------------------------------
+// 12.11b IVA Y ENVÍO (V3.28)
+// ------------------------------------------------------
+//
+// Respuesta fija, para todas las líneas:
+// - IVA: solo las etiquetas adhesivas lo incluyen; el resto
+//   de productos "No está incluido IVA.".
+// - Envío: "No está incluido el valor del envío", unos $5.00
+//   aproximadamente; si no se conoce la ciudad se pregunta.
+//
+// Reemplaza la respuesta cuando era el texto de la IA, el
+// cierre de un catálogo ya enviado (que el anti-duplicado
+// silenciaría) o una derivación por pregunta abierta. Si el
+// turno ya trae una respuesta fija con datos (primer envío de
+// catálogo, precio de una línea, material, entrega), la
+// respuesta de IVA/envío se añade al final.
+//
+
+const TEXTO_DERIVACION_VERIFICAMOS =
+  'Permítame un momento por favor, ya verificamos su requerimiento.';
+
+const mensajeClienteTurnoOriginal =
+  String(contextoIA.mensaje_actual ?? data.mensaje_actual ?? '')
+    .split('\n')
+    .filter(l => !/^\s*\[(CONTEXTO DE IMAGEN|ARCHIVO NO PROCESABLE|ENLACE)/.test(l))
+    .join('\n');
+
+const clientePreguntaTurno =
+  /\?/.test(mensajeClienteTurnoOriginal) ||
+  /^(y\s+)?(que|cual|cuales|como|cuanto|cuanta|cuantos|cuantas|donde|cuando|incluye|incluyen|tienen|hacen|realizan|pueden|podrian|se puede|hay|me hacen|me pueden|envian)\b/.test(
+    mensajeClienteTurnoPlano
+  );
+
+const PATRON_PREGUNTA_IVA =
+  /\b(iva|impuestos?)\b/;
+
+const PATRON_PREGUNTA_ENVIO =
+  /\b(hacen|realizan|tienen|incluye|incluyen|incluido|cuesta|cuanto|vale|valor|costo|precio|cobran|con|sin|el|del|y)\s+(el\s+|los\s+)?(envios?|transporte|flete)\b|\b(envios?|transporte|flete)\s+(a|hasta|para|incluid[oa])\b|\b(envian|envien|mandan|manden|despachan)\b|\b(hacen|hace|pueden|puede|podrian|podria)\s+((me|nos)\s+)?(hacer\s+)?llegar\b|\bhacer(me|nos)?\s+llegar\b|\bencomienda\b|\bdelivery\b/;
+
+const PATRON_PREGUNTA_SI_ENVIAN =
+  /\b(envian|envien|mandan|manden|despachan|llegar|(hacen|realizan|tienen)\s+envios?|envios?\s+(a|hasta|para))\b/;
+
+const preguntaIvaTurno =
+  PATRON_PREGUNTA_IVA.test(mensajeClienteTurnoPlano);
+
+const preguntaEnvioTurno =
+  clientePreguntaTurno &&
+  PATRON_PREGUNTA_ENVIO.test(mensajeClienteTurnoPlano);
+
+function nombreCiudadVisible(valor) {
+  const t =
+    texto(valor);
+
+  if (!t) {
+    return null;
+  }
+
+  return t === t.toLowerCase()
+    ? t.replace(/(^|\s)(\S)/g, (m, s, c) => s + c.toUpperCase())
+    : t;
+}
+
+function textoRespuestaIva() {
+  if (productoLinea === 'CATALOGO_MIXTO') {
+    return 'En las etiquetas adhesivas el IVA está incluido; en los demás productos no está incluido IVA.';
+  }
+
+  return lineaEsEtiquetas
+    ? 'Sí, el precio de las etiquetas adhesivas incluye IVA.'
+    : 'No está incluido IVA.';
+}
+
+function textoRespuestaEnvio() {
+  // Ciudad escrita en este turno ("¿me hacen llegar a Cuenca?")
+  // antes que la ya conocida.
+  const ciudadEnMensaje =
+    (
+      mensajeClienteTurnoPlano.match(PATRON_CIUDAD_OTRA) ??
+      mensajeClienteTurnoPlano.match(PATRON_CIUDAD_LOCAL) ??
+      []
+    )[0] ?? null;
+
+  const nombreCiudad =
+    ciudadEnMensaje !== null &&
+    textoPlano(ciudadConocidaEnvio) !== ciudadEnMensaje
+      ? nombreCiudadVisible(ciudadEnMensaje)
+      : nombreCiudadVisible(ciudadConocidaEnvio);
+
+  const destino =
+    clasificarCiudadEnvio(mensajeClienteTurnoPlano) ??
+    clasificarCiudadEnvio(nombreCiudad) ??
+    (nombreCiudad !== null ? 'OTRA' : null);
+
+  const inicio =
+    PATRON_PREGUNTA_SI_ENVIAN.test(mensajeClienteTurnoPlano)
+      ? 'Sí, realizamos envíos a todo el país 🇪🇨🚛. '
+      : '';
+
+  if (destino === 'OTRA' && nombreCiudad !== null) {
+    return `${inicio}No está incluido el valor del envío; a ${nombreCiudad} es de $5.00 dólares aproximadamente.`;
+  }
+
+  if (destino === 'OTRA') {
+    return `${inicio}No está incluido el valor del envío; es de $5.00 dólares aproximadamente.`;
+  }
+
+  if (destino === 'LOCAL') {
+    return `${inicio}No está incluido el valor del envío; es de $5.00 dólares aproximadamente. En Quito también puede retirar su pedido en nuestro local.`;
+  }
+
+  return `${inicio}No está incluido el valor del envío; es de $5.00 dólares aproximadamente. ¿Desde qué ciudad nos escribe disculpe?`;
+}
+
+const CIERRES_CATALOGO = [
+  RESPUESTA_CIERRE_CATALOGO_TARJETAS,
+  RESPUESTA_CIERRE_CATALOGO_FLYERS,
+  RESPUESTA_CIERRE_CATALOGO_AFICHES,
+  RESPUESTA_CIERRE_CATALOGO_TRIPTICOS,
+  RESPUESTA_CIERRE_CATALOGO_MEMBRETADAS,
+  RESPUESTA_CIERRE_CATALOGO_CALENDARIOS
+];
+
+const primerEnvioCatalogoTurno =
+  enviarVideosTarjetas ||
+  primerEnvioCatalogoFlyers ||
+  primerEnvioCatalogoRapida ||
+  primerEnvioCatalogoCalendarios;
+
+let respuestaIvaEnvio = null;
+
+// En modo reemplazo no salen imágenes ni videos de este turno.
+let suprimirMediosTurno = false;
+
+if (
+  (preguntaIvaTurno || preguntaEnvioTurno) &&
+  !['COTIZAR_P4', 'ENVIAR_DATOS_PAGO', 'REPORTAR_PAGO', 'REGISTRAR_ACEPTACION'].includes(accion) &&
+  totalCatalogo === null &&
+  !derivacionPorCantidad &&
+  !derivacionPorProductoNoP4 &&
+  !derivacionPorDisenoFinal &&
+  !derivacionPorTerminoDesconocido &&
+  !(accion === 'DERIVAR_HUMANO' && INTENCIONES_HUMANAS_FUERTES.includes(intencion)) &&
+  !(omitirEnvio && motivoOmisionEnvio === 'ACCION_YA_ATENDIDA_POR_AUTOMATIZACION')
+) {
+  const actual =
+    String(respuestaSugerida ?? '').trim();
+
+  const esCierreCatalogo =
+    CIERRES_CATALOGO.some(c => c && actual.startsWith(c));
+
+  const reemplazar =
+    actual === '' ||
+    actual === (texto(data.respuesta_sugerida) ?? '') ||
+    accion === 'DERIVAR_HUMANO' ||
+    /^permitame un momento/.test(textoPlano(actual)) ||
+    (esCierreCatalogo && !primerEnvioCatalogoTurno) ||
+    omitirEnvio;
+
+  const partes = [];
+
+  if (
+    preguntaIvaTurno &&
+    !(
+      !reemplazar &&
+      !lineaEsEtiquetas &&
+      /\bno incluyen iva\b/.test(textoPlano(actual))
+    )
+  ) {
+    partes.push(textoRespuestaIva());
+  }
+
+  if (preguntaEnvioTurno) {
+    partes.push(textoRespuestaEnvio());
+  }
+
+  if (partes.length > 0) {
+    respuestaIvaEnvio =
+      partes.join('\n\n');
+
+    if (reemplazar) {
+      respuestaSugerida =
+        respuestaIvaEnvio;
+      suprimirMediosTurno = true;
+    } else {
+      respuestaSugerida =
+        `${actual}\n\n${respuestaIvaEnvio}`;
+    }
+
+    if (accion === 'DERIVAR_HUMANO' || accion === 'INFORMAR_CALENDARIOS' || accion === 'PEDIR_MEDIDAS' || reemplazar) {
+      accion = 'RESPONDER_GENERAL';
+    }
+
+    derivacionPorFlyerDesconocido = false;
+    limpiarDerivacionIA = true;
+    omitirEnvio = false;
+    motivoOmisionEnvio = null;
+  }
+}
+
+
+// ------------------------------------------------------
+// 12.11c NO QUEDARSE CALLADO ANTE UNA PREGUNTA (V3.28)
+// ------------------------------------------------------
+//
+// Si el cliente pregunta algo y la respuesta resuelta es la
+// misma que el último SALIENTE (el anti-duplicado de
+// "Preparar respuesta comercial" la silenciaría), el bot no
+// sabe responder mejor: deriva a humano con
+// "Permítame un momento por favor, ya verificamos su
+// requerimiento.". No aplica a "Permítame…" repetidos (ya
+// derivado) ni a cotizaciones (el texto final sale después).
+//
+
+function normalizarParaCompararSalida(valor) {
+  return String(valor ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/^[\s¡!¿?.,;:*-]+|[\s¡!¿?.,;:*-]+$/g, '');
+}
+
+const respuestaNormSalida =
+  normalizarParaCompararSalida(respuestaSugerida);
+
+const ultimoNormSalida =
+  normalizarParaCompararSalida(
+    ultimoSaliente.contenido ??
+    contextoIA.ultimo_mensaje_saliente
+  );
+
+const respuestaRepiteUltimo =
+  ultimoNormSalida !== '' &&
+  respuestaNormSalida !== '' &&
+  (
+    respuestaNormSalida === ultimoNormSalida ||
+    (
+      respuestaNormSalida.length >= 40 &&
+      ultimoNormSalida.length >= 40 &&
+      respuestaNormSalida.slice(0, 48) === ultimoNormSalida.slice(0, 48)
+    )
+  );
+
+let derivacionPorPreguntaSinRespuesta = false;
+
+if (
+  !omitirEnvio &&
+  clientePreguntaTurno &&
+  respuestaRepiteUltimo &&
+  !['COTIZAR_P4', 'DERIVAR_HUMANO', 'ENVIAR_DATOS_PAGO'].includes(accion) &&
+  !respuestaNormSalida.startsWith('permitame un momento')
+) {
+  accion = 'DERIVAR_HUMANO';
+  respuestaSugerida =
+    TEXTO_DERIVACION_VERIFICAMOS;
+  derivacionPorPreguntaSinRespuesta = true;
+  suprimirMediosTurno = true;
+}
+
+
 const paresParaDetalles =
   (
     confirmacionListaMedidas?.confirmadas === true &&
@@ -5943,7 +6220,8 @@ const cotizacionBaseNueva =
 // trabajos (no la de material o metodología).
 const enviarImagenInformativaFinal =
   enviarImagenInformativa &&
-  !flujoDisenoEtiqueta;
+  !flujoDisenoEtiqueta &&
+  !suprimirMediosTurno;
 
 const contextoComercialNuevo = {
   ...contextoAnterior,
@@ -5972,7 +6250,7 @@ const contextoComercialNuevo = {
   ),
 
   ...(
-    enviarImagenTrabajos && !omitirEnvio
+    enviarImagenTrabajos && !omitirEnvio && !suprimirMediosTurno
       ? {
           imagen_trabajos: {
             url: imagenTrabajos.origen,
@@ -6302,6 +6580,27 @@ return [
             : {}
       ),
 
+      ...(
+        derivacionPorPreguntaSinRespuesta
+          ? {
+              requiere_humano:
+                true,
+
+              motivo_derivacion:
+                'OTRO',
+
+              requiere_notificacion:
+                true,
+
+              regla_derivacion:
+                'PREGUNTA_SIN_RESPUESTA'
+            }
+          : {}
+      ),
+
+      respuesta_iva_envio:
+        respuestaIvaEnvio,
+
       diseno_recibido_turno:
         hayDisenoTurno ? disenoTurno : null,
 
@@ -6344,24 +6643,24 @@ return [
         precio1000Estimado,
 
       enviar_imagen_informativa:
-        !omitirEnvio && (enviarImagenTrabajos || enviarImagenInformativaFinal),
+        !omitirEnvio && ((enviarImagenTrabajos && !suprimirMediosTurno) || enviarImagenInformativaFinal),
 
       imagen_informativa:
-        !omitirEnvio && enviarImagenTrabajos
+        !omitirEnvio && enviarImagenTrabajos && !suprimirMediosTurno
           ? 'TRABAJOS'
           : !omitirEnvio && enviarImagenInformativaFinal
             ? temaImagenInformativa
             : null,
 
       imagen_informativa_url:
-        !omitirEnvio && enviarImagenTrabajos
+        !omitirEnvio && enviarImagenTrabajos && !suprimirMediosTurno
           ? imagenTrabajos.url
           : !omitirEnvio && enviarImagenInformativaFinal
             ? urlImagenInformativa
             : null,
 
       enviar_videos_tarjetas:
-        !omitirEnvio && enviarVideosTarjetas,
+        !omitirEnvio && !suprimirMediosTurno && enviarVideosTarjetas,
 
       videos_tarjetas:
         enviarVideosTarjetas
@@ -6378,10 +6677,10 @@ return [
         null,
 
       enviar_imagen_flyers:
-        !omitirEnvio && enviarImagenCatalogo,
+        !omitirEnvio && !suprimirMediosTurno && enviarImagenCatalogo,
 
       imagen_flyers_url:
-        !omitirEnvio && enviarImagenCatalogo
+        !omitirEnvio && !suprimirMediosTurno && enviarImagenCatalogo
           ? urlImagenCatalogo
           : null,
 
