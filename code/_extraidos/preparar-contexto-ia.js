@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Preparar contexto IA
 // ARCHIVO: code/03-conversacion/preparar-contexto-ia.js
-// VERSION: 4.19
+// VERSION: 4.20
 // ======================================================
 //
 // RESPONSABILIDAD:
@@ -90,6 +90,11 @@
 //   "Calendario tipo/formato tarjeta" no abre el catálogo
 //   de tarjetas (el de bolsillo es formato tarjeta).
 //   Expone producto_calendarios.
+// - V4.20: diseno_recibido_turno: imagen de diseño/logo/
+//   referencia (o ilegible), archivo PDF/AI/CDR/imagen o link
+//   de diseño/repositorio en una conversación de ETIQUETAS.
+//   No se marca en tarjetas, flyers, afiches, trípticos,
+//   membretadas ni calendarios.
 // - Reglas pre-IA solo para texto sin multimedia:
 //   SALUDO_SIMPLE (respuesta corta fija), PRODUCTO_NO_P4
 //   (DERIVAR_HUMANO + COTIZACION_ESPECIAL) y
@@ -2977,6 +2982,162 @@ if (mezclaCatalogoImpreso || mezclaEtiquetasYCatalogo) {
   productoMembretadasDetectado = productoMembretadas.producto;
 }
 
+
+// ======================================================
+// 9.x DISEÑO DE ETIQUETA RECIBIDO (V4.20)
+// ======================================================
+//
+// Una imagen de diseño o logo, un archivo (PDF, AI, CDR,
+// PNG…) o un link de diseño/repositorio enviado en una
+// conversación de ETIQUETAS es el diseño del prospecto:
+// "Resolver contexto comercial" sigue el cierre sin
+// derivar. Solo etiquetas adhesivas: si la conversación
+// es de tarjetas, flyers, afiches, trípticos, hojas
+// membretadas o calendarios, no se marca (cada producto
+// tiene su propia regla de diseño).
+//
+// ======================================================
+
+const LINEAS_CATALOGO_IMPRESO = [
+  'TARJETAS_PRESENTACION',
+  'FLYERS_VOLANTES',
+  'AFICHES',
+  'TRIPTICOS',
+  'HOJAS_MEMBRETADAS',
+  'CALENDARIOS',
+  'CATALOGO_MIXTO'
+];
+
+// Solo palabras del cliente: el resumen del análisis
+// ("contenido=ETIQUETA_O_DISENO") no cuenta como mención.
+const textoClienteTurnoPlano =
+  normalizarTexto(
+    String(textoTurno ?? '')
+      .split('\n')
+      .filter(l => !/^\s*\[(CONTEXTO DE IMAGEN|ARCHIVO NO PROCESABLE|ENLACE)/.test(l))
+      .join('\n')
+  );
+
+const turnoNombraEtiquetas =
+  MENCIONA_ETIQUETA.test(textoClienteTurnoPlano);
+
+const turnoNombraCatalogo =
+  [
+    productoTarjetas,
+    productoFlyers,
+    productoAfiches,
+    productoTripticos,
+    productoMembretadas,
+    productoCalendarios
+  ].some(Boolean);
+
+const conversacionDeEtiquetas =
+  turnoNombraEtiquetas ||
+  (
+    !turnoNombraCatalogo &&
+    !LINEAS_CATALOGO_IMPRESO.includes(
+      String(contextoComercial.producto_linea ?? '').toUpperCase()
+    )
+  );
+
+const PATRON_MIME_DISENO =
+  /pdf|postscript|illustrator|image\/|zip|rar|corel|cdr|photoshop|svg/i;
+
+const PATRON_EXTENSION_DISENO =
+  /\.(pdf|ai|cdr|eps|psd|svg|png|jpe?g|tiff?|zip|rar)\b/i;
+
+function detectarDisenoRecibido() {
+  if (!conversacionDeEtiquetas || mediaTurno.comprobante_detectado) {
+    return null;
+  }
+
+  // Archivo (documento) con formato de diseño.
+  for (const m of mensajesTurno) {
+    const contenido = String(m.contenido ?? '');
+    const esDocumento =
+      m.tipo === 'DOCUMENTO' ||
+      /\[ARCHIVO NO PROCESABLE · tipo=DOCUMENTO/.test(contenido);
+
+    if (!esDocumento) {
+      continue;
+    }
+
+    const mime =
+      (contenido.match(/mime=([^\s\]·]+)/) ?? [])[1] ?? '';
+
+    if (PATRON_MIME_DISENO.test(mime) || PATRON_EXTENSION_DISENO.test(contenido)) {
+      return { tipo: 'ARCHIVO', clase: 'ARCHIVO' };
+    }
+  }
+
+  // Imagen de diseño, logo o referencia; o imagen que el
+  // análisis no pudo interpretar (se toma como el diseño).
+  const CLASES_FUERA = [
+    'ENVASE_O_PRODUCTO', 'FOTO_PRODUCTO', 'MEDIDAS_ESCRITAS',
+    'MEDIDAS_MANUSCRITAS', 'COMPROBANTE_PAGO', 'COMPROBANTE',
+    'EVIDENCIA_RECLAMO', 'NO_RELACIONADO', 'IMAGEN_NO_ETIQUETA', 'BOCETO'
+  ];
+
+  const clasificaciones =
+    clasificacionImagenes.map(c => ({
+      contenido: String(c.contenido_detectado ?? '').toUpperCase(),
+      veredicto: String(c.veredicto_comercial ?? '').toUpperCase()
+    }));
+
+  const hayImagenFuera =
+    clasificaciones.some(c =>
+      CLASES_FUERA.includes(c.contenido) || CLASES_FUERA.includes(c.veredicto)
+    );
+
+  if (!hayImagenFuera) {
+    const diseno =
+      clasificaciones.find(c =>
+        c.contenido === 'ETIQUETA_O_DISENO' || c.veredicto === 'DISENO_ETIQUETA'
+      );
+
+    if (diseno) {
+      return { tipo: 'IMAGEN', clase: 'DISENO' };
+    }
+
+    const logo =
+      clasificaciones.find(c => c.contenido === 'LOGO');
+
+    if (logo) {
+      return { tipo: 'IMAGEN', clase: 'LOGO' };
+    }
+
+    const referencia =
+      clasificaciones.find(c =>
+        c.contenido === 'REFERENCIA_VISUAL' || c.veredicto === 'REFERENCIA_NO_FINAL'
+      );
+
+    if (referencia) {
+      return { tipo: 'IMAGEN', clase: 'REFERENCIA' };
+    }
+
+    if (mediaTurno.requiere_revision_imagen) {
+      return { tipo: 'IMAGEN', clase: 'INCIERTA' };
+    }
+  }
+
+  // Link a un programa de diseño o a un repositorio.
+  const enlaceDiseno =
+    enlacesTurno.find(e => e.tipo === 'DISENO' || e.tipo === 'ARCHIVO');
+
+  if (enlaceDiseno) {
+    return {
+      tipo: 'ENLACE',
+      clase: enlaceDiseno.tipo,
+      servicio: enlaceDiseno.servicio
+    };
+  }
+
+  return null;
+}
+
+const disenoRecibidoTurno =
+  detectarDisenoRecibido();
+
 if (
   decisionPreIA === null &&
   mediaTurno.cantidad_media === 0 &&
@@ -3416,6 +3577,11 @@ return [
 
       producto_calendarios:
         productoCalendariosDetectado,
+
+      // V4.20: diseño de etiqueta recibido en este turno
+      // ({ tipo: IMAGEN | ARCHIVO | ENLACE, clase }) o null.
+      diseno_recibido_turno:
+        disenoRecibidoTurno,
 
       division_disenos:
         divisionDisenosDetectada,

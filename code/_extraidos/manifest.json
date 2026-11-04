@@ -1,8 +1,8 @@
 {
   "workflowId": "09OF22FOxihypeeh",
   "workflowName": "SISTEMA AUTOMATIZADO PEGASO",
-  "workflowUpdatedAt": "2026-11-03T21:47:52.460Z",
-  "extractedAt": "2026-11-03T21:47:57.510Z",
+  "workflowUpdatedAt": "2026-11-04T01:11:36.978Z",
+  "extractedAt": "2026-11-04T01:11:42.585Z",
   "workflowNodeCount": 204,
   "codeNodeCount": 69,
   "nodes": [
@@ -140,7 +140,7 @@
       "fileName": "preparar-contexto-ia.js",
       "relativeFile": "code/_extraidos/preparar-contexto-ia.js",
       "typeVersion": 2,
-      "lines": 3415
+      "lines": 3581
     },
     {
       "nodeId": "f207ef1c-d7ff-4fae-9910-486f2ba24c0a",
@@ -180,7 +180,7 @@
       "fileName": "normalizar-decision-ia.js",
       "relativeFile": "code/_extraidos/normalizar-decision-ia.js",
       "typeVersion": 2,
-      "lines": 986
+      "lines": 990
     },
     {
       "nodeId": "29a9ba73-a457-44ed-88e2-71ffd76be125",
@@ -260,7 +260,7 @@
       "fileName": "resolver-contexto-comercial.js",
       "relativeFile": "code/_extraidos/resolver-contexto-comercial.js",
       "typeVersion": 2,
-      "lines": 5816
+      "lines": 6291
     },
     {
       "nodeId": "49b907ef-f963-4ccc-b7bb-db921afc5898",
@@ -412,7 +412,7 @@
       "fileName": "preparar-mensaje-cotizacion.js",
       "relativeFile": "code/_extraidos/preparar-mensaje-cotizacion.js",
       "typeVersion": 2,
-      "lines": 935
+      "lines": 959
     },
     {
       "nodeId": "d942cfd8-ee3a-4f2b-8e50-4778b26e5bdb",

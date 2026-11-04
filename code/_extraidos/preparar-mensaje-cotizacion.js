@@ -18,8 +18,13 @@
 
 // ======================================================
 // PREPARAR MENSAJE COTIZACIÓN
-// PEGASO ADHESIVOS - V2.11
+// PEGASO ADHESIVOS - V2.12
 // ======================================================
+//
+// V2.12: si el diseño ya llegó antes de cotizar y la ciudad
+// se conoce, la primera cotización cierra con "¿Usted cuenta
+// con el diseño original editable disculpe?" en vez de
+// pedir el diseño otra vez.
 //
 // V2.11: la primera cotización cierra con "¿Desde qué
 // ciudad nos escribe disculpe?" si la ciudad no se conoce
@@ -510,6 +515,17 @@ const preguntarCiudad =
   !ciudadConocida &&
   !ciudadYaPreguntada;
 
+// V2.12: si el diseño ya llegó (imagen, archivo o link),
+// no se vuelve a pedir: se pregunta por el editable.
+const PREGUNTA_EDITABLE =
+  '¿Usted cuenta con el diseño original editable disculpe?';
+
+const disenoYaRecibido =
+  textoONull(decision.contexto_comercial?.diseno_recibido?.recibido_at) !== null &&
+  !['METODOLOGIA_ENVIADA', 'ARCHIVO_FINAL_RECIBIDO', 'ESPERA_EDITABLE'].includes(
+    decision.contexto_comercial?.diseno_recibido?.paso
+  );
+
 
 // ======================================================
 // 9. RESOLVER CIERRE DE COTIZACIÓN
@@ -549,6 +565,14 @@ function resolverCierreCotizacion({
       return multiplesOpcionesActuales
         ? 'Le dejo estas opciones para que pueda compararlas. ' + PREGUNTA_CIUDAD
         : PREGUNTA_CIUDAD;
+
+    }
+
+    if (disenoYaRecibido) {
+
+      return multiplesOpcionesActuales
+        ? 'Le dejo estas opciones para que pueda compararlas. ' + PREGUNTA_EDITABLE
+        : PREGUNTA_EDITABLE;
 
     }
 

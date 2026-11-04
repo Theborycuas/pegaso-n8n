@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.24
+// RESOLVER CONTEXTO COMERCIAL - V3.25
 // ======================================================
 //
 // Objetivo:
@@ -138,6 +138,15 @@
 //   2-3 días hábiles, diseño 1 propuesta + 5 cambios. Salen de
 //   producto no manejado. La metodología de diseño se agrega
 //   también a afiches, trípticos y hojas membretadas.
+// - V3.25: diseño de etiqueta recibido (imagen, archivo o
+//   link) en conversación de etiquetas: no deriva. Sigue el
+//   cierre (medidas → ciudad o material + "¿cuenta con el
+//   diseño original editable?" → rediseño o pedir editable +
+//   metodología 50/50 + IMAGEN_TRABAJOS opcional). Estado en
+//   contexto_comercial.diseno_recibido. El archivo final tras
+//   la metodología va a humano (ARCHIVO_DISENO). No se vuelve
+//   a pedir el diseño si ya llegó. Fajillas → "No trabajamos
+//   con fajillas plásticas…".
 //
 // ======================================================
 
@@ -2086,8 +2095,21 @@ const MENCIONA_MEMBRETADAS_TURNO =
 const MENCIONA_CALENDARIOS_TURNO =
   /\b(calendarios?|almanaques?)\b/;
 
+// V3.25: solo palabras del cliente. El resumen del análisis
+// de imagen ("contenido=ETIQUETA_O_DISENO") no cambia la
+// línea a ETIQUETAS en una conversación de catálogo.
+const mensajeClienteTurnoPlano =
+  textoPlano(
+    quitarEnlaces(
+      String(contextoIA.mensaje_actual ?? data.mensaje_actual ?? '')
+        .split('\n')
+        .filter(l => !/^\s*\[(CONTEXTO DE IMAGEN|ARCHIVO NO PROCESABLE)/.test(l))
+        .join('\n')
+    )
+  );
+
 const mencionaEtiquetaTurno =
-  MENCIONA_ETIQUETA_TURNO.test(mensajeTurnoPlano);
+  MENCIONA_ETIQUETA_TURNO.test(mensajeClienteTurnoPlano);
 
 const mencionaCalendariosTurno =
   MENCIONA_CALENDARIOS_TURNO.test(mensajeTurnoPlano) ||
@@ -4472,7 +4494,7 @@ if (enviarVideosTarjetas || primerEnvioCatalogoFlyers || primerEnvioCatalogoRapi
       mensajeTurnoPlano
     );
 
-  if (PATRON_DESCONOCIDO_FLYERS.test(mensajeTurnoPlano)) {
+  if (PATRON_DESCONOCIDO_FLYERS.test(mensajeClienteTurnoPlano)) {
     accion = 'DERIVAR_HUMANO';
     derivacionPorFlyerDesconocido = true;
     respuestaSugerida =
@@ -4619,7 +4641,7 @@ if (enviarVideosTarjetas || primerEnvioCatalogoFlyers || primerEnvioCatalogoRapi
               /\b(couche|a[12356]|oficio|plastific|laminad|ambos lados|2 lados|urgente|adhesiv|sticker|etiqueta)\b/
           };
 
-  if (cfgRapida.desconocido.test(mensajeTurnoPlano)) {
+  if (cfgRapida.desconocido.test(mensajeClienteTurnoPlano)) {
     accion = 'DERIVAR_HUMANO';
     derivacionPorFlyerDesconocido = true;
     respuestaSugerida =
@@ -4740,7 +4762,7 @@ if (enviarVideosTarjetas || primerEnvioCatalogoFlyers || primerEnvioCatalogoRapi
       l.tipo !== null || l.cantidad != null
     );
 
-  if (PATRON_DESCONOCIDO_CALENDARIO.test(mensajeTurnoPlano)) {
+  if (PATRON_DESCONOCIDO_CALENDARIO.test(mensajeClienteTurnoPlano)) {
     accion = 'DERIVAR_HUMANO';
     derivacionPorFlyerDesconocido = true;
     respuestaSugerida =
@@ -5137,6 +5159,395 @@ if (
 
 
 // ------------------------------------------------------
+// 12.9b DISEÑO DE ETIQUETA RECIBIDO Y FAJILLAS (V3.25)
+// ------------------------------------------------------
+//
+// Solo etiquetas adhesivas (no tarjetas, flyers, afiches,
+// trípticos, membretadas ni calendarios: cada uno tiene su
+// propia regla de diseño).
+//
+// Cuando el prospecto envía su diseño (imagen, archivo o
+// link) el bot no deriva: sigue el cierre como lo hace el
+// asesor, una pregunta por mensaje:
+//   1. Sin medidas: pide ancho y alto.
+//   2. "Mientras revisamos su diseño…" + ciudad (si falta)
+//      o material + "¿Usted cuenta con el diseño original
+//      editable disculpe?".
+//   3. Ciudad respondida → ubicación + pregunta editable.
+//   4. No editable → rediseño en alta definición +
+//      metodología (50% / 50%). Sí → pide el editable +
+//      metodología. Imagen IMAGEN_TRABAJOS si existe.
+//   5. Llega el archivo final después de la metodología →
+//      humano (ARCHIVO_DISENO) para revisarlo y cerrar.
+// El estado vive en contexto_comercial.diseno_recibido.
+//
+// Fajillas / "como las de Tesalia o Dasani" → "No
+// trabajamos con fajillas plásticas…".
+//
+// ------------------------------------------------------
+
+const LINEAS_NO_ETIQUETA = [
+  'TARJETAS_PRESENTACION',
+  'FLYERS_VOLANTES',
+  'AFICHES',
+  'TRIPTICOS',
+  'HOJAS_MEMBRETADAS',
+  'CALENDARIOS',
+  'CATALOGO_MIXTO'
+];
+
+const lineaEsEtiquetas =
+  !LINEAS_NO_ETIQUETA.includes(productoLinea);
+
+const INTENCIONES_HUMANAS_FUERTES = [
+  'REPORTAR_PAGO',
+  'RECLAMO',
+  'SOLICITAR_LLAMADA',
+  'SOLICITAR_HUMANO',
+  'CONFIRMAR_PEDIDO',
+  'NEGOCIAR'
+];
+
+const MOTIVOS_DERIVACION_REEMPLAZABLES = [
+  'NINGUNO',
+  'OTRO',
+  'IMAGEN_REQUIERE_REVISION',
+  'ARCHIVO_NO_PROCESABLE',
+  'ARCHIVO_DISENO',
+  'DISENO_ESPECIAL',
+  'COTIZACION_ESPECIAL'
+];
+
+const derivacionIAReemplazable =
+  accion !== 'DERIVAR_HUMANO' ||
+  MOTIVOS_DERIVACION_REEMPLAZABLES.includes(motivoDerivacionIA);
+
+const puedeFlujoEtiquetas =
+  lineaEsEtiquetas &&
+  contextoIA.media_turno?.comprobante_detectado !== true &&
+  !INTENCIONES_HUMANAS_FUERTES.includes(intencion) &&
+  derivacionIAReemplazable &&
+  !derivacionPorCantidad &&
+  !derivacionPorProductoNoP4 &&
+  !pideConfirmacionMedidasGrandes &&
+  !pideConfirmacionListaMedidas &&
+  totalCatalogo === null &&
+  !['COTIZAR_P4', 'ENVIAR_DATOS_PAGO'].includes(accion);
+
+const disenoTurno =
+  objeto(contextoIA.diseno_recibido_turno);
+
+const hayDisenoTurno =
+  texto(disenoTurno.tipo) !== null;
+
+const disenoPrevio =
+  objeto(contextoAnterior.diseno_recibido);
+
+const pasoDisenoPrevio =
+  texto(disenoPrevio.paso);
+
+const salientesRecientesPlano =
+  (
+    Array.isArray(contextoIA.mensajes_salientes_recientes)
+      ? contextoIA.mensajes_salientes_recientes
+      : []
+  ).map(textoPlano);
+
+const PREGUNTA_EDITABLE =
+  '¿Usted cuenta con el diseño original editable disculpe?';
+
+const TEXTO_REDISENO =
+  'Si en el diseño no hay ningún cambio, podemos rediseñarlo para la impresión y sacarlo en alta definición, sin que se pixele.';
+
+const TEXTO_METODOLOGIA_PEDIDO =
+  'Le comento cómo es nuestra metodología de trabajo:\n\n' +
+  'Para ingresar su pedido e iniciar con su diseño solicitamos que nos ayude con el 50% de abono del valor acordado.\n' +
+  'Una vez listo el trabajo le adjuntamos fotos y videos de evidencia para que nos ayude con el saldo del 50%. Y poder adjuntarle la guía.';
+
+const TEXTO_GANCHO_MATERIAL =
+  'le comentamos que trabajamos con Polipropileno, el mejor material adhesivo: resiste refrigeración, congelación y humedad.';
+
+const RESPUESTA_FAJILLAS =
+  'No trabajamos con fajillas plásticas. Trabajamos con etiquetas 100% adhesivas.';
+
+const PATRON_FAJILLAS =
+  /\b(fajillas?|fajas? (plasticas?|termo\w*)|termo ?encogibles?|sleeves?|mangas? (plasticas?|termo\w*)|tesalia|dasani)\b/;
+
+function nombreDisenoRecibido(d) {
+  if (d.tipo === 'ARCHIVO' || (d.tipo === 'ENLACE' && d.clase === 'ARCHIVO')) {
+    return 'su archivo';
+  }
+
+  if (d.clase === 'LOGO') {
+    return 'su logo';
+  }
+
+  if (d.clase === 'INCIERTA' || d.clase === 'REFERENCIA') {
+    return 'la imagen que nos envió';
+  }
+
+  return 'su diseño';
+}
+
+// Ciudad conocida ANTES de este turno (la del turno es la
+// respuesta a "¿desde qué ciudad nos escribe?").
+const ciudadPreviaDiseno =
+  texto(contextoIA.prospecto_ciudad) ??
+  texto(objeto(contextoAnterior.ubicacion).ciudad);
+
+const ciudadConocidaDiseno =
+  ciudadPreviaDiseno ??
+  texto(data.ciudad_detectada);
+
+const ciudadYaPreguntadaDiseno =
+  salientesRecientesPlano.some(t =>
+    /\b(desde|de) que ciudad nos escribe\b/.test(t)
+  );
+
+const materialYaInformado =
+  salientesRecientesPlano.some(t => /\bpolipropileno\b/.test(t)) ||
+  texto(objeto(contextoAnterior.imagen_material).enviada_at) !== null;
+
+const metodologiaYaEnviada =
+  salientesRecientesPlano.some(t => /\b50 de abono\b/.test(t));
+
+const ciudadRespondidaTurno =
+  texto(data.ciudad_detectada) !== null ||
+  clasificarCiudadEnvio(mensajeTurnoPlano) !== null;
+
+const ciudadLocalTurno =
+  clasificarCiudadEnvio(
+    `${mensajeTurnoPlano} ${texto(data.ciudad_detectada) ?? ''}`
+  ) === 'LOCAL';
+
+const respondeNoEditable =
+  !/^no (se|sabria|estoy segur)/.test(mensajeTurnoPlano) &&
+  (
+    /^(no|nop|nel|nada|negativo)\b/.test(mensajeTurnoPlano) ||
+    /\bno (lo |la )?(tengo|tenemos|cuento|contamos|dispongo)\b/.test(mensajeTurnoPlano) ||
+    /\bsolo (tengo |esa |esta |la )?(imagen|foto|captura)\b/.test(mensajeTurnoPlano)
+  );
+
+const respondeSiEditable =
+  !respondeNoEditable &&
+  (
+    /^(si|claro|asi es|correcto|por supuesto|exacto|afirmativo|ok si|si claro)\b/.test(mensajeTurnoPlano) ||
+    /\b(si|ya) (lo |la )?(tengo|tenemos|cuento|contamos)\b/.test(mensajeTurnoPlano) ||
+    /\btengo (el |la )?(original|editable|archivo)\b/.test(mensajeTurnoPlano)
+  );
+
+// La pregunta por el editable puede haber salido en el
+// cierre de la cotización (Preparar mensaje cotización),
+// que no guarda el paso: se reconoce por el último saliente.
+const preguntaEditablePendiente =
+  pasoDisenoPrevio === 'ESPERA_EDITABLE' ||
+  (
+    texto(disenoPrevio.recibido_at) !== null &&
+    !['METODOLOGIA_ENVIADA', 'ARCHIVO_FINAL_RECIBIDO'].includes(pasoDisenoPrevio) &&
+    /\bdiseno original editable\b/.test(textoPlano(ultimoSaliente.contenido))
+  );
+
+let flujoDisenoEtiqueta = false;
+let pasoDisenoNuevo = null;
+let enviarMetodologiaDiseno = false;
+let derivacionPorDisenoFinal = false;
+let limpiarDerivacionIA = false;
+
+function aplicarRespuestaFlujo(nuevaAccion, texto_, paso) {
+  accion = nuevaAccion;
+  respuestaSugerida = texto_;
+  pasoDisenoNuevo = paso;
+  flujoDisenoEtiqueta = true;
+  limpiarDerivacionIA = nuevaAccion !== 'DERIVAR_HUMANO';
+  omitirEnvio = false;
+  motivoOmisionEnvio = null;
+}
+
+function textoMetodologia(prefijo) {
+  enviarMetodologiaDiseno = !metodologiaYaEnviada;
+  return metodologiaYaEnviada
+    ? prefijo
+    : `${prefijo}\n\n${TEXTO_METODOLOGIA_PEDIDO}`;
+}
+
+if (puedeFlujoEtiquetas && hayDisenoTurno) {
+  const nombre =
+    nombreDisenoRecibido(disenoTurno);
+
+  const llegaArchivoFinal =
+    disenoTurno.tipo === 'ARCHIVO' || disenoTurno.tipo === 'ENLACE';
+
+  if (pasoDisenoPrevio === 'METODOLOGIA_ENVIADA') {
+    // Llega el archivo para producir: lo revisa el asesor.
+    aplicarRespuestaFlujo(
+      'DERIVAR_HUMANO',
+      'Permítame un momento por favor, ya revisamos el archivo que nos envió.',
+      'ARCHIVO_FINAL_RECIBIDO'
+    );
+    derivacionPorDisenoFinal = true;
+  } else if (preguntaEditablePendiente && llegaArchivoFinal) {
+    aplicarRespuestaFlujo(
+      'RESPONDER_GENERAL',
+      textoMetodologia(`Recibimos ${nombre}, muchas gracias.`),
+      'METODOLOGIA_ENVIADA'
+    );
+  } else if (preguntaEditablePendiente) {
+    aplicarRespuestaFlujo(
+      'RESPONDER_GENERAL',
+      `Recibido, muchas gracias. ${PREGUNTA_EDITABLE}`,
+      'ESPERA_EDITABLE'
+    );
+  } else if (faltaMedidas && !cotizacionVigente) {
+    aplicarRespuestaFlujo(
+      'PEDIR_MEDIDAS',
+      `Recibimos ${nombre}, muchas gracias. Para cotizarle indíquenos por favor el ancho y el alto de sus etiquetas en centímetros.`,
+      'ESPERA_MEDIDAS'
+    );
+  } else if (!ciudadConocidaDiseno && !ciudadYaPreguntadaDiseno) {
+    aplicarRespuestaFlujo(
+      'RESPONDER_GENERAL',
+      `Mientras revisamos ${nombre}, indíquenos por favor: ¿desde qué ciudad nos escribe?`,
+      'ESPERA_CIUDAD'
+    );
+  } else {
+    aplicarRespuestaFlujo(
+      'RESPONDER_GENERAL',
+      materialYaInformado
+        ? `Mientras revisamos ${nombre}, ¿usted cuenta con el diseño original editable disculpe?`
+        : `Mientras revisamos ${nombre}, ${TEXTO_GANCHO_MATERIAL} ${PREGUNTA_EDITABLE}`,
+      'ESPERA_EDITABLE'
+    );
+  }
+} else if (
+  puedeFlujoEtiquetas &&
+  ['ESPERA_CIUDAD', 'ESPERA_MEDIDAS', 'RECIBIDO', 'ESPERA_EDITABLE'].includes(pasoDisenoPrevio) &&
+  ciudadRespondidaTurno &&
+  !ciudadPreviaDiseno
+) {
+  aplicarRespuestaFlujo(
+    'RESPONDER_GENERAL',
+    (
+      ciudadLocalTurno
+        ? 'Perfecto, nosotros también estamos en Quito. '
+        : 'Nosotros somos de Quito y realizamos envíos a todo el país 🇪🇨🚛. '
+    ) + PREGUNTA_EDITABLE,
+    'ESPERA_EDITABLE'
+  );
+} else if (
+  puedeFlujoEtiquetas &&
+  preguntaEditablePendiente &&
+  respondeNoEditable
+) {
+  aplicarRespuestaFlujo(
+    'RESPONDER_GENERAL',
+    textoMetodologia(TEXTO_REDISENO),
+    'METODOLOGIA_ENVIADA'
+  );
+} else if (
+  puedeFlujoEtiquetas &&
+  preguntaEditablePendiente &&
+  respondeSiEditable
+) {
+  aplicarRespuestaFlujo(
+    'RESPONDER_GENERAL',
+    textoMetodologia(
+      'Perfecto, adjúntenos por favor el archivo original editable (PDF, AI o CDR) para revisarlo.'
+    ),
+    'METODOLOGIA_ENVIADA'
+  );
+}
+
+// Fajillas plásticas (botellas de agua tipo Tesalia/Dasani).
+if (
+  !flujoDisenoEtiqueta &&
+  puedeFlujoEtiquetas &&
+  !hayDisenoTurno &&
+  PATRON_FAJILLAS.test(mensajeTurnoPlano)
+) {
+  accion = 'RESPONDER_GENERAL';
+  respuestaSugerida =
+    RESPUESTA_FAJILLAS +
+    (
+      faltaMedidas && !cotizacionVigente
+        ? ' ¿En qué medidas necesita sus etiquetas? Indíquenos ancho y alto por favor.'
+        : ''
+    );
+  limpiarDerivacionIA = true;
+  omitirEnvio = false;
+  motivoOmisionEnvio = null;
+}
+
+// Si el diseño ya llegó, no se vuelve a pedir: la IA o el
+// cierre a veces piden "Adjúntenos su diseño…".
+const disenoYaRecibido =
+  hayDisenoTurno ||
+  texto(disenoPrevio.recibido_at) !== null;
+
+if (
+  !flujoDisenoEtiqueta &&
+  lineaEsEtiquetas &&
+  disenoYaRecibido &&
+  /adjuntenos su diseno|adjuntenoslo/.test(textoPlano(respuestaSugerida))
+) {
+  const yaPreguntoEditable =
+    salientesRecientesPlano.some(t => /\bdiseno original editable\b/.test(t)) ||
+    ['ESPERA_EDITABLE', 'METODOLOGIA_ENVIADA', 'ARCHIVO_FINAL_RECIBIDO'].includes(pasoDisenoPrevio);
+
+  respuestaSugerida =
+    String(respuestaSugerida)
+      .replace(
+        /\s*(Si ya cuenta con su diseño, adjúntenoslo para verificarlo por favor\.|Adjúntenos su diseño para verificarle por favor\.?)/i,
+        yaPreguntoEditable ? '' : ` ${PREGUNTA_EDITABLE}`
+      )
+      .trim();
+
+  if (!yaPreguntoEditable) {
+    pasoDisenoNuevo = 'ESPERA_EDITABLE';
+  }
+}
+
+// Imagen de trabajos realizados junto con la metodología
+// (fila IMAGEN_TRABAJOS de configuracion_bot; opcional, una
+// vez por conversación).
+const imagenTrabajos =
+  resolverImagenCatalogo('IMAGEN_TRABAJOS', null);
+
+const enviarImagenTrabajos =
+  enviarMetodologiaDiseno &&
+  imagenTrabajos.url !== null &&
+  texto(objeto(contextoAnterior.imagen_trabajos).enviada_at) === null;
+
+if (enviarImagenTrabajos) {
+  respuestaSugerida +=
+    '\n\nLe adjunto algunos de nuestros trabajos.';
+}
+
+const disenoRecibidoNuevo =
+  hayDisenoTurno || pasoDisenoNuevo !== null
+    ? {
+        ...disenoPrevio,
+        ...(
+          hayDisenoTurno
+            ? {
+                tipo: disenoTurno.tipo,
+                clase: disenoTurno.clase ?? null,
+                recibido_at:
+                  texto(disenoPrevio.recibido_at) ??
+                  new Date().toISOString(),
+                ultimo_at: new Date().toISOString()
+              }
+            : {}
+        ),
+        paso:
+          pasoDisenoNuevo ??
+          pasoDisenoPrevio ??
+          'RECIBIDO',
+        actualizado_at: new Date().toISOString()
+      }
+    : null;
+
+
+// ------------------------------------------------------
 // 12.10 VEREDICTO COMERCIAL DE LA IMAGEN
 // ------------------------------------------------------
 
@@ -5154,6 +5565,8 @@ const clasificacionImagen =
 
 if (
   clasificacionImagen &&
+  !flujoDisenoEtiqueta &&
+  lineaEsEtiquetas &&
   contextoIA.media_turno?.comprobante_detectado !== true &&
   !omitirEnvio &&
   !pideConfirmacionListaMedidas &&
@@ -5389,6 +5802,12 @@ const cotizacionBaseNueva =
         ...cotizacionAnterior
       };
 
+// En el flujo de diseño solo puede salir la imagen de
+// trabajos (no la de material o metodología).
+const enviarImagenInformativaFinal =
+  enviarImagenInformativa &&
+  !flujoDisenoEtiqueta;
+
 const contextoComercialNuevo = {
   ...contextoAnterior,
 
@@ -5410,7 +5829,24 @@ const contextoComercialNuevo = {
   ),
 
   ...(
-    enviarImagenInformativa
+    disenoRecibidoNuevo
+      ? { diseno_recibido: disenoRecibidoNuevo }
+      : {}
+  ),
+
+  ...(
+    enviarImagenTrabajos && !omitirEnvio
+      ? {
+          imagen_trabajos: {
+            url: imagenTrabajos.origen,
+            enviada_at: new Date().toISOString()
+          }
+        }
+      : {}
+  ),
+
+  ...(
+    enviarImagenInformativaFinal
       ? {
           [imagenInformativa.contexto]: {
             url: urlImagenInformativa,
@@ -5700,6 +6136,41 @@ return [
           : {}
       ),
 
+      ...(
+        derivacionPorDisenoFinal
+          ? {
+              requiere_humano:
+                true,
+
+              motivo_derivacion:
+                'ARCHIVO_DISENO',
+
+              requiere_notificacion:
+                true,
+
+              regla_derivacion:
+                'DISENO_FINAL_RECIBIDO'
+            }
+          : limpiarDerivacionIA && accion !== 'DERIVAR_HUMANO'
+            ? {
+                requiere_humano:
+                  false,
+
+                motivo_derivacion:
+                  'NINGUNO',
+
+                requiere_notificacion:
+                  false
+              }
+            : {}
+      ),
+
+      diseno_recibido_turno:
+        hayDisenoTurno ? disenoTurno : null,
+
+      flujo_diseno_etiqueta:
+        flujoDisenoEtiqueta,
+
       derivacion_por_cantidad:
         derivacionPorCantidad,
 
@@ -5736,17 +6207,21 @@ return [
         precio1000Estimado,
 
       enviar_imagen_informativa:
-        !omitirEnvio && enviarImagenInformativa,
+        !omitirEnvio && (enviarImagenTrabajos || enviarImagenInformativaFinal),
 
       imagen_informativa:
-        !omitirEnvio && enviarImagenInformativa
-          ? temaImagenInformativa
-          : null,
+        !omitirEnvio && enviarImagenTrabajos
+          ? 'TRABAJOS'
+          : !omitirEnvio && enviarImagenInformativaFinal
+            ? temaImagenInformativa
+            : null,
 
       imagen_informativa_url:
-        !omitirEnvio && enviarImagenInformativa
-          ? urlImagenInformativa
-          : null,
+        !omitirEnvio && enviarImagenTrabajos
+          ? imagenTrabajos.url
+          : !omitirEnvio && enviarImagenInformativaFinal
+            ? urlImagenInformativa
+            : null,
 
       enviar_videos_tarjetas:
         !omitirEnvio && enviarVideosTarjetas,
