@@ -18,8 +18,12 @@
 
 // ======================================================
 // PREPARAR MENSAJE COTIZACIÓN
-// PEGASO ADHESIVOS - V2.12
+// PEGASO ADHESIVOS - V2.13
 // ======================================================
+//
+// V2.13: si "Aplicar mínimo de impresión" unió la misma
+// medida de varios diseños, la línea dice "(3 diseños de
+// 1.000 cada uno)" y el precio es el de la cantidad total.
 //
 // V2.12: si el diseño ya llegó antes de cotizar y la ciudad
 // se conoce, la primera cotización cierra con "¿Usted cuenta
@@ -755,6 +759,44 @@ if (
 // 14. DETALLES DE COTIZACIÓN
 // ======================================================
 
+// V2.13: misma medida en varios diseños (unida en "Aplicar
+// mínimo de impresión"): se anota "(3 diseños de 1.000
+// cada uno)".
+let fusionDisenos = [];
+
+try {
+  fusionDisenos =
+    $('Aplicar mínimo de impresión').first().json?.fusion_disenos ?? [];
+} catch (_) {
+  fusionDisenos = [];
+}
+
+function notaDisenos(detalle) {
+  const fusion =
+    (Array.isArray(fusionDisenos) ? fusionDisenos : []).find(f =>
+      numero(f.ancho_cm) === numero(detalle.ancho_cm) &&
+      numero(f.alto_cm) === numero(detalle.alto_cm) &&
+      numero(f.cantidad_total) === numero(detalle.cantidad)
+    );
+
+  if (!fusion || numero(fusion.disenos) < 2) {
+    return '';
+  }
+
+  const porDiseno =
+    Array.isArray(fusion.cantidades_por_diseno)
+      ? fusion.cantidades_por_diseno
+      : [];
+
+  const iguales =
+    porDiseno.length > 0 &&
+    porDiseno.every(c => numero(c) === numero(porDiseno[0]));
+
+  return iguales
+    ? ` (${fusion.disenos} diseños de ${cantidadTexto(porDiseno[0])} cada uno)`
+    : ` (${fusion.disenos} diseños)`;
+}
+
 detalles.forEach(
   (detalle) => {
 
@@ -767,7 +809,8 @@ detalles.forEach(
     const medidaForma =
       describirForma(
         detalle
-      );
+      ) +
+      notaDisenos(detalle);
 
 
     const precio =

@@ -1,8 +1,8 @@
 {
   "workflowId": "09OF22FOxihypeeh",
   "workflowName": "SISTEMA AUTOMATIZADO PEGASO",
-  "workflowUpdatedAt": "2026-11-04T03:57:14.383Z",
-  "extractedAt": "2026-11-04T03:57:20.091Z",
+  "workflowUpdatedAt": "2026-11-04T16:32:17.633Z",
+  "extractedAt": "2026-11-04T17:28:25.044Z",
   "workflowNodeCount": 204,
   "codeNodeCount": 69,
   "nodes": [
@@ -52,7 +52,7 @@
       "fileName": "aplicar-minimo-de-impresion.js",
       "relativeFile": "code/_extraidos/aplicar-minimo-de-impresion.js",
       "typeVersion": 2,
-      "lines": 197
+      "lines": 303
     },
     {
       "nodeId": "62b676d9-ed78-4fbf-b802-86fde41a92b0",
@@ -260,7 +260,7 @@
       "fileName": "resolver-contexto-comercial.js",
       "relativeFile": "code/_extraidos/resolver-contexto-comercial.js",
       "typeVersion": 2,
-      "lines": 6306
+      "lines": 6428
     },
     {
       "nodeId": "49b907ef-f963-4ccc-b7bb-db921afc5898",
@@ -412,7 +412,7 @@
       "fileName": "preparar-mensaje-cotizacion.js",
       "relativeFile": "code/_extraidos/preparar-mensaje-cotizacion.js",
       "typeVersion": 2,
-      "lines": 959
+      "lines": 1002
     },
     {
       "nodeId": "d942cfd8-ee3a-4f2b-8e50-4778b26e5bdb",

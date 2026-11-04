@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.26
+// RESOLVER CONTEXTO COMERCIAL - V3.27
 // ======================================================
 //
 // Objetivo:
@@ -151,6 +151,13 @@
 //   (Artes-Calendarios_Mesa-de-trabajo-1-copia-5.png) y texto
 //   "Le adjunto los precios, modelos y cantidades"; sin imagen,
 //   la lista completa.
+// - V3.27: el refuerzo de medidas tras una automatización
+//   solo con contexto de etiquetas (no a un "Buenos días"
+//   orgánico). Calendarios: "…Revísele por favor y si tiene
+//   alguna duda coméntenos para ayudarle.". Etiquetas con
+//   cotización > $70 que preguntan por el diseño → "¿Usted
+//   cuenta con su logo disculpe?" → sí: metodología con
+//   propuesta (5 cambios) y 50/50; no: no creamos logos.
 //
 // ======================================================
 
@@ -2031,6 +2038,29 @@ const automatizacionAtendioTurno =
 
 let seguimientoTrasAutomatizacion = false;
 
+// V3.27: el refuerzo "Para enviarle el precio… ancho y alto
+// de sus etiquetas" solo tiene sentido si ya se sabe que
+// busca etiquetas (lead de anuncio, línea ETIQUETAS,
+// cotización vigente o una automatización de medidas o
+// material). Un "Buenos días" orgánico tras el saludo
+// automático ("¿Cuál es su requerimiento?") no se responde:
+// puede venir por calendarios, tarjetas u otro producto.
+let esLeadAnuncioEvento = false;
+
+try {
+  esLeadAnuncioEvento =
+    $('Normalizar evento WhatsApp').first().json?.evento_whatsapp?.es_lead_anuncio === true;
+} catch (_) {
+  esLeadAnuncioEvento = false;
+}
+
+const contextoEtiquetasParaRefuerzo =
+  esLeadAnuncioEvento ||
+  texto(contextoAnterior.producto_linea) === 'ETIQUETAS' ||
+  cotizacionVigente ||
+  ['PEDIR_MEDIDAS', 'INFORMAR_MATERIAL'].includes(accionAutomatizacion) ||
+  reglaPreIA !== 'SALUDO_SIMPLE';
+
 if (automatizacionAtendioTurno) {
   const ultimoYaRefuerzoMedidas =
     /para enviarle el precio/.test(
@@ -2038,6 +2068,7 @@ if (automatizacionAtendioTurno) {
     );
 
   seguimientoTrasAutomatizacion =
+    contextoEtiquetasParaRefuerzo &&
     faltaMedidas &&
     !turnoAportaInformacion &&
     !ultimoYaRefuerzoMedidas &&
@@ -4198,7 +4229,7 @@ const IMAGEN_CALENDARIOS_DEFAULT =
   'https://pegasoadhesivos.com/wp-content/uploads/2026/11/Artes-Calendarios_Mesa-de-trabajo-1-copia-5.png';
 
 const RESPUESTA_CIERRE_CATALOGO_CALENDARIOS_CON_IMAGEN =
-  'Le adjunto los precios, modelos y cantidades';
+  'Le adjunto los precios, modelos y cantidades. Revísele por favor y si tiene alguna duda coméntenos para ayudarle.';
 
 const RESPUESTA_LISTA_CALENDARIOS =
   'Le adjunto tamaños y precios de calendarios personalizados 2026:\n\n' +
@@ -5469,6 +5500,97 @@ if (puedeFlujoEtiquetas && hayDisenoTurno) {
       'Perfecto, adjúntenos por favor el archivo original editable (PDF, AI o CDR) para revisarlo.'
     ),
     'METODOLOGIA_ENVIADA'
+  );
+}
+
+// ------------------------------------------------------
+// V3.27: pregunta por el diseño con cotización > $70
+// ------------------------------------------------------
+//
+// En etiquetas de más de $70, si pregunta si incluye o si
+// le hacen el diseño, en vez de "no creamos diseños" se
+// pregunta por el logo. Sí → metodología con propuesta de
+// diseño (5 cambios) y 50/50. No → no creamos logos.
+// Con $70 o menos sigue la respuesta del cerebro (§27).
+//
+// ------------------------------------------------------
+
+const UMBRAL_TOTAL_CONSULTA_LOGO = 70;
+
+const PREGUNTA_LOGO =
+  '¿Usted cuenta con su logo disculpe?';
+
+const TEXTO_METODOLOGIA_PROPUESTA_DISENO =
+  'Le comento cómo es nuestra metodología de trabajo.\n' +
+  'Si no cuenta con el diseño nosotros le enviamos una propuesta de diseño con los requerimientos que usted solicite, con la opción a 5 cambios en base al diseño enviado.\n\n' +
+  'Para ingresar su pedido e iniciar con su diseño solicitamos que nos ayude con el 50% de abono del valor acordado.\n' +
+  'Una vez listo el trabajo le adjuntamos fotos y videos de evidencia para que nos ayude con el saldo del 50%. Y poder adjuntarle la guía.';
+
+const TEXTO_SIN_LOGO =
+  'No creamos logos ni marcas; somos productores y nuestro fuerte es la impresión de etiquetas adhesivas. ' +
+  'Le recomendamos realizar su logo y su diseño de forma profesional con un diseñador en su ciudad y enviarnos el original editable para imprimirlo. ' +
+  'Si ya tiene su logo, envíenos un ejemplo de etiqueta que le guste y lo replicamos con su logo.';
+
+const PATRON_PIDE_DISENO =
+  /\b(incluyen? (el |la |los )?(diseno|arte|publicidad|logo)|(hacen|realizan|elaboran) (el |la |los )?(diseno|arte|publicidad|propuesta)|(me |nos )?(ayudan|pueden ayudar|podrian ayudar) con (el |la )?(diseno|arte)|me (disenan|hacen el diseno)|disenan|tienen disenador|necesito (el |un |que me hagan el )?diseno|no tengo (el |un )?diseno|quiero que (me )?(hagan|disenen)|propuesta de diseno|(el |la )?(diseno|arte|publicidad) (esta|va|viene) incluid[oa]|(costo|precio|valor) del diseno|cuanto (cuesta|vale|sale) el diseno)\b/;
+
+const totalCotizacionVigente =
+  numero(cotizacionAnterior.total);
+
+const preguntaPorDisenoTurno =
+  PATRON_PIDE_DISENO.test(mensajeClienteTurnoPlano) ||
+  (
+    intencion === 'CONSULTAR_DISENO' &&
+    !hayDisenoTurno &&
+    mensajeClienteTurnoPlano !== ''
+  );
+
+const respondeSiLogo =
+  respondeSiEditable ||
+  /\b(si|ya) (tengo|tenemos|cuento con) (el |mi |un |nuestro )?logo\b/.test(mensajeClienteTurnoPlano) ||
+  /\btengo (el |mi |un )?logo\b/.test(mensajeClienteTurnoPlano);
+
+const respondeNoLogo =
+  respondeNoEditable ||
+  /\bno (tengo|tenemos|cuento con) (el |mi |un |ningun |nuestro )?logo\b/.test(mensajeClienteTurnoPlano);
+
+if (
+  !flujoDisenoEtiqueta &&
+  puedeFlujoEtiquetas &&
+  !hayDisenoTurno &&
+  pasoDisenoPrevio === 'ESPERA_LOGO' &&
+  (respondeSiLogo || respondeNoLogo)
+) {
+  if (respondeSiLogo && !respondeNoLogo) {
+    // Igual que tras la metodología del diseño recibido: el
+    // logo que llegue después lo revisa el asesor.
+    aplicarRespuestaFlujo(
+      'INFORMAR_DISENO',
+      TEXTO_METODOLOGIA_PROPUESTA_DISENO,
+      'METODOLOGIA_ENVIADA'
+    );
+    enviarMetodologiaDiseno = true;
+  } else {
+    aplicarRespuestaFlujo(
+      'INFORMAR_DISENO',
+      TEXTO_SIN_LOGO,
+      'SIN_LOGO'
+    );
+  }
+} else if (
+  !flujoDisenoEtiqueta &&
+  puedeFlujoEtiquetas &&
+  !hayDisenoTurno &&
+  cotizacionVigente &&
+  totalCotizacionVigente !== null &&
+  totalCotizacionVigente > UMBRAL_TOTAL_CONSULTA_LOGO &&
+  preguntaPorDisenoTurno &&
+  !['ESPERA_LOGO', 'METODOLOGIA_ENVIADA', 'ARCHIVO_FINAL_RECIBIDO'].includes(pasoDisenoPrevio)
+) {
+  aplicarRespuestaFlujo(
+    'INFORMAR_DISENO',
+    PREGUNTA_LOGO,
+    'ESPERA_LOGO'
   );
 }
 
