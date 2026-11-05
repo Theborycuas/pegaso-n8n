@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.29
+// RESOLVER CONTEXTO COMERCIAL - V3.30
 // ======================================================
 //
 // Objetivo:
@@ -174,6 +174,9 @@
 //   Si el último saliente ya era el texto común del catálogo
 //   (calendarios ↔ libretas) se nombra el producto para que
 //   el anti-duplicado no lo silencie.
+// - V3.30: la estimación de medidas grandes (> $140) incluye
+//   el +1/+1 por troquel de Calcular precio detalle V2.8: un
+//   lado < 5 cm y más de $18 por 1000 con el primer rango.
 //
 // ======================================================
 
@@ -1424,14 +1427,22 @@ function estimarPrecio1000Comercial(
       .trim()
       .toUpperCase();
 
-  if (
+  const incrementoForma =
     (
       formaNorm === 'CIRCULAR' ||
       formaNorm === 'TROQUELADA' ||
       formaNorm === 'REDONDEADA'
     ) &&
-    !(ancho <= 5 && alto <= 5)
-  ) {
+    !(ancho <= 5 && alto <= 5);
+
+  // Misma regla de Calcular precio detalle V2.8: un lado
+  // < 5 cm necesita troquel. No se suma a los otros +1.
+  const incrementoTroquel =
+    !incrementoForma &&
+    Math.min(ancho, alto) < 5 &&
+    ancho * alto * 0.75 - 18 > 0.000001;
+
+  if (incrementoForma || incrementoTroquel) {
     anchoCalc += 1;
     altoCalc += 1;
   }

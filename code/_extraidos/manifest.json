@@ -1,8 +1,8 @@
 {
   "workflowId": "09OF22FOxihypeeh",
   "workflowName": "SISTEMA AUTOMATIZADO PEGASO",
-  "workflowUpdatedAt": "2026-11-05T03:10:46.622Z",
-  "extractedAt": "2026-11-05T03:15:03.237Z",
+  "workflowUpdatedAt": "2026-11-05T04:27:15.464Z",
+  "extractedAt": "2026-11-05T04:27:20.745Z",
   "workflowNodeCount": 204,
   "codeNodeCount": 69,
   "nodes": [
@@ -12,7 +12,7 @@
       "fileName": "calcular-precio-detalle.js",
       "relativeFile": "code/_extraidos/calcular-precio-detalle.js",
       "typeVersion": 2,
-      "lines": 1701
+      "lines": 1765
     },
     {
       "nodeId": "2478267a-3ded-4aa1-9dbd-8e4e62a6a390",
@@ -260,7 +260,7 @@
       "fileName": "resolver-contexto-comercial.js",
       "relativeFile": "code/_extraidos/resolver-contexto-comercial.js",
       "typeVersion": 2,
-      "lines": 7282
+      "lines": 7293
     },
     {
       "nodeId": "49b907ef-f963-4ccc-b7bb-db921afc5898",

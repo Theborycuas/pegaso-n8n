@@ -18,7 +18,7 @@
 
 // ======================================================
 // CALCULAR PRECIO DETALLE
-// PEGASO ADHESIVOS - V2.7
+// PEGASO ADHESIVOS - V2.8
 // ======================================================
 //
 // FUENTE ÚNICA DE VERDAD PARA REGLAS DE PRECIO.
@@ -31,13 +31,15 @@
 //
 // ======================================================
 //
-// ORDEN REAL DEL CALCULO (V2.7):
+// ORDEN REAL DEL CALCULO (V2.8):
 //
 //   1. Validar medida minima (ningun lado < 2 cm).
 //   2. Precio fijo (banda pequena $18 / 4x4 $20).
 //      Si aplica, se saltan los pasos 3 a 5.
 //   3. Dimensiones de calculo: +1/+1 si es 5x5 exacto.
 //   4. Dimensiones de calculo: +1/+1 por forma especial.
+//   4b. Dimensiones de calculo: +1/+1 por troquel: un lado
+//       < 5 cm y mas de $18 por 1000 con el primer rango.
 //   5. Factor:
 //      5a. factor del rango de cantidad (1000-2000 / 3000-5000);
 //      5b. tamano grande: si ancho_calc x alto_calc x factor
@@ -117,6 +119,20 @@
 //    cuando aplica una banda/precio fijo,
 //    o ambos lados son <= 5 cm (troquel: mismo
 //    precio rectangular, circular o troquelado).
+//
+// 8b. TROQUEL POR LADO MENOR A 5 CM (V2.8)
+//    Una etiqueta con un lado < 5 cm necesita troquel para
+//    el corte, aunque sea rectangular. Si el precio directo
+//    por 1000 con el primer rango (ancho x alto x 0.75)
+//    supera $18, se calcula como troquelada:
+//    +1 cm ancho
+//    +1 cm alto
+//    Ejemplo: 7x4 -> 8x5 x 0.75 = $30 (no 7x4 x 0.75 = $21).
+//    Hasta $18 no aplica: el minimo de $18 ya cubre el
+//    troquel. Se mide por tamano, no por cantidad: la misma
+//    etiqueta sigue la misma regla en 1000, 2000 o 3000.
+//    No aplica a precios fijos ni se suma al +1 por forma
+//    o por 5x5 (nunca +2).
 //
 // 9. REDONDEO
 //    Precio comercial final:
@@ -264,6 +280,10 @@ const REGLAS_PRECIO = {
     1,
 
   TROQUEL_MISMO_PRECIO_HASTA_CM:
+    5,
+
+  // Un lado menor a esta medida necesita troquel.
+  TROQUEL_LADO_MENOR_A_CM:
     5,
 
 
@@ -1226,6 +1246,47 @@ return items.map(
     }
 
 
+    // --------------------------------------------------
+    // Incremento por troquel (V2.8)
+    //
+    // 7x4 rectangular se calcula como 8x5. No se suma al
+    // +1 por forma ni al de 5x5.
+    // --------------------------------------------------
+
+    const precioDirectoPrimerRango =
+      Number(ancho) *
+      Number(alto) *
+      REGLAS_PRECIO.RANGOS_CANTIDAD[0].factor;
+
+    const incrementoTroquelAplicado =
+      !precioFijoAplicado &&
+      !incremento5x5Aplicado &&
+      !incrementoFormaAplicado &&
+      Math.min(
+        Number(ancho),
+        Number(alto)
+      ) <
+        REGLAS_PRECIO.TROQUEL_LADO_MENOR_A_CM &&
+      precioDirectoPrimerRango -
+        REGLAS_PRECIO.PRECIO_MINIMO_DETALLE >
+        0.000001;
+
+
+    if (
+      incrementoTroquelAplicado
+    ) {
+
+      anchoCalculado +=
+        REGLAS_PRECIO
+          .INCREMENTO_FORMA_ANCHO_CM;
+
+      altoCalculado +=
+        REGLAS_PRECIO
+          .INCREMENTO_FORMA_ALTO_CM;
+
+    }
+
+
     // ==================================================
     // FACTOR
     // ==================================================
@@ -1563,6 +1624,9 @@ return items.map(
 
         incremento_forma_aplicado:
           incrementoFormaAplicado,
+
+        incremento_troquel_aplicado:
+          incrementoTroquelAplicado,
 
 
         // ----------------------------------------------

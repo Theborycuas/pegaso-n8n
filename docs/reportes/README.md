@@ -29,7 +29,8 @@ Un reporte por intervención sobre el workflow **SISTEMA AUTOMATIZADO PEGASO**: 
 | 2026-11-03 | [Diseño de etiqueta recibido: cierre sin derivar, y fajillas](2026-11-03-diseno-recibido-etiquetas.md) | Publicado (commit `47fdfdb`); `IMAGEN_TRABAJOS` opcional en `configuracion_bot` |
 | 2026-11-04 | [Calendarios sin pedir medidas, misma medida en varios diseños y pregunta por el logo](2026-11-04-calendarios-disenos-logo.md) | Publicado (commit `a4130f6`) |
 | 2026-11-04 | [IVA y envío, y no quedarse callado ante una pregunta](2026-11-04-iva-envio-no-callar.md) | Publicado (commit `adb414c`) |
-| 2026-11-04 | [Libretas personalizadas A5](2026-11-04-libretas.md) | Implementado en local, sin publicar ni commit |
+| 2026-11-04 | [Libretas personalizadas A5](2026-11-04-libretas.md) | Publicado (commit `3f7f5f7`) |
+| 2026-11-04 | [Troquel por lado menor a 5 cm](2026-11-04-troquel-lado-menor-5cm.md) | Implementado en local, sin publicar ni commit |
 
 ## Convenciones
 
