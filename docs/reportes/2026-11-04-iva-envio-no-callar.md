@@ -1,7 +1,7 @@
 # IVA y envío, y no quedarse callado ante una pregunta
 
 **Fecha:** 4 de noviembre de 2026 · **Workflow:** SISTEMA AUTOMATIZADO PEGASO (`09OF22FOxihypeeh`)
-**Estado:** Implementado en local (código + `edit.json`, validadores OK). **No** publicado en n8n, sin commit ni `git push`.
+**Estado:** Publicado (commit `adb414c`).
 
 ---
 

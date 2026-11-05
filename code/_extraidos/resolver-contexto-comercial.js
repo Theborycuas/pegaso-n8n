@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.28
+// RESOLVER CONTEXTO COMERCIAL - V3.29
 // ======================================================
 //
 // Objetivo:
@@ -164,6 +164,16 @@
 //   cuya respuesta repetiría el último saliente ya no queda en
 //   silencio: deriva con "Permítame un momento por favor, ya
 //   verificamos su requerimiento.".
+// - V3.29: libretas personalizadas A5 (LIBRETAS /
+//   INFORMAR_LIBRETAS). Imagen CATALOGO_LIBRETAS por defecto +
+//   "Le adjunto los precios, modelos y cantidades…". Precio
+//   por unidad según cantidad (100-299 $2.90, 300-599 $2.40,
+//   600-1000 $2.00); menos de 100 → mínimo; más de 1000 →
+//   humano. Características solo si las pregunta. Entrega,
+//   diseño, número de hojas u otra cosa sin dato → humano.
+//   Si el último saliente ya era el texto común del catálogo
+//   (calendarios ↔ libretas) se nombra el producto para que
+//   el anti-duplicado no lo silencie.
 //
 // ======================================================
 
@@ -970,6 +980,7 @@ else if (
     'INFORMAR_TRIPTICOS',
     'INFORMAR_MEMBRETADAS',
     'INFORMAR_CALENDARIOS',
+    'INFORMAR_LIBRETAS',
     'ENVIAR_DATOS_PAGO',
     'REGISTRAR_ACEPTACION',
     'RESPONDER_GENERAL'
@@ -1217,13 +1228,31 @@ const productoMembretadas =
 const productoCalendarios =
   texto(contextoIA.producto_calendarios);
 
+const productoLibretas =
+  texto(contextoIA.producto_libretas);
+
+// V3.29: libretas corporativas personalizadas A5. Misma
+// lista que RESPUESTA_CIERRE_LIBRETAS de Preparar contexto IA.
+const RESPUESTA_LISTA_LIBRETAS =
+  'Le adjunto características y precios de libretas corporativas personalizadas:\n\n' +
+  '✅ Tamaño A5, pasta dura y anillado\n' +
+  '✅ Portadas a full color\n' +
+  '✅ Plastificado mate o brillante\n' +
+  '✅ Hojas internas impresas a un color por ambos lados\n\n' +
+  'Mínimo 100 libretas:\n' +
+  '• 100 a 200: $2.90 dólares c/u\n' +
+  '• 300 a 500: $2.40 dólares c/u\n' +
+  '• 600 a 1000: $2.00 dólares c/u\n\n' +
+  '*Precios no incluyen IVA*';
+
 const ACCIONES_CATALOGO = [
   'INFORMAR_TARJETAS',
   'INFORMAR_FLYERS',
   'INFORMAR_AFICHES',
   'INFORMAR_TRIPTICOS',
   'INFORMAR_MEMBRETADAS',
-  'INFORMAR_CALENDARIOS'
+  'INFORMAR_CALENDARIOS',
+  'INFORMAR_LIBRETAS'
 ];
 
 if (
@@ -1232,6 +1261,12 @@ if (
 ) {
   accion =
     'INFORMAR_CALENDARIOS';
+} else if (
+  reglaPreIA === 'LIBRETAS' ||
+  accionIA === 'INFORMAR_LIBRETAS'
+) {
+  accion =
+    'INFORMAR_LIBRETAS';
 } else if (
   reglaPreIA === 'TARJETAS_PRESENTACION' ||
   accionIA === 'INFORMAR_TARJETAS'
@@ -1265,7 +1300,7 @@ if (
 }
 
 const PATRON_PRODUCTO_NO_MANEJADO =
-  /\b(carpetas?|talonarios?|boletos?|formularios?|dipticos?|brochures?|banners?|lonas?|pendones?|roll\s*ups?|rollups?|gigantografias?|plotter|imanes?|magneticos?|cajas?|empaques?|packaging|servilletas?|vasos?|camisetas?|polos?|gorras?|uniformes?|sublimacion|lanyards?|credenciales?|puls(era|eras)|pines?|botones?|llaveros?|agendas?|libretas?|recetarios?|factureros?|sellos?|invitaciones?|displays?|totems?|dummies?|acrilico|foam|mdf|canvas|lienzo)\b|\bentradas? (para|de)\b/;
+  /\b(carpetas?|talonarios?|boletos?|formularios?|dipticos?|brochures?|banners?|lonas?|pendones?|roll\s*ups?|rollups?|gigantografias?|plotter|imanes?|magneticos?|cajas?|empaques?|packaging|servilletas?|vasos?|camisetas?|polos?|gorras?|uniformes?|sublimacion|lanyards?|credenciales?|puls(era|eras)|pines?|botones?|llaveros?|agendas?|recetarios?|factureros?|sellos?|invitaciones?|displays?|totems?|dummies?|acrilico|foam|mdf|canvas|lienzo)\b|\bentradas? (para|de)\b/;
 
 const planoTurnoProducto =
   paresMedidaTurno.length > 0
@@ -1287,7 +1322,9 @@ const productoNoManejadoEnTurno =
   productoTripticos === null &&
   productoMembretadas === null &&
   productoCalendarios === null &&
-  !/\b(calendarios?|almanaques?)\b/.test(planoTurno);
+  productoLibretas === null &&
+  !/\b(calendarios?|almanaques?)\b/.test(planoTurno) &&
+  !/\b(libretas?|cuadernos?)\b/.test(planoTurno);
 
 const derivacionPorProductoNoP4 =
   (
@@ -1764,6 +1801,13 @@ else if (
 }
 
 else if (
+  accion === 'INFORMAR_LIBRETAS'
+) {
+  respuestaSugerida =
+    RESPUESTA_LISTA_LIBRETAS;
+}
+
+else if (
   accion === 'COTIZAR_P4' ||
   derivacionPorCantidad
 ) {
@@ -2136,6 +2180,13 @@ const MENCIONA_MEMBRETADAS_TURNO =
 const MENCIONA_CALENDARIOS_TURNO =
   /\b(calendarios?|almanaques?)\b/;
 
+const MENCIONA_LIBRETAS_TURNO =
+  /\b(libretas?|cuadernos?)\b/;
+
+// "Etiquetas / stickers para cuadernos" es etiquetas.
+const LIBRETA_COMO_DESTINO_ETIQUETA_TURNO =
+  /\b(para|de|en|a)( (los|las|mis|sus|tus|unos|unas))? (libretas?|cuadernos?)\b/;
+
 // V3.25: solo palabras del cliente. El resumen del análisis
 // de imagen ("contenido=ETIQUETA_O_DISENO") no cambia la
 // línea a ETIQUETAS en una conversación de catálogo.
@@ -2168,6 +2219,19 @@ const tarjetaComoFormatoCalendario =
     mensajeTurnoPlano
   ) &&
   (mensajeTurnoPlano.match(/\btar[ej]\w*/g) ?? []).length === 1;
+
+const mencionaLibretasTurno =
+  (
+    MENCIONA_LIBRETAS_TURNO.test(mensajeTurnoPlano) ||
+    mencionaLemas(
+      mensajeTurnoPlano,
+      ['libreta', 'libretas', 'cuaderno', 'cuadernos']
+    )
+  ) &&
+  !(
+    mencionaEtiquetaTurno &&
+    LIBRETA_COMO_DESTINO_ETIQUETA_TURNO.test(mensajeTurnoPlano)
+  );
 
 const mencionaTarjetasTurno =
   !tarjetaComoFormatoCalendario &&
@@ -2224,7 +2288,8 @@ const mezclaLineasTurno =
     mencionaAfichesTurno,
     mencionaTripticosTurno,
     mencionaMembretadasTurno,
-    mencionaCalendariosTurno
+    mencionaCalendariosTurno,
+    mencionaLibretasTurno
   ].filter(Boolean).length > 1;
 
 if (mezclaLineasTurno) {
@@ -2240,6 +2305,13 @@ if (mezclaLineasTurno) {
 ) {
   productoLinea =
     'CALENDARIOS';
+} else if (
+  accion === 'INFORMAR_LIBRETAS' ||
+  productoLibretas !== null ||
+  mencionaLibretasTurno
+) {
+  productoLinea =
+    'LIBRETAS';
 } else if (
   accion === 'INFORMAR_TARJETAS' ||
   productoTarjetas !== null ||
@@ -2285,7 +2357,8 @@ const mencionaOtraLineaCatalogo = (...propias) =>
     mencionaAfichesTurno,
     mencionaTripticosTurno,
     mencionaMembretadasTurno,
-    mencionaCalendariosTurno
+    mencionaCalendariosTurno,
+    mencionaLibretasTurno
   ].some((m, i) => {
     const nombres = [
       'ETIQUETAS',
@@ -2294,7 +2367,8 @@ const mencionaOtraLineaCatalogo = (...propias) =>
       'AFICHES',
       'TRIPTICOS',
       'HOJAS_MEMBRETADAS',
-      'CALENDARIOS'
+      'CALENDARIOS',
+      'LIBRETAS'
     ];
     return m && !propias.includes(nombres[i]);
   });
@@ -2327,6 +2401,10 @@ const esLineaRapida =
 const esLineaCalendarios =
   productoLinea === 'CALENDARIOS' &&
   !mencionaOtraLineaCatalogo('CALENDARIOS');
+
+const esLineaLibretas =
+  productoLinea === 'LIBRETAS' &&
+  !mencionaOtraLineaCatalogo('LIBRETAS');
 
 
 // ------------------------------------------------------
@@ -2408,6 +2486,37 @@ const PRECIOS_CALENDARIOS = {
   }
 };
 
+// V3.29: libretas A5. Precio por unidad según la cantidad.
+// Entre tramos (201-299, 501-599) rige el tramo inferior.
+const MINIMO_LIBRETAS = 100;
+
+const MAXIMO_LIBRETAS = 1000;
+
+const RESPUESTA_MINIMO_LIBRETAS =
+  'El mínimo es de 100 libretas.';
+
+const RESPUESTA_CANTIDAD_LIBRETAS =
+  'El mínimo en libretas es de 100 unidades. ¿De cuántas cotizamos?';
+
+const RESPUESTA_CARACTERISTICAS_LIBRETAS =
+  'Las libretas corporativas personalizadas son:\n\n' +
+  '✅ Tamaño A5 (14.8 x 21 cm), pasta dura y anillado\n' +
+  '✅ Portadas a full color\n' +
+  '✅ Plastificado mate o brillante\n' +
+  '✅ Hojas internas impresas a un color por ambos lados';
+
+function precioUnitarioLibretas(cantidad) {
+  if (cantidad < 300) {
+    return 2.9;
+  }
+
+  if (cantidad < 600) {
+    return 2.4;
+  }
+
+  return 2;
+}
+
 const RESPUESTA_CANTIDAD_CALENDARIOS =
   'En calendarios de pared y de escritorio trabajamos 200, 500 o 1000 unidades; los de bolsillo, 1000 unidades. ¿De cuántas cotizamos?';
 
@@ -2479,6 +2588,29 @@ function cantidadSueltaCalendario(texto) {
   return null;
 }
 
+// Cantidad de libretas: número antes del producto ("200
+// libretas", "1.500 cuadernos") o suelto en su tramo.
+function cantidadLineaLibretas(texto, index, chunk) {
+  const antes =
+    texto.slice(Math.max(0, index - 24), index);
+
+  if (/\bmil\s*$/.test(antes)) {
+    return 1000;
+  }
+
+  const m =
+    antes.match(/\b(\d{1,3}(?:[.,]\d{3})|\d{2,5})\s*$/);
+
+  if (m) {
+    const n = Number(m[1].replace(/[.,]/g, ''));
+    if (Number.isFinite(n) && !esAnioCalendario(n)) {
+      return n;
+    }
+  }
+
+  return cantidadSueltaCalendario(chunk);
+}
+
 const PATRONES_PRODUCTO_CATALOGO = {
   TARJETAS_PRESENTACION:
     /\bta+r+[aeij]+t[ae]*s?\b|\bestampitas?\b/g,
@@ -2489,7 +2621,9 @@ const PATRONES_PRODUCTO_CATALOGO = {
   TRIPTICOS:
     /\btripticos?\b/g,
   HOJAS_MEMBRETADAS:
-    /\b(hojas? membretadas?|membretadas?|membretes?)\b/g
+    /\b(hojas? membretadas?|membretadas?|membretes?)\b/g,
+  LIBRETAS:
+    /\b(libretas?|cuadernos?)\b/g
 };
 
 const PRODUCTOS_RAPIDA = [
@@ -2610,6 +2744,14 @@ function cantidadAntesProducto(texto, index) {
 function faltantesLineaCatalogo(linea) {
   const faltantes = [];
 
+  if (linea.producto === 'LIBRETAS') {
+    if (linea.cantidad == null) {
+      faltantes.push('cantidad_libretas');
+    }
+
+    return faltantes;
+  }
+
   if (linea.producto === 'CALENDARIOS') {
     if (!linea.tipo) {
       faltantes.push('tipo_calendario');
@@ -2703,6 +2845,25 @@ function extraerLineasCatalogo(texto, opciones = {}) {
         producto: hit.clave,
         cantidad: cantidadLineaCalendario(texto, hit.index, chunk),
         tipo: detectarTipoCalendario(chunk),
+        acabado: null,
+        puntas: false,
+        tamano: null,
+        caras: null,
+        diseno_listo: false,
+        sin_diseno: false
+      };
+
+      return {
+        ...linea,
+        faltantes: faltantesLineaCatalogo(linea)
+      };
+    }
+
+    if (hit.clave === 'LIBRETAS') {
+      const linea = {
+        producto: hit.clave,
+        cantidad: cantidadLineaLibretas(texto, hit.index, chunk),
+        tipo: null,
         acabado: null,
         puntas: false,
         tamano: null,
@@ -2878,6 +3039,15 @@ function aplicarOpcionesSueltasCatalogo(lineas, texto) {
   const cantidadCalendario =
     cantidadSueltaCalendario(texto);
 
+  const cantidadLibretas =
+    cantidadSueltaCalendario(texto);
+
+  const lineasLibretasIncompletas =
+    lineas.filter(l =>
+      l.producto === 'LIBRETAS' &&
+      (l.faltantes ?? []).length > 0
+    );
+
   const lineasCalendarioIncompletas =
     lineas.filter(l =>
       l.producto === 'CALENDARIOS' &&
@@ -2885,6 +3055,25 @@ function aplicarOpcionesSueltasCatalogo(lineas, texto) {
     );
 
   return lineas.map(linea => {
+    if (linea.producto === 'LIBRETAS') {
+      if (
+        lineasLibretasIncompletas.length !== 1 ||
+        lineasLibretasIncompletas[0] !== linea
+      ) {
+        return linea;
+      }
+
+      const mezclada = {
+        ...linea,
+        cantidad: linea.cantidad ?? cantidadLibretas
+      };
+
+      return {
+        ...mezclada,
+        faltantes: faltantesLineaCatalogo(mezclada)
+      };
+    }
+
     if (linea.producto === 'CALENDARIOS') {
       // Una respuesta suelta ("A4", "500") completa la única
       // línea de calendario que está esperando datos.
@@ -3042,7 +3231,48 @@ function cotizarLineaCalendario(linea) {
   };
 }
 
+function cotizarLineaLibretas(linea) {
+  const cantidad =
+    linea.cantidad ?? null;
+
+  if (cantidad === null) {
+    return { ...linea, cantidad, error: 'FALTA' };
+  }
+
+  if (cantidad < MINIMO_LIBRETAS) {
+    // Se descarta la cantidad para que la respuesta
+    // siguiente ("200") complete la línea.
+    const sinCantidad = { ...linea, cantidad: null };
+    return {
+      ...sinCantidad,
+      cantidad_pedida: cantidad,
+      faltantes: faltantesLineaCatalogo(sinCantidad),
+      error: 'MINIMO_LIBRETAS'
+    };
+  }
+
+  if (cantidad > MAXIMO_LIBRETAS) {
+    return { ...linea, cantidad, error: 'MAXIMO_LIBRETAS' };
+  }
+
+  const unitario =
+    precioUnitarioLibretas(cantidad);
+
+  return {
+    ...linea,
+    cantidad,
+    error: null,
+    unitario,
+    precio: Math.round(unitario * cantidad * 100) / 100,
+    etiqueta: `${cantidad} libretas personalizadas A5 ($${unitario.toFixed(2)} c/u)`
+  };
+}
+
 function cotizarLineaCatalogo(linea) {
+  if (linea.producto === 'LIBRETAS') {
+    return cotizarLineaLibretas(linea);
+  }
+
   if (linea.producto === 'CALENDARIOS') {
     return cotizarLineaCalendario(linea);
   }
@@ -3155,6 +3385,10 @@ function formatoTotalPedido(valor) {
 }
 
 function preguntaFaltanteCatalogo(faltante, producto) {
+  if (producto === 'LIBRETAS' && faltante === 'cantidad_libretas') {
+    return 'en libretas: la cantidad (mínimo 100)';
+  }
+
   if (producto === 'CALENDARIOS' && faltante === 'tipo_calendario') {
     return 'en calendarios: el tipo (de pared A3, de pared A4, de escritorio o de bolsillo)';
   }
@@ -3213,6 +3447,22 @@ function armarRespuestaTotalCatalogo(lineasCotizadas, destinoEnvio) {
       estado: 'NO_CANTIDAD_RAPIDA',
       respuesta:
         'En afiches, trípticos y hojas membretadas trabajamos 500 o 1000 unidades. ¿De cuántas cotizamos?'
+    };
+  }
+
+  if (lineasCotizadas.some(l => l.error === 'MAXIMO_LIBRETAS')) {
+    // Más de 1000 libretas: lo confirma un asesor.
+    return {
+      estado: 'DERIVAR',
+      respuesta:
+        'Permítame un momento por favor, ya verificamos su requerimiento.'
+    };
+  }
+
+  if (lineasCotizadas.some(l => l.error === 'MINIMO_LIBRETAS')) {
+    return {
+      estado: 'FALTA_DATOS',
+      respuesta: RESPUESTA_CANTIDAD_LIBRETAS
     };
   }
 
@@ -3384,6 +3634,11 @@ const catalogoCalendariosPrevio =
     objeto(contextoAnterior.catalogo_calendarios).enviada_at
   ) !== null;
 
+const catalogoLibretasPrevio =
+  texto(
+    objeto(contextoAnterior.catalogo_libretas).enviada_at
+  ) !== null;
+
 const contextoCalendario =
   mencionaCalendariosTurno ||
   productoLineaAnterior === 'CALENDARIOS' ||
@@ -3475,6 +3730,10 @@ const lineasRapidaSinCatalogo =
     (
       l.producto === 'CALENDARIOS' &&
       !catalogoCalendariosPrevio
+    ) ||
+    (
+      l.producto === 'LIBRETAS' &&
+      !catalogoLibretasPrevio
     )
   );
 
@@ -3548,8 +3807,17 @@ const debeTotalizarCatalogo =
             detectarTipoCalendario(mensajeTurnoPlano) !== null ||
             cantidadSueltaCalendario(mensajeTurnoPlano) !== null
           )
+        ) ||
+        (
+          lineasCatalogo.some(l => l.producto === 'LIBRETAS') &&
+          cantidadSueltaCalendario(mensajeTurnoPlano) !== null
         )
       )
+    ) ||
+    (
+      PIDE_TOTAL_CATALOGO &&
+      mencionaLibretasTurno &&
+      catalogoLibretasPrevio
     ) ||
     (
       PIDE_TOTAL_CATALOGO &&
@@ -3614,6 +3882,9 @@ const debeTotalizarCatalogo =
 
 let totalCatalogo = null;
 
+// V3.29: más de 1000 libretas → humano (COTIZACION_ESPECIAL).
+let derivacionLibretasVolumen = false;
+
 if (debeTotalizarCatalogo) {
   const lineasCotizadas =
     lineasCatalogo.map(cotizarLineaCatalogo);
@@ -3624,7 +3895,14 @@ if (debeTotalizarCatalogo) {
       destinoEnvioCatalogo
     );
 
-  if (armado !== null) {
+  if (armado !== null && armado.estado === 'DERIVAR') {
+    derivacionLibretasVolumen = true;
+    derivacionPorCantidad = false;
+    accion = 'DERIVAR_HUMANO';
+    respuestaSugerida = armado.respuesta;
+    omitirEnvio = false;
+    motivoOmisionEnvio = null;
+  } else if (armado !== null) {
     totalCatalogo = {
       ...armado,
       pedido: {
@@ -3684,7 +3962,8 @@ if (debeTotalizarCatalogo) {
         mencionaAfichesTurno,
         mencionaTripticosTurno,
         mencionaMembretadasTurno,
-        mencionaCalendariosTurno
+        mencionaCalendariosTurno,
+        mencionaLibretasTurno
       ].filter(Boolean).length > 1
     ) {
       productoLinea =
@@ -3851,12 +4130,14 @@ if (
   !esLineaFlyers &&
   !esLineaRapida &&
   !esLineaCalendarios &&
+  !esLineaLibretas &&
   !mencionaTarjetasTurno &&
   !mencionaFlyersTurno &&
   !mencionaAfichesTurno &&
   !mencionaTripticosTurno &&
   !mencionaMembretadasTurno &&
   !mencionaCalendariosTurno &&
+  !mencionaLibretasTurno &&
   accion !== 'ENVIAR_DATOS_PAGO' &&
   !derivacionPorProductoNoP4
 ) {
@@ -3964,6 +4245,7 @@ const enviarImagenInformativa =
   !esLineaFlyers &&
   !esLineaRapida &&
   !esLineaCalendarios &&
+  !esLineaLibretas &&
   !ACCIONES_CATALOGO.includes(accion) &&
   imagenInformativa !== null &&
   !omitirEnvio &&
@@ -4266,6 +4548,40 @@ const RESPUESTA_CIERRE_CATALOGO_CALENDARIOS =
     ? RESPUESTA_CIERRE_CATALOGO_CALENDARIOS_CON_IMAGEN
     : RESPUESTA_LISTA_CALENDARIOS;
 
+// V3.29: calendarios y libretas usan el mismo texto corto.
+// Si el último saliente ya fue ese texto (pidió el otro
+// catálogo justo antes), se nombra el producto: así el
+// anti-duplicado de Preparar respuesta comercial no lo omite.
+const ultimoSalienteEsCierreCatalogoComun =
+  textoPlano(ultimoSaliente.contenido ?? '').startsWith(
+    textoPlano(RESPUESTA_CIERRE_CATALOGO_CALENDARIOS_CON_IMAGEN).slice(0, 40)
+  );
+
+const RESPUESTA_CIERRE_CATALOGO_CALENDARIOS_NOMBRADO =
+  'Le adjunto los precios, modelos y cantidades de los calendarios personalizados. Revísele por favor y si tiene alguna duda coméntenos para ayudarle.';
+
+const IMAGEN_LIBRETAS_DEFAULT =
+  'https://pegasoadhesivos.com/wp-content/uploads/2026/11/Imagen-de-ChatGPT-4-nov-2026-16_55_40-2.png';
+
+const RESPUESTA_CIERRE_CATALOGO_LIBRETAS_NOMBRADO =
+  'Le adjunto los precios, modelos y cantidades de las libretas personalizadas. Revísele por favor y si tiene alguna duda coméntenos para ayudarle.';
+
+const imagenLibretas =
+  resolverImagenCatalogo('CATALOGO_LIBRETAS', IMAGEN_LIBRETAS_DEFAULT);
+
+const urlImagenLibretas =
+  imagenLibretas.url;
+
+const RESPUESTA_CIERRE_CATALOGO_LIBRETAS =
+  urlImagenLibretas !== null
+    ? RESPUESTA_CIERRE_CATALOGO_CALENDARIOS_CON_IMAGEN
+    : RESPUESTA_LISTA_LIBRETAS;
+
+const primerEnvioCatalogoLibretas =
+  accion === 'INFORMAR_LIBRETAS' &&
+  !omitirEnvio &&
+  !catalogoLibretasPrevio;
+
 const primerEnvioCatalogoCalendarios =
   accion === 'INFORMAR_CALENDARIOS' &&
   !omitirEnvio &&
@@ -4280,6 +4596,15 @@ const lineaCalendarioTurno =
         lineasCatalogoTurno.filter(l => l.producto === 'CALENDARIOS')
       )
     : [];
+
+// Línea de libretas escrita en este turno ("200 libretas").
+const lineaLibretasTurno =
+  lineasCatalogoTurno.filter(l => l.producto === 'LIBRETAS').slice(0, 1);
+
+function textoPrecioLibretas(cotizada) {
+  return `Las ${cotizada.cantidad} libretas le saldrían en $${cotizada.unitario.toFixed(2)} dólares c/u, ` +
+    `en total $${Number(cotizada.precio).toFixed(2)} dólares.`;
+}
 
 function textoPrecioCalendarios(lineas) {
   const cotizadas =
@@ -4378,7 +4703,7 @@ let derivacionPorFlyerDesconocido = false;
 // la regla de IVA/envío no deshace esta derivación.
 let derivacionPorTerminoDesconocido = false;
 
-if (enviarVideosTarjetas || primerEnvioCatalogoFlyers || primerEnvioCatalogoRapida || primerEnvioCatalogoCalendarios) {
+if (enviarVideosTarjetas || primerEnvioCatalogoFlyers || primerEnvioCatalogoRapida || primerEnvioCatalogoCalendarios || primerEnvioCatalogoLibretas) {
   if (sesionConversacionalNueva) {
     textoSaludoTarjetas =
       `${saludoHorarioTarjetas(mensajeTurnoPlano)}. Con gusto atenderemos su requerimiento`;
@@ -4426,7 +4751,9 @@ if (enviarVideosTarjetas || primerEnvioCatalogoFlyers || primerEnvioCatalogoRapi
 
   if (primerEnvioCatalogoCalendarios) {
     respuestaSugerida =
-      RESPUESTA_CIERRE_CATALOGO_CALENDARIOS;
+      urlImagenCalendarios !== null && ultimoSalienteEsCierreCatalogoComun
+        ? RESPUESTA_CIERRE_CATALOGO_CALENDARIOS_NOMBRADO
+        : RESPUESTA_CIERRE_CATALOGO_CALENDARIOS;
 
     const precioPedido =
       textoPrecioCalendarios(lineaCalendarioTurno);
@@ -4442,6 +4769,35 @@ if (enviarVideosTarjetas || primerEnvioCatalogoFlyers || primerEnvioCatalogoRapi
     ) {
       respuestaSugerida +=
         `\n\n${RESPUESTA_CANTIDAD_CALENDARIOS}`;
+    }
+  }
+
+  if (primerEnvioCatalogoLibretas) {
+    const cotizadaLibretas =
+      lineaLibretasTurno.length > 0 && lineaLibretasTurno[0].cantidad != null
+        ? cotizarLineaLibretas(lineaLibretasTurno[0])
+        : null;
+
+    if (cotizadaLibretas?.error === 'MAXIMO_LIBRETAS') {
+      // "Precio de 2000 libretas": no hay precio en la tabla.
+      accion = 'DERIVAR_HUMANO';
+      derivacionLibretasVolumen = true;
+      derivacionPorCantidad = false;
+      respuestaSugerida =
+        'Permítame un momento por favor, ya verificamos su requerimiento.';
+    } else {
+      respuestaSugerida =
+        urlImagenLibretas !== null && ultimoSalienteEsCierreCatalogoComun
+          ? RESPUESTA_CIERRE_CATALOGO_LIBRETAS_NOMBRADO
+          : RESPUESTA_CIERRE_CATALOGO_LIBRETAS;
+
+      if (cotizadaLibretas?.error === null) {
+        respuestaSugerida +=
+          `\n\n${textoPrecioLibretas(cotizadaLibretas)}`;
+      } else if (cotizadaLibretas?.error === 'MINIMO_LIBRETAS') {
+        respuestaSugerida +=
+          `\n\n${RESPUESTA_MINIMO_LIBRETAS}`;
+      }
     }
   }
 } else if (
@@ -4910,6 +5266,130 @@ if (enviarVideosTarjetas || primerEnvioCatalogoFlyers || primerEnvioCatalogoRapi
     respuestaSugerida =
       'Permítame un momento por favor, ya verificamos su requerimiento.';
   }
+} else if (
+  totalCatalogo === null &&
+  esLineaLibretas &&
+  !derivacionLibretasVolumen &&
+  accion !== 'ENVIAR_DATOS_PAGO' &&
+  !omitirEnvio &&
+  !['INFORMAR_UBICACION', 'INFORMAR_METODOLOGIA_PAGO'].includes(accion)
+) {
+  // ----------------------------------------------------
+  // LIBRETAS (V3.29): FAQ después del catálogo. Solo se
+  // responde con los datos del catálogo (A5, pasta dura,
+  // anillado, portada full color, plastificado mate o
+  // brillante, hojas a un color por ambos lados, mínimo
+  // 100 y precio por tramo). Lo demás (entrega, diseño,
+  // número de hojas, otros tamaños…) va a humano.
+  // IVA y envío los responde la sección 12.11b.
+  // ----------------------------------------------------
+
+  const PATRON_DESCONOCIDO_LIBRETA =
+    /\b(a[012346]|oficio|carta|tabloide|pantone|pan de oro|relieve|urgente|agendas?|cosid\w*|pasta (blanda|suave)|tapa (blanda|suave)|cuadriculad\w*|rayad\w*|cuantas (hojas|paginas)|numero de (hojas|paginas)|\d+ (hojas|paginas)|(hojas|paginas) (tiene|tienen|trae|traen|lleva|llevan)|elastic\w*|separador\w*|esferos?|boligrafos?|stickers?|etiquetas?)\b/;
+
+  const PATRON_SIN_DATO_LIBRETA =
+    /\b(tiempos?|demora|entregas?|para cuando|cuando (me )?(las |los )?(entregan|tienen|salen)|en cuantos dias|dias habiles|diseno|disenan|disenar|arte|logo|propuesta|muestras?|prueba)\b/;
+
+  const PATRON_CARACTERISTICAS_LIBRETA =
+    /\b(material|caracteristicas?|especificaciones?|tamano|medidas?|a5|pasta|tapa|tapas|portadas?|anillad\w*|espiral|argollas?|plastific\w*|laminad\w*|mate|brillantes?|hojas?|paginas?|full color|a color|colores|impres\w*)\b/;
+
+  const PATRON_MINIMO_LIBRETA =
+    /\b(minimo|minimos|menos de|desde cuantas?)\b/;
+
+  const PATRON_PRECIO_LIBRETA =
+    /\b(precio|precios|vale|valor|costo|cuanto (sale|cuesta|queda|es|son|salen|cuestan)|a como)\b/;
+
+  const PATRON_IVA_ENVIO_LIBRETA =
+    /\b(iva|impuestos?|envios?|envian|envien|transporte|flete|encomienda|llegar)\b/;
+
+  const preguntaAbiertaLibreta =
+    /\?/.test(mensajeTurnoPlano) ||
+    /\b(pueden|podemos|hacen|hacemos|tienen|se puede|se podra)\b/.test(
+      mensajeTurnoPlano
+    );
+
+  const cantidadLibretasTurno =
+    lineaLibretasTurno[0]?.cantidad ??
+    cantidadSueltaCalendario(mensajeTurnoPlano);
+
+  const derivarLibreta = () => {
+    accion = 'DERIVAR_HUMANO';
+    derivacionPorFlyerDesconocido = true;
+    respuestaSugerida =
+      'Permítame un momento por favor, ya verificamos su requerimiento.';
+  };
+
+  if (PATRON_DESCONOCIDO_LIBRETA.test(mensajeClienteTurnoPlano)) {
+    derivarLibreta();
+    derivacionPorTerminoDesconocido = true;
+  } else if (cantidadLibretasTurno !== null) {
+    // "200 libretas", "y 500?": precio por tramo.
+    const cotizada =
+      cotizarLineaLibretas({ producto: 'LIBRETAS', cantidad: cantidadLibretasTurno });
+
+    if (cotizada.error === 'MAXIMO_LIBRETAS') {
+      accion = 'DERIVAR_HUMANO';
+      derivacionLibretasVolumen = true;
+      derivacionPorCantidad = false;
+      respuestaSugerida =
+        'Permítame un momento por favor, ya verificamos su requerimiento.';
+    } else {
+      accion = 'RESPONDER_GENERAL';
+
+      respuestaSugerida =
+        cotizada.error === 'MINIMO_LIBRETAS'
+          ? RESPUESTA_CANTIDAD_LIBRETAS
+          : `${textoPrecioLibretas(cotizada)}\n*Precios no incluyen IVA*`;
+    }
+  } else if (PATRON_SIN_DATO_LIBRETA.test(mensajeTurnoPlano)) {
+    derivarLibreta();
+  } else if (
+    accion === 'INFORMAR_MINIMO' ||
+    PATRON_MINIMO_LIBRETA.test(mensajeTurnoPlano)
+  ) {
+    respuestaSugerida =
+      RESPUESTA_MINIMO_LIBRETAS;
+
+    accion = 'INFORMAR_MINIMO';
+  } else if (
+    accion === 'INFORMAR_MATERIAL' ||
+    PATRON_CARACTERISTICAS_LIBRETA.test(mensajeTurnoPlano)
+  ) {
+    respuestaSugerida =
+      RESPUESTA_CARACTERISTICAS_LIBRETAS;
+
+    accion = 'RESPONDER_GENERAL';
+  } else if (
+    !PATRON_IVA_ENVIO_LIBRETA.test(mensajeTurnoPlano) &&
+    (
+      PATRON_PRECIO_LIBRETA.test(mensajeTurnoPlano) ||
+      accion === 'INFORMAR_LIBRETAS' ||
+      accion === 'COTIZAR_P4' ||
+      accion === 'PEDIR_MEDIDAS'
+    )
+  ) {
+    // Catálogo ya enviado: la lista en texto (no la misma
+    // imagen otra vez).
+    respuestaSugerida =
+      catalogoLibretasPrevio
+        ? RESPUESTA_LISTA_LIBRETAS
+        : RESPUESTA_CIERRE_CATALOGO_LIBRETAS;
+
+    if (['COTIZAR_P4', 'PEDIR_MEDIDAS', 'DERIVAR_HUMANO', 'INFORMAR_LIBRETAS'].includes(accion)) {
+      accion = 'RESPONDER_GENERAL';
+    }
+  } else if (
+    ['COTIZAR_P4', 'PEDIR_MEDIDAS', 'PEDIR_CANTIDAD', 'PEDIR_PRODUCTO', 'PEDIR_FORMA', 'INFORMAR_ENTREGA', 'INFORMAR_DISENO', 'INFORMAR_METODOLOGIA'].includes(accion) ||
+    (
+      preguntaAbiertaLibreta &&
+      !PATRON_IVA_ENVIO_LIBRETA.test(mensajeTurnoPlano) &&
+      accion !== 'RESPONDER_GENERAL'
+    )
+  ) {
+    // Reglas de etiquetas, entrega o diseño sin dato para
+    // libretas: no se inventa, lo confirma un asesor.
+    derivarLibreta();
+  }
 }
 
 let pedidoCatalogoEspecifico = null;
@@ -5022,30 +5502,60 @@ const enviarImagenMembretadas =
     RESPUESTA_CIERRE_CATALOGO_MEMBRETADAS
   );
 
+const respuestaEsCierreLibretas =
+  productoLinea === 'LIBRETAS' &&
+  (
+    String(respuestaSugerida ?? '').startsWith(RESPUESTA_CIERRE_CATALOGO_LIBRETAS) ||
+    String(respuestaSugerida ?? '').startsWith(RESPUESTA_CIERRE_CATALOGO_LIBRETAS_NOMBRADO)
+  );
+
+const respuestaEsCierreCalendarios =
+  productoLinea !== 'LIBRETAS' &&
+  (
+    String(respuestaSugerida ?? '').startsWith(RESPUESTA_CIERRE_CATALOGO_CALENDARIOS) ||
+    String(respuestaSugerida ?? '').startsWith(RESPUESTA_CIERRE_CATALOGO_CALENDARIOS_NOMBRADO)
+  );
+
 const enviarImagenCalendarios =
   !omitirEnvio &&
   urlImagenCalendarios !== null &&
-  String(respuestaSugerida ?? '').startsWith(
-    RESPUESTA_CIERRE_CATALOGO_CALENDARIOS
+  respuestaEsCierreCalendarios;
+
+const enviarImagenLibretas =
+  !omitirEnvio &&
+  urlImagenLibretas !== null &&
+  respuestaEsCierreLibretas;
+
+// El catálogo de libretas se marca enviado con el texto corto
+// o con la lista, haya o no imagen configurada.
+const marcarCatalogoLibretas =
+  !omitirEnvio &&
+  (
+    respuestaEsCierreLibretas ||
+    (
+      productoLinea === 'LIBRETAS' &&
+      String(respuestaSugerida ?? '').startsWith(RESPUESTA_LISTA_LIBRETAS)
+    )
   );
 
 // El catálogo de calendarios se marca enviado con la lista,
 // haya o no imagen configurada.
 const marcarCatalogoCalendarios =
   !omitirEnvio &&
-  String(respuestaSugerida ?? '').startsWith(
-    RESPUESTA_CIERRE_CATALOGO_CALENDARIOS
-  );
+  respuestaEsCierreCalendarios;
 
 const enviarImagenCatalogo =
   enviarImagenFlyers ||
   enviarImagenAfiches ||
   enviarImagenTripticos ||
   enviarImagenMembretadas ||
-  enviarImagenCalendarios;
+  enviarImagenCalendarios ||
+  enviarImagenLibretas;
 
 const urlImagenCatalogo =
-  enviarImagenCalendarios
+  enviarImagenLibretas
+    ? urlImagenLibretas
+    : enviarImagenCalendarios
     ? urlImagenCalendarios
     : enviarImagenAfiches
     ? urlImagenAfiches
@@ -5091,7 +5601,8 @@ const ACCIONES_NO_REPETIR = [
   'INFORMAR_AFICHES',
   'INFORMAR_TRIPTICOS',
   'INFORMAR_MEMBRETADAS',
-  'INFORMAR_CALENDARIOS'
+  'INFORMAR_CALENDARIOS',
+  'INFORMAR_LIBRETAS'
 ];
 
 function accionEquivalenteRespuesta(textoRespuesta) {
@@ -5252,6 +5763,7 @@ const LINEAS_NO_ETIQUETA = [
   'TRIPTICOS',
   'HOJAS_MEMBRETADAS',
   'CALENDARIOS',
+  'LIBRETAS',
   'CATALOGO_MIXTO'
 ];
 
@@ -5977,14 +6489,19 @@ const CIERRES_CATALOGO = [
   RESPUESTA_CIERRE_CATALOGO_AFICHES,
   RESPUESTA_CIERRE_CATALOGO_TRIPTICOS,
   RESPUESTA_CIERRE_CATALOGO_MEMBRETADAS,
-  RESPUESTA_CIERRE_CATALOGO_CALENDARIOS
+  RESPUESTA_CIERRE_CATALOGO_CALENDARIOS,
+  RESPUESTA_CIERRE_CATALOGO_CALENDARIOS_NOMBRADO,
+  RESPUESTA_CIERRE_CATALOGO_LIBRETAS,
+  RESPUESTA_CIERRE_CATALOGO_LIBRETAS_NOMBRADO,
+  RESPUESTA_LISTA_LIBRETAS
 ];
 
 const primerEnvioCatalogoTurno =
   enviarVideosTarjetas ||
   primerEnvioCatalogoFlyers ||
   primerEnvioCatalogoRapida ||
-  primerEnvioCatalogoCalendarios;
+  primerEnvioCatalogoCalendarios ||
+  primerEnvioCatalogoLibretas;
 
 let respuestaIvaEnvio = null;
 
@@ -5999,6 +6516,7 @@ if (
   !derivacionPorProductoNoP4 &&
   !derivacionPorDisenoFinal &&
   !derivacionPorTerminoDesconocido &&
+  !derivacionLibretasVolumen &&
   !(accion === 'DERIVAR_HUMANO' && INTENCIONES_HUMANAS_FUERTES.includes(intencion)) &&
   !(omitirEnvio && motivoOmisionEnvio === 'ACCION_YA_ATENDIDA_POR_AUTOMATIZACION')
 ) {
@@ -6046,7 +6564,7 @@ if (
         `${actual}\n\n${respuestaIvaEnvio}`;
     }
 
-    if (accion === 'DERIVAR_HUMANO' || accion === 'INFORMAR_CALENDARIOS' || accion === 'PEDIR_MEDIDAS' || reemplazar) {
+    if (accion === 'DERIVAR_HUMANO' || accion === 'INFORMAR_CALENDARIOS' || accion === 'INFORMAR_LIBRETAS' || accion === 'PEDIR_MEDIDAS' || reemplazar) {
       accion = 'RESPONDER_GENERAL';
     }
 
@@ -6327,6 +6845,17 @@ const contextoComercialNuevo = {
   ),
 
   ...(
+    marcarCatalogoLibretas && !catalogoLibretasPrevio
+      ? {
+          catalogo_libretas: {
+            url: enviarImagenLibretas ? imagenLibretas.origen : null,
+            enviada_at: new Date().toISOString()
+          }
+        }
+      : {}
+  ),
+
+  ...(
     marcarCatalogoCalendarios && !catalogoCalendariosPrevio
       ? {
           catalogo_calendarios: {
@@ -6598,6 +7127,24 @@ return [
           : {}
       ),
 
+      ...(
+        derivacionLibretasVolumen
+          ? {
+              requiere_humano:
+                true,
+
+              motivo_derivacion:
+                'COTIZACION_ESPECIAL',
+
+              requiere_notificacion:
+                true,
+
+              regla_derivacion:
+                'LIBRETAS_MAS_DE_1000'
+            }
+          : {}
+      ),
+
       respuesta_iva_envio:
         respuestaIvaEnvio,
 
@@ -6729,6 +7276,14 @@ return [
         (
           accion === 'INFORMAR_CALENDARIOS'
             ? 'calendarios'
+            : null
+        ),
+
+      producto_libretas:
+        productoLibretas ??
+        (
+          accion === 'INFORMAR_LIBRETAS'
+            ? 'libretas'
             : null
         ),
 

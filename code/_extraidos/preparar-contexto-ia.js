@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Preparar contexto IA
 // ARCHIVO: code/03-conversacion/preparar-contexto-ia.js
-// VERSION: 4.20
+// VERSION: 4.21
 // ======================================================
 //
 // RESPONSABILIDAD:
@@ -95,6 +95,11 @@
 //   de diseño/repositorio en una conversación de ETIQUETAS.
 //   No se marca en tarjetas, flyers, afiches, trípticos,
 //   membretadas ni calendarios.
+// - V4.21: libretas personalizadas A5 (libretas, cuadernos
+//   anillados) salen de PRODUCTO_NO_P4. Primer contacto →
+//   regla LIBRETAS / INFORMAR_LIBRETAS (imagen + precios).
+//   "Etiquetas para cuadernos" sigue siendo etiquetas.
+//   Expone producto_libretas. Agendas siguen a humano.
 // - Reglas pre-IA solo para texto sin multimedia:
 //   SALUDO_SIMPLE (respuesta corta fija), PRODUCTO_NO_P4
 //   (DERIVAR_HUMANO + COTIZACION_ESPECIAL) y
@@ -2348,6 +2353,24 @@ const PRODUCTOS_CALENDARIOS = [
   }
 ];
 
+// V4.21: libretas corporativas personalizadas tamaño A5
+// (libretas anilladas, cuadernos anillados/personalizados).
+const LEMAS_LIBRETAS = [
+  'libreta', 'libretas', 'cuaderno', 'cuadernos'
+];
+
+const PRODUCTOS_LIBRETAS = [
+  {
+    patron: /\blibretas?\b|\bcuadernos?\b/,
+    producto: 'libretas'
+  }
+];
+
+// "Etiquetas / stickers para cuadernos": la libreta es el
+// destino de la etiqueta, no el producto.
+const LIBRETA_COMO_DESTINO_ETIQUETA =
+  /\b(para|de|en|a)( (los|las|mis|sus|tus|unos|unas))? (libretas?|cuadernos?)\b/;
+
 const PRODUCTOS_NO_P4 = [
   { patron: /\bcarpetas?\b/, producto: 'carpetas' },
   { patron: /\btalonarios?\b/, producto: 'talonarios' },
@@ -2369,7 +2392,7 @@ const PRODUCTOS_NO_P4 = [
   { patron: /\bcamisetas?\b|\bpolos?\b|\bgorras?\b|\buniformes?\b|\bsublimacion\b/, producto: 'textil' },
   { patron: /\blanyards?\b|\bcredenciales?\b|\bpuls(era|eras)\b/, producto: 'lanyards / credenciales' },
   { patron: /\bpines?\b|\bbotones?\b|\bllaveros?\b/, producto: 'pines / llaveros' },
-  { patron: /\bagendas?\b|\blibretas?\b/, producto: 'agendas / libretas' },
+  { patron: /\bagendas?\b/, producto: 'agendas' },
   { patron: /\brecetarios?\b|\bfactureros?\b|\bsellos?\b/, producto: 'recetarios / sellos' },
   { patron: /\binvitaciones?\b/, producto: 'invitaciones' },
   { patron: /\bdisplays?\b|\btotems?\b|\bdummies?\b/, producto: 'displays' },
@@ -2434,6 +2457,21 @@ const RESPUESTA_CIERRE_CALENDARIOS =
   '• 200: $90 · 500: $125 · 1000: $165\n\n' +
   'Calendario de bolsillo (tamaño tarjeta de presentación)\n' +
   '• 1000: $24\n\n' +
+  '*Precios no incluyen IVA*';
+
+
+// Misma lista que RESPUESTA_LISTA_LIBRETAS del resolver
+// (si cambia un precio, cambiar ambos).
+const RESPUESTA_CIERRE_LIBRETAS =
+  'Le adjunto características y precios de libretas corporativas personalizadas:\n\n' +
+  '✅ Tamaño A5, pasta dura y anillado\n' +
+  '✅ Portadas a full color\n' +
+  '✅ Plastificado mate o brillante\n' +
+  '✅ Hojas internas impresas a un color por ambos lados\n\n' +
+  'Mínimo 100 libretas:\n' +
+  '• 100 a 200: $2.90 dólares c/u\n' +
+  '• 300 a 500: $2.40 dólares c/u\n' +
+  '• 600 a 1000: $2.00 dólares c/u\n\n' +
   '*Precios no incluyen IVA*';
 
 
@@ -2695,6 +2733,8 @@ let productoMembretadasDetectado = null;
 
 let productoCalendariosDetectado = null;
 
+let productoLibretasDetectado = null;
+
 let divisionDisenosDetectada = null;
 
 const textoTurnoPlano =
@@ -2810,6 +2850,27 @@ const catalogoCalendariosYaEnviado =
     objeto(contextoComercial.catalogo_calendarios).enviada_at ?? ''
   ).trim() !== '';
 
+const mencionaLibretas =
+  textoTurnoPlano !== '' &&
+  (
+    PRODUCTOS_LIBRETAS.some(p => p.patron.test(textoTurnoPlano)) ||
+    mencionaLemas(textoTurnoPlano, LEMAS_LIBRETAS)
+  ) &&
+  !(
+    MENCIONA_ETIQUETA.test(textoTurnoPlano) &&
+    LIBRETA_COMO_DESTINO_ETIQUETA.test(textoTurnoPlano)
+  );
+
+const productoLibretas =
+  mencionaLibretas
+    ? { producto: 'libretas' }
+    : null;
+
+const catalogoLibretasYaEnviado =
+  String(
+    objeto(contextoComercial.catalogo_libretas).enviada_at ?? ''
+  ).trim() !== '';
+
 const mezclaTarjetasYFlyers =
   productoTarjetas !== null &&
   productoFlyers !== null;
@@ -2821,7 +2882,8 @@ const mezclaCatalogoImpreso =
     productoAfiches,
     productoTripticos,
     productoMembretadas,
-    productoCalendarios
+    productoCalendarios,
+    productoLibretas
   ].filter(Boolean).length > 1;
 
 const mezclaEtiquetasYCatalogo =
@@ -2832,7 +2894,8 @@ const mezclaEtiquetasYCatalogo =
     productoAfiches !== null ||
     productoTripticos !== null ||
     productoMembretadas !== null ||
-    productoCalendarios !== null
+    productoCalendarios !== null ||
+    productoLibretas !== null
   );
 
 const PIDE_PRECIO_CATALOGO =
@@ -2870,6 +2933,7 @@ if (mezclaCatalogoImpreso || mezclaEtiquetasYCatalogo) {
   productoTripticosDetectado = productoTripticos?.producto ?? null;
   productoMembretadasDetectado = productoMembretadas?.producto ?? null;
   productoCalendariosDetectado = productoCalendarios?.producto ?? null;
+  productoLibretasDetectado = productoLibretas?.producto ?? null;
 } else if (
   productoCalendarios &&
   !catalogoCalendariosYaEnviado
@@ -2888,6 +2952,24 @@ if (mezclaCatalogoImpreso || mezclaEtiquetasYCatalogo) {
   };
 } else if (productoCalendarios) {
   productoCalendariosDetectado = productoCalendarios.producto;
+} else if (
+  productoLibretas &&
+  !catalogoLibretasYaEnviado
+) {
+  reglaPreIA = 'LIBRETAS';
+  productoLibretasDetectado = productoLibretas.producto;
+
+  decisionPreIA = {
+    ...decisionBase(),
+    intencion: 'CONSULTAR_PRECIO',
+    accion: 'INFORMAR_LIBRETAS',
+    producto: 'libretas',
+    requiere_humano: false,
+    motivo_derivacion: 'NINGUNO',
+    respuesta_sugerida: RESPUESTA_CIERRE_LIBRETAS
+  };
+} else if (productoLibretas) {
+  productoLibretasDetectado = productoLibretas.producto;
 } else if (
   productoTarjetas &&
   !catalogoTarjetasYaEnviado &&
@@ -3005,6 +3087,7 @@ const LINEAS_CATALOGO_IMPRESO = [
   'TRIPTICOS',
   'HOJAS_MEMBRETADAS',
   'CALENDARIOS',
+  'LIBRETAS',
   'CATALOGO_MIXTO'
 ];
 
@@ -3028,7 +3111,8 @@ const turnoNombraCatalogo =
     productoAfiches,
     productoTripticos,
     productoMembretadas,
-    productoCalendarios
+    productoCalendarios,
+    productoLibretas
   ].some(Boolean);
 
 const conversacionDeEtiquetas =
@@ -3191,7 +3275,8 @@ if (
     productoAfiches === null &&
     productoTripticos === null &&
     productoMembretadas === null &&
-    productoCalendarios === null;
+    productoCalendarios === null &&
+    productoLibretas === null;
 
   if (esSaludoSimple) {
     reglaPreIA = 'SALUDO_SIMPLE';
@@ -3577,6 +3662,9 @@ return [
 
       producto_calendarios:
         productoCalendariosDetectado,
+
+      producto_libretas:
+        productoLibretasDetectado,
 
       // V4.20: diseño de etiqueta recibido en este turno
       // ({ tipo: IMAGEN | ARCHIVO | ENLACE, clase }) o null.
