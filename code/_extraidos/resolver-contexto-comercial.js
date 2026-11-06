@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.30
+// RESOLVER CONTEXTO COMERCIAL - V3.31
 // ======================================================
 //
 // Objetivo:
@@ -177,6 +177,15 @@
 // - V3.30: la estimación de medidas grandes (> $140) incluye
 //   el +1/+1 por troquel de Calcular precio detalle V2.8: un
 //   lado < 5 cm y más de $18 por 1000 con el primer rango.
+// - V3.31: "Para botellón / botella / bidón de agua" ya no
+//   queda en silencio tras el refuerzo de medidas: se
+//   sugieren medidas y precios (1L/600 ml y bidón 20L) y se
+//   pregunta si tiene una medida específica. Tras la
+//   metodología de producción, "¿el pedido lo ingresaría el
+//   lunes?" se confirma (lunes a miércoles → envío viernes)
+//   y se pregunta ciudad o diseño si aún faltan. Pedidos de
+//   ubicación / llamada tras un "Permítame…" responden con
+//   Quito en lugar de callar.
 //
 // ======================================================
 
@@ -1924,6 +1933,20 @@ const coincidenciaFecha =
 const RESPUESTA_REFUERZO_MEDIDAS =
   'Para enviarle el precio indíquenos por favor el ancho y el alto de sus etiquetas en centímetros. Con esos datos le cotizamos de inmediato.';
 
+const PATRON_ENVASE_AGUA =
+  /\b(botellon(es)?|botellas?|bidon(es)?|garrafon(es)?|garrafas?)\b|\b(agua|1\s*l|600\s*ml|20\s*l)\b.*\b(botell|bidon|etiqueta)|etiquetas?\s+(para|de)\s+(el\s+)?(agua|botell|bidon)/;
+
+const RESPUESTA_SUGERIDA_ENVASE_AGUA =
+  'Podemos sugerirle en estas medidas.\n' +
+  'Para botellas de 1L o de 600 ml pueden ser de dos medidas.\n\n' +
+  'Las 1000 etiquetas de 12x5 cm rectangulares le saldrían en $47.00 dólares\n\n' +
+  'Las 1000 etiquetas de 20x5 cm rectangulares le saldrían en $75.00 dólares\n\n' +
+  'Y para bidón en las medidas de:\n\n' +
+  '-1000 Etiquetas "Para Bidón 20L" en la medida de 14x8 cm en $80.00 dólares.\n' +
+  '-1000 Etiquetas "Para Bidón 20L" en la medida 11x9 cm $75.00 dólares.\n' +
+  '-1000 Etiquetas "Para Bidón 20L" en la medida 8x10 cm $59.00 dólares.\n\n' +
+  '¿Usted tiene una medida en específico disculpe?';
+
 const ultimoSaliente =
   objeto(contextoIA.ultimo_saliente);
 
@@ -1973,6 +1996,9 @@ if (
 
     respuestaSugerida =
       `Gracias. ${preguntaMedidasFaltantes}`;
+  } else if (PATRON_ENVASE_AGUA.test(mensajeTurnoPlano)) {
+    // "Para botellón de agua" aporta uso: se cotiza abajo
+    // con medidas sugeridas; no se calla el turno.
   } else if (
     /para enviarle el precio/.test(
       textoPlano(ultimoSaliente.contenido)
@@ -2128,10 +2154,14 @@ if (automatizacionAtendioTurno) {
       textoPlano(ultimoSaliente.contenido)
     );
 
+  const aportaUsoEnvaseAgua =
+    PATRON_ENVASE_AGUA.test(mensajeTurnoPlano);
+
   seguimientoTrasAutomatizacion =
     contextoEtiquetasParaRefuerzo &&
     faltaMedidas &&
     !turnoAportaInformacion &&
+    !aportaUsoEnvaseAgua &&
     !ultimoYaRefuerzoMedidas &&
     accion !== 'ENVIAR_DATOS_PAGO' &&
     accion !== 'COTIZAR_P4';
@@ -2142,6 +2172,8 @@ if (automatizacionAtendioTurno) {
       'el ancho y el alto';
     respuestaSugerida =
       RESPUESTA_REFUERZO_MEDIDAS;
+  } else if (aportaUsoEnvaseAgua) {
+    // Cotización sugerida de botella/bidón más abajo.
   } else if (
     accion === 'PEDIR_MEDIDAS' &&
     !turnoAportaInformacion &&
@@ -6148,6 +6180,137 @@ if (
             ? ' ¿En qué medidas necesita sus etiquetas? Indíquenos ancho y alto por favor.'
             : ''
         );
+  limpiarDerivacionIA = true;
+  omitirEnvio = false;
+  motivoOmisionEnvio = null;
+}
+
+// Medidas sugeridas para botella / botellón / bidón de agua.
+// No se confunde con fajillas (Tesalia/Dasani): esas van arriba.
+if (
+  !flujoDisenoEtiqueta &&
+  puedeFlujoEtiquetas &&
+  !hayDisenoTurno &&
+  !PATRON_FAJILLAS.test(mensajeTurnoPlano) &&
+  PATRON_ENVASE_AGUA.test(mensajeTurnoPlano) &&
+  !paresMedidaTurno.length &&
+  !(anchoActual !== null && altoActual !== null)
+) {
+  const yaSugirioEnvaseAgua =
+    /podemos sugerirle en estas medidas/.test(
+      textoPlano(ultimoSaliente.contenido)
+    ) ||
+    salientesRecientesPlano.some(t =>
+      /\bpodemos sugerirle en estas medidas\b/.test(t)
+    );
+
+  if (!yaSugirioEnvaseAgua) {
+    accion = 'RESPONDER_GENERAL';
+    respuestaSugerida =
+      RESPUESTA_SUGERIDA_ENVASE_AGUA;
+    limpiarDerivacionIA = true;
+    omitirEnvio = false;
+    motivoOmisionEnvio = null;
+  }
+}
+
+// Confirmación de ingreso de pedido tras la metodología
+// de producción (lunes a miércoles → envío viernes).
+const PATRON_CONFIRMA_INGRESO_PEDIDO =
+  /\b(ingres(aria|amos|ar|o)|pedido).{0,50}\b(lunes|martes|miercoles)\b|\b(lunes|martes|miercoles).{0,50}\b(ingres|pedido|abono)\b|\bentonces.{0,40}\b(lunes|martes|miercoles)\b/;
+
+const metodologiaProduccionYaEnviada =
+  texto(objeto(contextoAnterior.imagen_metodologia).enviada_at) !== null ||
+  salientesRecientesPlano.some(t =>
+    /\b(recibimos (tu |su )?pedido|recibimos pedidos de lunes|metodologia (semanal|para produccion)|iniciamos produccion|envios a (todo el ecuador|todas las provincias)|viernes a partir de las 5)\b/.test(
+      t
+    )
+  );
+
+if (
+  !flujoDisenoEtiqueta &&
+  PATRON_CONFIRMA_INGRESO_PEDIDO.test(mensajeTurnoPlano) &&
+  metodologiaProduccionYaEnviada &&
+  accion !== 'ENVIAR_DATOS_PAGO' &&
+  !derivacionPorCantidad
+) {
+  const ciudadYaConocidaSeguimiento =
+    texto(contextoIA.prospecto_ciudad) ??
+    texto(objeto(contextoAnterior.ubicacion).ciudad) ??
+    texto(data.ciudad_detectada);
+
+  const yaPreguntoCiudadSeguimiento =
+    ciudadYaConocidaSeguimiento !== null ||
+    salientesRecientesPlano.some(t =>
+      /\b(desde|de) que ciudad nos escribe\b/.test(t)
+    );
+
+  const yaPreguntoDisenoSeguimiento =
+    texto(objeto(contextoAnterior.diseno_recibido).recibido_at) !== null ||
+    salientesRecientesPlano.some(t =>
+      /\b(cuenta con (su )?diseno|adjuntenos su diseno|tiene (el |su )?diseno|cuenta con su logo)\b/.test(
+        t
+      )
+    );
+
+  let seguimiento =
+    'Así es estimado, del lunes hasta el miércoles podemos ingresar el pedido. Le haríamos el envío el día viernes.';
+
+  if (!yaPreguntoCiudadSeguimiento) {
+    seguimiento +=
+      ' ¿Desde qué ciudad nos escribe?';
+  } else if (!yaPreguntoDisenoSeguimiento) {
+    seguimiento +=
+      ' ¿Usted ya cuenta con su diseño?';
+  }
+
+  accion = 'INFORMAR_METODOLOGIA';
+  respuestaSugerida = seguimiento;
+  limpiarDerivacionIA = true;
+  omitirEnvio = false;
+  motivoOmisionEnvio = null;
+}
+
+// Ubicación / llamada: no callar tras un "Permítame…".
+const PATRON_PIDE_UBICACION_O_LLAMADA =
+  /\b(ubicacion|donde (estan|quedan|se encuentran)|donde quedan|para visitar|local (fisico)?|puedo llamarle|llamar(les|le|nos)|para (poder )?conversar|me pasa (su |la )?ubicacion|ayudeme (con )?su ubicacion)\b/;
+
+if (
+  !flujoDisenoEtiqueta &&
+  PATRON_PIDE_UBICACION_O_LLAMADA.test(mensajeTurnoPlano) &&
+  accion !== 'ENVIAR_DATOS_PAGO' &&
+  !derivacionPorCantidad
+) {
+  const ultimoYaDijoQuito =
+    /\bciudad de quito\b|\blocal fisico\b|\bestamos ubicados\b/.test(
+      textoPlano(ultimoSaliente.contenido)
+    );
+
+  const pideLocalExplicito =
+    /\b(local fisico|tiene local|tienen local|para visitar|donde quedan)\b/.test(
+      mensajeTurnoPlano
+    );
+
+  if (pideLocalExplicito && !ultimoYaDijoQuito) {
+    accion = 'INFORMAR_UBICACION';
+    respuestaSugerida =
+      'Sí, contamos con local físico en Quito. Los retiros se realizan los viernes a partir de las 5 PM; si el trabajo sale antes le notificamos.';
+  } else if (!ultimoYaDijoQuito) {
+    accion = 'INFORMAR_UBICACION';
+    respuestaSugerida =
+      'Somos de la ciudad de Quito. Atendemos a nivel nacional y hacemos envíos a todo el país. ¿Desde qué ciudad nos escribe?';
+  } else if (
+    /\b(llamar|conversar)\b/.test(mensajeTurnoPlano)
+  ) {
+    accion = 'RESPONDER_GENERAL';
+    respuestaSugerida =
+      'Con gusto le atendemos por este chat. Si prefiere, también puede visitarnos en nuestro local en Quito; los retiros son los viernes a partir de las 5 PM.';
+  } else {
+    accion = 'INFORMAR_UBICACION';
+    respuestaSugerida =
+      'Sí, contamos con local físico en Quito. Los retiros se realizan los viernes a partir de las 5 PM; si el trabajo sale antes le notificamos.';
+  }
+
   limpiarDerivacionIA = true;
   omitirEnvio = false;
   motivoOmisionEnvio = null;
