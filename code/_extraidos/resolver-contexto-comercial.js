@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.31
+// RESOLVER CONTEXTO COMERCIAL - V3.32
 // ======================================================
 //
 // Objetivo:
@@ -186,6 +186,11 @@
 //   y se pregunta ciudad o diseño si aún faltan. Pedidos de
 //   ubicación / llamada tras un "Permítame…" responden con
 //   Quito en lugar de callar.
+// - V3.32: "¡Hola! Quiero más información" (anuncio Meta /
+//   estados) no recibe "No logramos recibir bien su mensaje".
+//   Se informa el material (polipropileno) y se piden ancho
+//   y alto. Cualquier "no pudimos / no logramos recibir /
+//   indíquenos nuevamente" de la IA se reemplaza igual.
 //
 // ======================================================
 
@@ -6526,21 +6531,64 @@ if (
 
 
 // ------------------------------------------------------
-// 12.11 NO DECIR "NO PUDIMOS LEER" SI EL TURNO ES LEGIBLE
+// 12.11 MATERIAL + MEDIDAS ANTE PEDIDO DE INFORMACIÓN
 // ------------------------------------------------------
+//
+// El anuncio de estados suele llegar como
+// "¡Hola! Quiero más información". La IA a veces responde
+// "No logramos recibir bien su mensaje…". Aquí se informa
+// el material y se piden ancho y alto para cotizar.
+//
+
+const RESPUESTA_MATERIAL_Y_MEDIDAS =
+  'Trabajamos con plástico Polipropileno de alta adherencia 👌. ' +
+  'Lo que permite a sus productos una elegante presentación. ' +
+  'Nuestras etiquetas resisten refrigeración, congelación y temperaturas relativamente altas (no temperaturas que derritan el plástico), sin que se despegue.\n\n' +
+  '¿En qué medidas necesita sus etiquetas? Indíquenos ancho y alto en centímetros para cotizarle de inmediato.';
+
+const PATRON_PIDE_MAS_INFO =
+  /\b(mas|la)?\s*informacion\b|\bquiero saber\b|\b(me )?(gustaria|interesa|intereso)\b.*\b(informacion|cotiz|precio|etiquetas?)\b|\binformacion (por favor|gracias)?\b/;
+
+const PATRON_CATALOGO_OTRO_EN_TURNO =
+  /\b(tarjetas?|flyers?|flayers?|volantes?|afiches?|tripticos?|membretadas?|calendarios?|libretas?)\b/;
+
+const respuestaDiceNoEntendio =
+  /no pudimos (leer|visualizar)|no logramos recibir|podria (escribirnos nuevamente|indicarnos nuevamente|reenviarlo)|no pudimos leer bien|nuevamente que necesita|no logramos (leer|entender|procesar)/.test(
+    textoPlano(respuestaSugerida)
+  );
+
+const pideMasInfoSinMedidas =
+  PATRON_PIDE_MAS_INFO.test(mensajeTurnoPlano) &&
+  faltaMedidas &&
+  !cotizacionVigente &&
+  !PATRON_CATALOGO_OTRO_EN_TURNO.test(mensajeTurnoPlano) &&
+  !derivacionPorCantidad &&
+  !derivacionPorProductoNoP4 &&
+  accion !== 'ENVIAR_DATOS_PAGO' &&
+  (
+    lineaEsEtiquetas ||
+    esLeadAnuncioEvento ||
+    productoLinea === null ||
+    productoLinea === 'ETIQUETAS'
+  );
 
 if (
-  /no pudimos (leer|visualizar)|podria (escribirnos nuevamente|reenviarlo)|no pudimos leer bien su mensaje/.test(
-    textoPlano(respuestaSugerida)
-  )
+  (
+    respuestaDiceNoEntendio ||
+    pideMasInfoSinMedidas
+  ) &&
+  !pideConfirmacionListaMedidas &&
+  !pideConfirmacionMedidasGrandes &&
+  !flujoDisenoEtiqueta
 ) {
-  accion = 'PEDIR_MEDIDAS';
+  accion = 'INFORMAR_MATERIAL';
   preguntaMedidasFaltantes =
     'el ancho y el alto';
   respuestaSugerida =
-    RESPUESTA_REFUERZO_MEDIDAS;
+    RESPUESTA_MATERIAL_Y_MEDIDAS;
   omitirEnvio = false;
   motivoOmisionEnvio = null;
+  limpiarDerivacionIA = true;
 }
 
 

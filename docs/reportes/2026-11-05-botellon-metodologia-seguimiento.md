@@ -1,7 +1,7 @@
 # Botellón / bidón, seguimiento de metodología y ubicación
 
 **Fecha:** 5 de noviembre de 2026 · **Workflow:** SISTEMA AUTOMATIZADO PEGASO (`09OF22FOxihypeeh`)
-**Estado:** Implementado en local (build + edit). **No** publicado en n8n, sin commit ni `git push`.
+**Estado:** Implementado en local (build + edit), incluye V3.32 (anuncio “más información”). **No** publicado en n8n, sin commit ni `git push`.
 
 ---
 
@@ -60,13 +60,18 @@ Tras un "Permítame…" o ante "dónde están / ubicación / puedo llamarle":
 - Quito + envíos nacionales + pregunta de ciudad, o
 - local físico (viernes 5 PM) si piden visitar / local.
 
+### Anuncio “¡Hola! Quiero más información”
+
+Ya no responde “No logramos recibir bien su mensaje…”. Informa el material (polipropileno de alta adherencia) y pide ancho y alto en cm para cotizar.
+
 ---
 
 ## 3. Nodo
 
 | Nodo | Versión | Cambio |
 |---|---|---|
-| Resolver contexto comercial | 3.30 → **3.31** | No omitir tras refuerzo si el turno habla de botellón/bidón; sugerencia de medidas; seguimiento metodología lunes–miércoles; ubicación/llamada sin callar. |
+| Resolver contexto comercial | 3.30 → **3.32** | No omitir tras refuerzo si el turno habla de botellón/bidón; sugerencia de medidas; seguimiento metodología lunes–miércoles; ubicación/llamada sin callar. Anuncio “¡Hola! Quiero más información” / “No logramos recibir…” → material polipropileno + pedir ancho y alto. |
+| Preparar respuesta comercial | 2.5 → **2.6** | Omite también “no logramos recibir / indíquenos nuevamente” si el último saliente ya pidió medidas. |
 
 ---
 

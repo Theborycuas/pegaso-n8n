@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// PREPARAR RESPUESTA COMERCIAL - V2.5
+// PREPARAR RESPUESTA COMERCIAL - V2.6
 // ======================================================
 //
 // Recibe la decisión comercial resuelta.
@@ -141,7 +141,7 @@ return items.map(
       respuestaNorm.slice(0, 48) === ultimoNorm.slice(0, 48);
 
     const noPudimosLeer =
-      /no pudimos (leer|visualizar)|podria (escribirnos nuevamente|reenviarlo)/.test(
+      /no pudimos (leer|visualizar)|no logramos recibir|podria (escribirnos nuevamente|indicarnos nuevamente|reenviarlo)|nuevamente que necesita/.test(
         respuestaNorm
       );
 
