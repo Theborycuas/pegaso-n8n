@@ -19,19 +19,15 @@
 // ======================================================
 // NODO N8N: Normalizar decisión IA
 // ARCHIVO: code/04-cerebro-comercial/normalizar-decision-ia.js
-// VERSION: 2.12
+// VERSION: 2.13
 // RESPONSABILIDAD:
 // - Convertir la decisión YA VALIDADA (de cualquier proveedor) en un contrato único Pegaso con tipos normalizados.
 // - Unir la decisión con el contexto de "Preparar contexto IA" (IDs, prospecto, tipo_actor, contexto_comercial) y resolver ciudad/provincia.
 // - Aplicar la evidencia multimedia del turno (media_turno): comprobante detectado -> REPORTAR_PAGO + DERIVAR_HUMANO + ENVIA_COMPROBANTE
 //   con mensaje de verificación (nunca "gracias por su pago" / "pago confirmado");
-//   imagen/archivo que requiere revisión -> DERIVAR_HUMANO + IMAGEN_REQUIERE_REVISION / ARCHIVO_NO_PROCESABLE
-//   (si el documento trae medidas en el nombre o caption, no se deriva: se cotiza)
-//   (excepto ruta INFORMAR_TARJETAS / INFORMAR_FLYERS / INFORMAR_AFICHES /
-//   INFORMAR_TRIPTICOS / INFORMAR_MEMBRETADAS / INFORMAR_CALENDARIOS (V2.10) /
-//   INFORMAR_LIBRETAS (V2.12)
-//   o mención de esos productos:
-//   no tumbar el catálogo por diseño o meme).
+//   V2.13: imagen o archivo NO derivan a humano solo por revisión /
+//   ARCHIVO_NO_PROCESABLE. Resolver contexto comercial continúa
+//   la venta (medidas, ciudad, diseño). El comprobante sí deriva.
 //   Si la IA ya derivó por otro motivo, se respeta (salvo comprobante frente a motivos no prioritarios).
 // - Convertir solicitud de cuenta/datos bancarios (SOLICITA_DATOS_PAGO o ENVIAR_DATOS_PAGO) en ENVIAR_DATOS_PAGO
 //   sin handoff: el bot envía la imagen de datos bancarios; la derivación humana queda para el comprobante.
@@ -404,29 +400,45 @@ if (
   respuestaSugerida = TEXTO_VERIFICAR_PAGO;
 } else if (
   mediaTurno.requiere_revision_humana === true &&
-  requiereHumano !== true &&
-  !esRutaTarjetas &&
-  // V2.11: diseño de etiqueta recibido (imagen, archivo o
-  // link): no se deriva; Resolver contexto comercial sigue
-  // el cierre (pregunta por el diseño editable).
-  contextoIAMedia.diseno_recibido_turno == null &&
   (
     mediaTurno.motivo_derivacion === 'IMAGEN_REQUIERE_REVISION' ||
-    (
-      mediaTurno.motivo_derivacion === 'ARCHIVO_NO_PROCESABLE' &&
-      !hayMedidasExplicitasTurno
-    )
+    mediaTurno.motivo_derivacion === 'ARCHIVO_NO_PROCESABLE'
   )
 ) {
-  // No tumbar catálogo de tarjetas por una imagen de diseño/meme.
-  derivacionPorMedia = 'REVISION_MEDIA';
-  accion = 'DERIVAR_HUMANO';
-  requiereHumano = true;
-  motivoDerivacion = mediaTurno.motivo_derivacion;
-  respuestaSugerida =
-    motivoDerivacion === 'IMAGEN_REQUIERE_REVISION'
-      ? 'Permítame un momento por favor, ya revisamos la imagen que nos envió.'
-      : 'Permítame un momento por favor, ya revisamos el archivo que nos envió.';
+  // V2.13: una foto o un .pdf/.ai no mandan a humano.
+  // Se deja que Resolver contexto comercial pida medidas /
+  // ciudad / diseño. Solo el comprobante (arriba) deriva.
+  if (requiereHumano === true && motivoDerivacion === mediaTurno.motivo_derivacion) {
+    requiereHumano = false;
+    motivoDerivacion = 'NINGUNO';
+  }
+
+  if (
+    accion === 'DERIVAR_HUMANO' &&
+    [
+      'IMAGEN_REQUIERE_REVISION',
+      'ARCHIVO_NO_PROCESABLE',
+      'NINGUNO',
+      'OTRO'
+    ].includes(String(motivoDerivacion ?? 'NINGUNO'))
+  ) {
+    accion =
+      anchoCm === null || altoCm === null
+        ? 'PEDIR_MEDIDAS'
+        : 'RESPONDER_GENERAL';
+    requiereHumano = false;
+    motivoDerivacion = 'NINGUNO';
+    if (
+      /permitame un momento|ya revisamos (la imagen|el archivo)/.test(
+        String(respuestaSugerida ?? '').toLowerCase()
+      )
+    ) {
+      respuestaSugerida =
+        anchoCm === null || altoCm === null
+          ? 'Recibimos lo que nos envió. ¿En qué medidas necesita sus etiquetas? Indíquenos ancho y alto en centímetros por favor.'
+          : 'Recibimos lo que nos envió. ¿En qué más podemos ayudarle con su cotización?';
+    }
+  }
 }
 
 // ------------------------------------------------------

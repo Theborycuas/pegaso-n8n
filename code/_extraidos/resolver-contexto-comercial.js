@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.32
+// RESOLVER CONTEXTO COMERCIAL - V3.33
 // ======================================================
 //
 // Objetivo:
@@ -191,6 +191,13 @@
 //   Se informa el material (polipropileno) y se piden ancho
 //   y alto. Cualquier "no pudimos / no logramos recibir /
 //   indíquenos nuevamente" de la IA se reemplaza igual.
+// - V3.33: una foto o un documento ya no derivan a humano
+//   ni congelan el chat. Se reconoce envase/producto además
+//   de diseño; se responde y se pide lo que falta (medidas,
+//   producto, ciudad, diseño). Documento: "En este momento
+//   verificamos su archivo, mientras tanto…". Anti-congelado:
+//   si se iba a omitir el envío pero aún faltan datos, se
+//   hace la siguiente pregunta comercial.
 //
 // ======================================================
 
@@ -5901,11 +5908,27 @@ function nombreDisenoRecibido(d) {
     return 'su logo';
   }
 
+  if (d.clase === 'PRODUCTO') {
+    return 'la foto de su producto';
+  }
+
+  if (d.clase === 'BOCETO') {
+    return 'su boceto';
+  }
+
   if (d.clase === 'INCIERTA' || d.clase === 'REFERENCIA') {
     return 'la imagen que nos envió';
   }
 
   return 'su diseño';
+}
+
+function prefijoReciboMedia(d) {
+  if (d.tipo === 'ARCHIVO' || (d.tipo === 'ENLACE' && d.clase === 'ARCHIVO')) {
+    return `En este momento verificamos ${nombreDisenoRecibido(d)}`;
+  }
+
+  return `Recibimos ${nombreDisenoRecibido(d)}, muchas gracias`;
 }
 
 // Ciudad conocida ANTES de este turno (la del turno es la
@@ -6007,7 +6030,7 @@ if (puedeFlujoEtiquetas && hayDisenoTurno) {
   } else if (preguntaEditablePendiente && llegaArchivoFinal) {
     aplicarRespuestaFlujo(
       'RESPONDER_GENERAL',
-      textoMetodologia(`Recibimos ${nombre}, muchas gracias.`),
+      textoMetodologia(`${prefijoReciboMedia(disenoTurno)}.`),
       'METODOLOGIA_ENVIADA'
     );
   } else if (preguntaEditablePendiente) {
@@ -6017,23 +6040,28 @@ if (puedeFlujoEtiquetas && hayDisenoTurno) {
       'ESPERA_EDITABLE'
     );
   } else if (faltaMedidas && !cotizacionVigente) {
+    const preguntaProducto =
+      disenoTurno.clase === 'PRODUCTO' || disenoTurno.clase === 'INCIERTA'
+        ? ' Si gusta, cuéntenos también en qué producto las va a usar.'
+        : '';
+
     aplicarRespuestaFlujo(
       'PEDIR_MEDIDAS',
-      `Recibimos ${nombre}, muchas gracias. Para cotizarle indíquenos por favor el ancho y el alto de sus etiquetas en centímetros.`,
+      `${prefijoReciboMedia(disenoTurno)}. Para cotizarle indíquenos por favor el ancho y el alto de sus etiquetas en centímetros.${preguntaProducto}`,
       'ESPERA_MEDIDAS'
     );
   } else if (!ciudadConocidaDiseno && !ciudadYaPreguntadaDiseno) {
     aplicarRespuestaFlujo(
       'RESPONDER_GENERAL',
-      `Mientras revisamos ${nombre}, indíquenos por favor: ¿desde qué ciudad nos escribe?`,
+      `${prefijoReciboMedia(disenoTurno)}. Mientras tanto, indíquenos por favor: ¿desde qué ciudad nos escribe?`,
       'ESPERA_CIUDAD'
     );
   } else {
     aplicarRespuestaFlujo(
       'RESPONDER_GENERAL',
       materialYaInformado
-        ? `Mientras revisamos ${nombre}, ¿usted cuenta con el diseño original editable disculpe?`
-        : `Mientras revisamos ${nombre}, ${TEXTO_GANCHO_MATERIAL} ${PREGUNTA_EDITABLE}`,
+        ? `${prefijoReciboMedia(disenoTurno)}. Mientras tanto, ¿usted cuenta con el diseño original editable disculpe?`
+        : `${prefijoReciboMedia(disenoTurno)}. Mientras tanto, ${TEXTO_GANCHO_MATERIAL} ${PREGUNTA_EDITABLE}`,
       'ESPERA_EDITABLE'
     );
   }
@@ -6851,11 +6879,110 @@ if (
   !['COTIZAR_P4', 'DERIVAR_HUMANO', 'ENVIAR_DATOS_PAGO'].includes(accion) &&
   !respuestaNormSalida.startsWith('permitame un momento')
 ) {
-  accion = 'DERIVAR_HUMANO';
-  respuestaSugerida =
-    TEXTO_DERIVACION_VERIFICAMOS;
-  derivacionPorPreguntaSinRespuesta = true;
-  suprimirMediosTurno = true;
+  // V3.33: en etiquetas sin medidas, no derivar: pedir el
+  // dato que falta para seguir vendiendo.
+  if (lineaEsEtiquetas && faltaMedidas && !cotizacionVigente) {
+    accion = 'PEDIR_MEDIDAS';
+    respuestaSugerida =
+      'Para cotizarle indíquenos por favor el ancho y el alto de sus etiquetas en centímetros. ¿En qué producto las va a usar?';
+    limpiarDerivacionIA = true;
+  } else {
+    accion = 'DERIVAR_HUMANO';
+    respuestaSugerida =
+      TEXTO_DERIVACION_VERIFICAMOS;
+    derivacionPorPreguntaSinRespuesta = true;
+    suprimirMediosTurno = true;
+  }
+}
+
+
+// ------------------------------------------------------
+// 12.11d ANTI-CONGELADO COMERCIAL (V3.33)
+// ------------------------------------------------------
+//
+// Si se iba a omitir el envío o la respuesta sigue siendo
+// un "Permítame… imagen/archivo", pero aún faltan datos
+// para vender, se hace la siguiente pregunta útil.
+//
+
+const ciudadConocidaAntiCongelado =
+  texto(contextoIA.prospecto_ciudad) ??
+  texto(objeto(contextoAnterior.ubicacion).ciudad) ??
+  texto(data.ciudad_detectada);
+
+const yaPreguntoCiudadAntiCongelado =
+  ciudadConocidaAntiCongelado !== null ||
+  salientesRecientesPlano.some(t =>
+    /\b(desde|de) que ciudad nos escribe\b/.test(t)
+  );
+
+const yaPreguntoDisenoAntiCongelado =
+  texto(objeto(contextoAnterior.diseno_recibido).recibido_at) !== null ||
+  hayDisenoTurno ||
+  salientesRecientesPlano.some(t =>
+    /\b(cuenta con (su )?diseno|adjuntenos su diseno|cuenta con su logo|diseno original editable)\b/.test(
+      t
+    )
+  );
+
+const respuestaEsPermitaMedia =
+  /permitame un momento/.test(textoPlano(respuestaSugerida)) &&
+  /imagen|archivo|lo que nos envio|su requerimiento|su solicitud/.test(
+    textoPlano(respuestaSugerida)
+  );
+
+const motivosMediaNoDerivar = [
+  'IMAGEN_REQUIERE_REVISION',
+  'ARCHIVO_NO_PROCESABLE',
+  'IMAGEN_NO_ANALIZABLE',
+  'ARCHIVO_NO_ANALIZABLE'
+];
+
+if (
+  lineaEsEtiquetas &&
+  !derivacionPorCantidad &&
+  !derivacionPorProductoNoP4 &&
+  !derivacionPorDisenoFinal &&
+  accion !== 'ENVIAR_DATOS_PAGO' &&
+  accion !== 'COTIZAR_P4' &&
+  (
+    omitirEnvio ||
+    respuestaEsPermitaMedia ||
+    (
+      accion === 'DERIVAR_HUMANO' &&
+      motivosMediaNoDerivar.includes(motivoDerivacionIA)
+    )
+  )
+) {
+  let siguiente = null;
+  let siguienteAccion = 'RESPONDER_GENERAL';
+
+  if (faltaMedidas && !cotizacionVigente) {
+    siguienteAccion = 'PEDIR_MEDIDAS';
+    siguiente =
+      'Para enviarle el precio indíquenos por favor el ancho y el alto de sus etiquetas en centímetros. ¿En qué producto las va a usar?';
+  } else if (!yaPreguntoCiudadAntiCongelado) {
+    siguiente =
+      '¿Desde qué ciudad nos escribe? Así le confirmamos el envío.';
+  } else if (!yaPreguntoDisenoAntiCongelado) {
+    siguiente =
+      '¿Usted ya cuenta con su diseño? Si gusta adjúntelo para verificarle.';
+  } else if (
+    !metodologiaYaEnviada &&
+    cotizacionVigente
+  ) {
+    siguiente = TEXTO_METODOLOGIA_PEDIDO;
+    siguienteAccion = 'INFORMAR_METODOLOGIA';
+  }
+
+  if (siguiente !== null) {
+    accion = siguienteAccion;
+    respuestaSugerida = siguiente;
+    omitirEnvio = false;
+    motivoOmisionEnvio = null;
+    limpiarDerivacionIA = true;
+    derivacionPorPreguntaSinRespuesta = false;
+  }
 }
 
 

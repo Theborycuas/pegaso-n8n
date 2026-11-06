@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Preparar contexto IA
 // ARCHIVO: code/03-conversacion/preparar-contexto-ia.js
-// VERSION: 4.21
+// VERSION: 4.22
 // ======================================================
 //
 // RESPONSABILIDAD:
@@ -3135,73 +3135,78 @@ function detectarDisenoRecibido() {
     return null;
   }
 
-  // Archivo (documento) con formato de diseño.
+  // Documento: cualquier archivo en conversación de etiquetas
+  // se atiende (no se congela ni deriva solo por enviarlo).
   for (const m of mensajesTurno) {
     const contenido = String(m.contenido ?? '');
     const esDocumento =
       m.tipo === 'DOCUMENTO' ||
       /\[ARCHIVO NO PROCESABLE · tipo=DOCUMENTO/.test(contenido);
 
-    if (!esDocumento) {
-      continue;
-    }
-
-    const mime =
-      (contenido.match(/mime=([^\s\]·]+)/) ?? [])[1] ?? '';
-
-    if (PATRON_MIME_DISENO.test(mime) || PATRON_EXTENSION_DISENO.test(contenido)) {
+    if (esDocumento) {
       return { tipo: 'ARCHIVO', clase: 'ARCHIVO' };
     }
   }
 
-  // Imagen de diseño, logo o referencia; o imagen que el
-  // análisis no pudo interpretar (se toma como el diseño).
-  const CLASES_FUERA = [
-    'ENVASE_O_PRODUCTO', 'FOTO_PRODUCTO', 'MEDIDAS_ESCRITAS',
-    'MEDIDAS_MANUSCRITAS', 'COMPROBANTE_PAGO', 'COMPROBANTE',
-    'EVIDENCIA_RECLAMO', 'NO_RELACIONADO', 'IMAGEN_NO_ETIQUETA', 'BOCETO'
-  ];
-
+  // Imagen del turno: priorizar diseño/logo/referencia aunque
+  // también haya foto de producto. Una foto de envase ya no
+  // bloquea el cierre comercial ni deriva a humano.
   const clasificaciones =
     clasificacionImagenes.map(c => ({
       contenido: String(c.contenido_detectado ?? '').toUpperCase(),
       veredicto: String(c.veredicto_comercial ?? '').toUpperCase()
     }));
 
-  const hayImagenFuera =
-    clasificaciones.some(c =>
-      CLASES_FUERA.includes(c.contenido) || CLASES_FUERA.includes(c.veredicto)
+  const diseno =
+    clasificaciones.find(c =>
+      c.contenido === 'ETIQUETA_O_DISENO' || c.veredicto === 'DISENO_ETIQUETA'
     );
 
-  if (!hayImagenFuera) {
-    const diseno =
-      clasificaciones.find(c =>
-        c.contenido === 'ETIQUETA_O_DISENO' || c.veredicto === 'DISENO_ETIQUETA'
-      );
+  if (diseno) {
+    return { tipo: 'IMAGEN', clase: 'DISENO' };
+  }
 
-    if (diseno) {
-      return { tipo: 'IMAGEN', clase: 'DISENO' };
-    }
+  const logo =
+    clasificaciones.find(c => c.contenido === 'LOGO');
 
-    const logo =
-      clasificaciones.find(c => c.contenido === 'LOGO');
+  if (logo) {
+    return { tipo: 'IMAGEN', clase: 'LOGO' };
+  }
 
-    if (logo) {
-      return { tipo: 'IMAGEN', clase: 'LOGO' };
-    }
+  const referencia =
+    clasificaciones.find(c =>
+      c.contenido === 'REFERENCIA_VISUAL' || c.veredicto === 'REFERENCIA_NO_FINAL'
+    );
 
-    const referencia =
-      clasificaciones.find(c =>
-        c.contenido === 'REFERENCIA_VISUAL' || c.veredicto === 'REFERENCIA_NO_FINAL'
-      );
+  if (referencia) {
+    return { tipo: 'IMAGEN', clase: 'REFERENCIA' };
+  }
 
-    if (referencia) {
-      return { tipo: 'IMAGEN', clase: 'REFERENCIA' };
-    }
+  const boceto =
+    clasificaciones.find(c => c.veredicto === 'BOCETO');
 
-    if (mediaTurno.requiere_revision_imagen) {
-      return { tipo: 'IMAGEN', clase: 'INCIERTA' };
-    }
+  if (boceto) {
+    return { tipo: 'IMAGEN', clase: 'BOCETO' };
+  }
+
+  const producto =
+    clasificaciones.find(c =>
+      c.contenido === 'ENVASE_O_PRODUCTO' ||
+      c.veredicto === 'FOTO_PRODUCTO'
+    );
+
+  if (producto) {
+    return { tipo: 'IMAGEN', clase: 'PRODUCTO' };
+  }
+
+  const hayImagenTurno =
+    mensajesTurno.some(m => m.tipo === 'IMAGEN') ||
+    clasificaciones.length > 0 ||
+    mediaTurno.requiere_revision_imagen ||
+    Number(mediaTurno.imagenes_analizadas ?? 0) > 0;
+
+  if (hayImagenTurno) {
+    return { tipo: 'IMAGEN', clase: 'INCIERTA' };
   }
 
   // Link a un programa de diseño o a un repositorio.
