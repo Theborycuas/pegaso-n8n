@@ -1,10 +1,10 @@
 {
   "workflowId": "09OF22FOxihypeeh",
   "workflowName": "SISTEMA AUTOMATIZADO PEGASO",
-  "workflowUpdatedAt": "2026-11-16T04:27:19.216Z",
-  "extractedAt": "2026-11-16T04:27:24.984Z",
-  "workflowNodeCount": 204,
-  "codeNodeCount": 69,
+  "workflowUpdatedAt": "2026-11-16T04:43:49.433Z",
+  "extractedAt": "2026-11-16T04:43:54.996Z",
+  "workflowNodeCount": 209,
+  "codeNodeCount": 71,
   "nodes": [
     {
       "nodeId": "e581adfb-04f8-4998-a994-c6d425bd395c",
@@ -140,7 +140,7 @@
       "fileName": "preparar-contexto-ia.js",
       "relativeFile": "code/_extraidos/preparar-contexto-ia.js",
       "typeVersion": 2,
-      "lines": 3893
+      "lines": 3926
     },
     {
       "nodeId": "f207ef1c-d7ff-4fae-9910-486f2ba24c0a",
@@ -260,7 +260,7 @@
       "fileName": "resolver-contexto-comercial.js",
       "relativeFile": "code/_extraidos/resolver-contexto-comercial.js",
       "typeVersion": 2,
-      "lines": 7634
+      "lines": 7663
     },
     {
       "nodeId": "49b907ef-f963-4ccc-b7bb-db921afc5898",
@@ -540,7 +540,7 @@
       "fileName": "procesar-comando-bot.js",
       "relativeFile": "code/_extraidos/procesar-comando-bot.js",
       "typeVersion": 2,
-      "lines": 245
+      "lines": 250
     },
     {
       "nodeId": "f7e4c5f2-8a86-458b-b4d0-6e6d79b97bb9",
@@ -557,6 +557,22 @@
       "relativeFile": "code/_extraidos/preparar-mensaje-humano-saliente.js",
       "typeVersion": 2,
       "lines": 119
+    },
+    {
+      "nodeId": "849811b6-476c-467d-abdd-77ef707c4357",
+      "nodeName": "Preparar registro IA",
+      "fileName": "preparar-registro-ia.js",
+      "relativeFile": "code/_extraidos/preparar-registro-ia.js",
+      "typeVersion": 2,
+      "lines": 246
+    },
+    {
+      "nodeId": "b23a9e01-7c01-457f-8421-84c6d6afa1b9",
+      "nodeName": "Preparar reporte STATUSIA",
+      "fileName": "preparar-reporte-statusia.js",
+      "relativeFile": "code/_extraidos/preparar-reporte-statusia.js",
+      "typeVersion": 2,
+      "lines": 176
     }
   ]
 }

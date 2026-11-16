@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.34
+// RESOLVER CONTEXTO COMERCIAL - V3.35
 // ======================================================
 //
 // Objetivo:
@@ -201,6 +201,8 @@
 // - V3.34: "dirección" / "ayúdeme con la dirección" /
 //   "¿en qué ciudad se encuentran?" cuentan como ubicación
 //   (antes a veces iban a humano). Alineado con FAQ pre-IA.
+// - V3.35: vaso/botella con onzas/ml sin cm no deriva ni
+//   "Permítame…": pide ancho×alto en cm y foto del envase.
 //
 // ======================================================
 
@@ -6305,6 +6307,33 @@ if (
   limpiarDerivacionIA = true;
   omitirEnvio = false;
   motivoOmisionEnvio = null;
+}
+
+// Vaso / envase con volumen (oz, ml) sin cm: pedir medidas + foto.
+const PATRON_ENVASE_VOLUMEN_SIN_CM =
+  /\b(vasos?|botellas?|envases?|frascos?|potes?|bidon(es)?|botellon(es)?)\b.*\b(\d+([.,]\d+)?\s*(oz|onzas?|ml|cc|litros?|lt|l)\b|\b(oz|onzas?|ml)\b)|\b(\d+([.,]\d+)?\s*(oz|onzas?|ml|cc)\b)/;
+
+const RESPUESTA_ENVASE_VOLUMEN_MEDIDAS_FOTO =
+  'Para cotizarle la etiqueta necesitamos el ancho y el alto en centímetros (no basta con onzas o mililitros). ' +
+  'Si puede, envíenos también una foto del vaso o envase con una regla o midiendo el área a etiquetar. ' +
+  'Con esos datos le cotizamos de inmediato.';
+
+if (
+  !flujoDisenoEtiqueta &&
+  faltaMedidas &&
+  PATRON_ENVASE_VOLUMEN_SIN_CM.test(mensajeTurnoPlano) &&
+  paresMedidaTurno.length === 0 &&
+  !derivacionPorCantidad &&
+  accion !== 'ENVIAR_DATOS_PAGO' &&
+  accion !== 'COTIZAR_P4'
+) {
+  accion = 'PEDIR_MEDIDAS';
+  respuestaSugerida =
+    RESPUESTA_ENVASE_VOLUMEN_MEDIDAS_FOTO;
+  limpiarDerivacionIA = true;
+  omitirEnvio = false;
+  motivoOmisionEnvio = null;
+  derivacionPorTerminoDesconocido = false;
 }
 
 // Ubicación / llamada: no callar tras un "Permítame…".

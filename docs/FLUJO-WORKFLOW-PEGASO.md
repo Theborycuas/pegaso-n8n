@@ -152,6 +152,7 @@ Se envían por WhatsApp al número del bot desde un teléfono administrador (`IF
 | `STOP` | Activa MODO_PRUEBA (el bot solo responde a teléfonos autorizados) |
 | `START` | Desactiva MODO_PRUEBA |
 | `ACTIVEBOT 0999999999` | El bot vuelve a atender a ese prospecto: `requiere_humano = FALSE` y deja de contar la guardia humana de 10 minutos. Acepta `0999999999`, `999999999`, `593999999999` o `+593 99 999 9999` |
+| `STATUSIA` | Envía por email (Brevo→Resend, mismos destinatarios que el handoff) el reporte de uso de IAs del cerebro: día, semana y mes (intentos, OK, fallos, fallbacks, tokens≈ si existen). Requiere tabla `pegaso.ia_llamadas` |
 
 ```mermaid
 flowchart LR
@@ -162,10 +163,13 @@ flowchart LR
 
 | Nodo | Tipo | Qué hace | Recibe de | Envía a |
 |---|---|---|---|---|
-| Procesar comando BOT | Code | Interpreta comandos de teléfonos administradores autorizados: `STOP` activa MODO_PRUEBA, `START` lo desactiva, `ACTIVEBOT <teléfono>` reactiva el bot para un prospecto. Emite `comando_bot`, `modo_prueba_nuevo` y `telefono_objetivo` (solo dígitos con prefijo 593; con un teléfono inválido lanza error) | IF: ¿Comando administrador? [T] | IF: ¿Comando reactivar bot? |
-| IF: ¿Comando reactivar bot? | IF `comando_bot === 'ACTIVEBOT'` | Separa ACTIVEBOT de STOP/START | Procesar comando BOT | [T] Reactivar bot prospecto · [F] Actualizar configuración MODO_PRUEBA |
+| Procesar comando BOT | Code | Interpreta comandos de teléfonos administradores autorizados: `STOP` / `START` / `ACTIVEBOT <teléfono>` / `STATUSIA`. Emite `comando_bot`, `modo_prueba_nuevo` y `telefono_objetivo` (solo dígitos con prefijo 593; con un teléfono inválido en ACTIVEBOT lanza error) | IF: ¿Comando administrador? [T] | IF: ¿Comando reactivar bot? |
+| IF: ¿Comando reactivar bot? | IF `comando_bot === 'ACTIVEBOT'` | Separa ACTIVEBOT del resto | Procesar comando BOT | [T] Reactivar bot prospecto · [F] IF: ¿Comando STATUSIA? |
 | Reactivar bot prospecto | Postgres (SQL) | En una sola sentencia: `requiere_humano = FALSE` en el o los prospectos WHATSAPP con ese teléfono e inserta en su conversación (la ACTIVA, si no la más reciente) el SALIENTE interno `[BOT REACTIVADO POR ADMINISTRADOR]` sin `mensaje_externo_id`. El teléfono guardado se compara normalizado igual que `telefono_objetivo` (solo dígitos; `09…` y 9 dígitos pasan a `593…`), sin exigir `activo`. No toca `ultima_accion`. Devuelve `prospectos_reactivados` (0 si el teléfono no existe), `prospecto_id`, `telefono_guardado`, `prospecto_activo`, `conversacion_id`, `marcador_id` | IF: ¿Comando reactivar bot? [T] | — (**fin**, no responde al administrador) |
-| Actualizar configuración MODO_PRUEBA | Postgres (SQL) | `UPDATE pegaso.configuracion_bot` → `valor_json.activo` de la clave `MODO_PRUEBA` | IF: ¿Comando reactivar bot? [F] | — (**fin**, no responde al administrador) |
+| IF: ¿Comando STATUSIA? | IF `comando_bot === 'STATUSIA'` | Separa STATUSIA de STOP/START | IF: ¿Comando reactivar bot? [F] | [T] Consultar uso IA STATUSIA · [F] Actualizar configuración MODO_PRUEBA |
+| Consultar uso IA STATUSIA | Postgres (SQL) | Agrega `pegaso.ia_llamadas` (rol CEREBRO) por día / semana / mes y proveedor | IF: ¿Comando STATUSIA? [T] | Preparar reporte STATUSIA |
+| Preparar reporte STATUSIA | Code | Arma asunto + HTML/texto del email de uso de IAs | Consultar uso IA STATUSIA | Brevo - Enviar notificación humana |
+| Actualizar configuración MODO_PRUEBA | Postgres (SQL) | `UPDATE pegaso.configuracion_bot` → `valor_json.activo` de la clave `MODO_PRUEBA` | IF: ¿Comando STATUSIA? [F] | — (**fin**, no responde al administrador) |
 
 El marcador `[BOT REACTIVADO POR ADMINISTRADOR]` es lo que permite al bot responder de inmediato: `Resolver turno conversacional` ignora los SALIENTE humanos anteriores a él, y `Preparar contexto IA` lo excluye del historial y de `ultimo_saliente`. Si un humano de Pegaso vuelve a escribir después del comando, la bandera y la guardia se activan otra vez como siempre.
 

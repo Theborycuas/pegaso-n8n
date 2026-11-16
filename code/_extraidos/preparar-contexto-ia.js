@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Preparar contexto IA
 // ARCHIVO: code/03-conversacion/preparar-contexto-ia.js
-// VERSION: 4.23
+// VERSION: 4.24
 // ======================================================
 //
 // RESPONSABILIDAD:
@@ -114,6 +114,9 @@
 //   datos de pago, local físico, horario y diseño. Salta
 //   el cerebro cuando el turno es solo esa pregunta (sin
 //   medidas nuevas ni multimedia). Sin Redis.
+// - V4.24: vaso/botella/envase con oz/ml/litro (sin cm) ya
+//   no es PRODUCTO_NO_P4: FAQ ENVASE_VOLUMEN pide ancho×alto
+//   en cm y foto. Historial más corto (menos tokens Groq).
 // - NO llamar a IA.
 // - NO escribir PostgreSQL.
 //
@@ -126,11 +129,13 @@
 
 const VENTANA_HISTORIAL_HORAS = 24;
 
-const MAX_MENSAJES_HISTORIAL = 24;
+// V4.24: Groq free TPM ~6000; el prompt+schema ya pesan
+// mucho. 10 msgs × 700 chars evita Request too large.
+const MAX_MENSAJES_HISTORIAL = 10;
 
 const MAX_SALIENTES_RECIENTES = 6;
 
-const LARGO_MAXIMO_CONTENIDO_HISTORIAL = 4000;
+const LARGO_MAXIMO_CONTENIDO_HISTORIAL = 700;
 
 const PREFIJO_AUTOMATICO_WHATSAPP_BUSINESS = '[AUTOMATICO WHATSAPP BUSINESS';
 
@@ -2531,6 +2536,11 @@ const RESPUESTA_FAQ_DISENO =
   'Debe tener listo su logo, slogan, fotos e información de direcciones y contactos. ' +
   'Trabajamos con abono del 50% para iniciar y el 50% restante contra entrega.';
 
+const RESPUESTA_FAQ_ENVASE_VOLUMEN =
+  'Para cotizarle la etiqueta necesitamos el ancho y el alto en centímetros (no basta con onzas o mililitros). ' +
+  'Si puede, envíenos también una foto del vaso o envase con una regla o midiendo el área a etiquetar. ' +
+  'Con esos datos le cotizamos de inmediato.';
+
 const TABLA_FAQ_PRE_IA = [
   {
     id: 'PRECIO_ETIQUETAS_ADHESIVAS',
@@ -2632,6 +2642,16 @@ const TABLA_FAQ_PRE_IA = [
     accion: 'INFORMAR_DISENO',
     respuesta: RESPUESTA_FAQ_DISENO,
     maxLen: 140
+  },
+  {
+    id: 'ENVASE_VOLUMEN',
+    // "vasos de 7 onzas circular", "botella 600 ml", etc.
+    patron:
+      /\b(vasos?|botellas?|envases?|frascos?|potes?|bidon(es)?|botellon(es)?)\b.*\b(\d+([.,]\d+)?\s*(oz|onzas?|ml|cc|litros?|lt|l)\b|\b(oz|onzas?|ml)\b)|\b(\d+([.,]\d+)?\s*(oz|onzas?|ml|cc)\b).*\b(vasos?|botellas?|envases?|circular|redond)/,
+    intencion: 'SOLICITAR_COTIZACION',
+    accion: 'PEDIR_MEDIDAS',
+    respuesta: RESPUESTA_FAQ_ENVASE_VOLUMEN,
+    maxLen: 220
   }
 ];
 
@@ -2648,8 +2668,9 @@ function resolverFaqPreIA(textoPlano, opciones = {}) {
   }
 
   // Cotización / pedido con cantidad grande: no FAQ corta.
+  // (NxN en cm sí es medida; oz/ml no cuentan como hayMedidas.)
   if (
-    /\b\d{2,5}\s*(x|por|cm|mm)\b/.test(plano) ||
+    /\b\d{1,3}([.,]\d+)?\s*(x|por|\*|×)\s*\d{1,3}([.,]\d+)?\s*(cm|mm)?\b/.test(plano) ||
     /\b\d{3,}\s*(etiquetas?|unidades?|mil)\b/.test(plano)
   ) {
     return null;
@@ -3442,7 +3463,10 @@ if (
     tokens.some(t => NUCLEO_SALUDO.has(t));
 
   const PATRON_ENVASE_A_ETIQUETAR =
-    /\b(vasos?|cajas?|empaques?|botellas?|frascos?|envases?|potes?)\b/;
+    /\b(vasos?|cajas?|empaques?|botellas?|frascos?|envases?|potes?|bidon(es)?|botellon(es)?)\b/;
+
+  const PATRON_VOLUMEN_ENVASE =
+    /\b\d+([.,]\d+)?\s*(oz|onzas?|ml|cc|litros?|lt|l)\b|\b(oz|onzas?)\b/;
 
   const hayParesMedidaTurno =
     extraerParesMedidaDeTexto(textoTurno).length > 0;
@@ -3452,10 +3476,19 @@ if (
       ? null
       : PRODUCTOS_NO_P4.find(p => p.patron.test(textoTurnoPlano)) ?? null;
 
+  // Vaso/botella + oz/ml (o ya con cm): es el envase a etiquetar,
+  // no un producto que Pegaso imprima. No derivar a humano.
+  const envaseParaEtiqueta =
+    productoNoP4Candidato !== null &&
+    PATRON_ENVASE_A_ETIQUETAR.test(productoNoP4Candidato.producto) &&
+    (
+      hayParesMedidaTurno ||
+      PATRON_VOLUMEN_ENVASE.test(textoTurnoPlano) ||
+      medidasYaSolicitadas === true
+    );
+
   const productoNoP4 =
-    productoNoP4Candidato &&
-    hayParesMedidaTurno &&
-    PATRON_ENVASE_A_ETIQUETAR.test(productoNoP4Candidato.producto)
+    envaseParaEtiqueta
       ? null
       : productoNoP4Candidato;
 

@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: PROCESAR COMANDO BOT
 // PEGASO ADHESIVOS
-// VERSION: 2.0
+// VERSION: 2.1
 // ======================================================
 //
 // Objetivo:
@@ -32,6 +32,7 @@
 // ACTIVEBOT 0999999999 -> el bot vuelve a atender a ese
 //   prospecto (requiere_humano = false), lo ejecuta
 //   "Reactivar bot prospecto"
+// STATUSIA -> reporte de uso de IAs por email (Brevo/Resend)
 //
 // Este nodo:
 // - NO procesa conversaciones comerciales
@@ -131,7 +132,9 @@ const coincidenciaActivebot =
 const comando =
   coincidenciaActivebot
     ? 'ACTIVEBOT'
-    : textoComando;
+    : textoComando === 'STATUSIA'
+      ? 'STATUSIA'
+      : textoComando;
 
 
 // Ecuador: 0999999999 / 999999999 / +593 99 999 9999 -> 593999999999
@@ -180,7 +183,8 @@ if (
 if (
   comando !== 'STOP' &&
   comando !== 'START' &&
-  comando !== 'ACTIVEBOT'
+  comando !== 'ACTIVEBOT' &&
+  comando !== 'STATUSIA'
 ) {
   throw new Error(
     `PROCESAR COMANDO BOT: comando no soportado: ${comando ?? 'NULL'}.`
@@ -215,7 +219,8 @@ const botHabilitado =
 const MOTIVOS = {
   STOP: 'COMANDO_ADMIN_STOP',
   START: 'COMANDO_ADMIN_START',
-  ACTIVEBOT: 'COMANDO_ADMIN_ACTIVEBOT'
+  ACTIVEBOT: 'COMANDO_ADMIN_ACTIVEBOT',
+  STATUSIA: 'COMANDO_ADMIN_STATUSIA'
 };
 
 
