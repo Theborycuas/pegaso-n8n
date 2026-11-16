@@ -33,6 +33,7 @@ Un reporte por intervención sobre el workflow **SISTEMA AUTOMATIZADO PEGASO**: 
 | 2026-11-04 | [Troquel por lado menor a 5 cm](2026-11-04-troquel-lado-menor-5cm.md) | Implementado en local, sin publicar ni commit |
 | 2026-11-05 | [Botellón / bidón, seguimiento de metodología y ubicación](2026-11-05-botellon-metodologia-seguimiento.md) | Implementado en local, sin publicar ni commit |
 | 2026-11-05 | [Imágenes y documentos sin congelar ni derivar](2026-11-05-imagenes-sin-congelar.md) | Implementado en local, sin publicar ni commit |
+| 2026-11-15 | [FAQ pre-IA desde historial real (sin Redis)](2026-11-15-faq-pre-ia.md) | Implementado en local, sin publicar ni commit |
 
 ## Convenciones
 

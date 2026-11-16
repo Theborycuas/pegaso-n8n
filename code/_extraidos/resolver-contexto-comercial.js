@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.33
+// RESOLVER CONTEXTO COMERCIAL - V3.34
 // ======================================================
 //
 // Objetivo:
@@ -198,6 +198,9 @@
 //   verificamos su archivo, mientras tanto…". Anti-congelado:
 //   si se iba a omitir el envío pero aún faltan datos, se
 //   hace la siguiente pregunta comercial.
+// - V3.34: "dirección" / "ayúdeme con la dirección" /
+//   "¿en qué ciudad se encuentran?" cuentan como ubicación
+//   (antes a veces iban a humano). Alineado con FAQ pre-IA.
 //
 // ======================================================
 
@@ -6306,7 +6309,7 @@ if (
 
 // Ubicación / llamada: no callar tras un "Permítame…".
 const PATRON_PIDE_UBICACION_O_LLAMADA =
-  /\b(ubicacion|donde (estan|quedan|se encuentran)|donde quedan|para visitar|local (fisico)?|puedo llamarle|llamar(les|le|nos)|para (poder )?conversar|me pasa (su |la )?ubicacion|ayudeme (con )?su ubicacion)\b/;
+  /\b(ubicacion|direccion( exacta)?|donde (estan|quedan|se encuentran)|en ?q(ue)? (ciudad|parte).{0,24}(encuentran|ubicados|estan)|parte de quito|estan ubicados|para visitar|local (fisico)?|puedo llamarle|llamar(les|le|nos)|para (poder )?conversar|me pasa (su |la )?(ubicacion|direccion)|ayudeme (con )?(la |su )?(ubicacion|direccion))\b/;
 
 if (
   !flujoDisenoEtiqueta &&
