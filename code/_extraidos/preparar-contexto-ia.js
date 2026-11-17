@@ -19,7 +19,9 @@
 // ======================================================
 // NODO N8N: Preparar contexto IA
 // ARCHIVO: code/03-conversacion/preparar-contexto-ia.js
-// VERSION: 4.24
+// VERSION: 4.25
+// - V4.25: respuesta a la insistencia a leads (INSISTENCIA_RECHAZADA /
+//   INSISTENCIA_ACEPTADA, módulo code/preventa/insistencia-leads.js).
 // ======================================================
 //
 // RESPONSABILIDAD:
@@ -2502,6 +2504,8 @@ const RESPUESTA_CIERRE_LIBRETAS =
 
 // @pegaso-module code/preventa/cierre-comercial.js
 
+// @pegaso-module code/preventa/insistencia-leads.js
+
 const MINIMO_POR_DISENO = 1000;
 
 const PALABRA_DISENO =
@@ -3424,6 +3428,36 @@ if (compraPreIA) {
     requiere_humano: true, requiere_notificacion: true, motivo_derivacion: 'CONFIRMAR_PEDIDO',
     clasificacion_prospecto: 'A',
     respuesta_sugerida: 'Perfecto, le comunicamos con el encargado para coordinar su compra.'
+  };
+}
+
+// V4.25: respuesta a la insistencia a leads de anuncio. Si el
+// último saliente es la insistencia y el cliente responde solo
+// "Ya no, gracias" / "Sí, quiero cotizar" (botón o escrito), se
+// responde fijo sin IA. Con medidas, archivos o más texto sigue
+// el flujo normal.
+const respuestaInsistencia =
+  compraPreIA || mediaTurno.requiere_revision_humana ||
+  extraerParesMedidaDeTexto(textoTurno).length > 0
+    ? null
+    : clasificarRespuestaInsistencia(
+        textoTurnoPlano,
+        normalizarTexto(ultimoMensajeSaliente ?? '')
+      );
+if (respuestaInsistencia === 'RECHAZO') {
+  reglaPreIA = 'INSISTENCIA_RECHAZADA';
+  decisionPreIA = {
+    ...decisionBase(),
+    respuesta_sugerida: RESPUESTA_INSISTENCIA_RECHAZADA
+  };
+} else if (respuestaInsistencia === 'ACEPTA') {
+  reglaPreIA = 'INSISTENCIA_ACEPTADA';
+  decisionPreIA = {
+    ...decisionBase(),
+    intencion: 'SOLICITAR_COTIZACION',
+    accion: 'PEDIR_MEDIDAS',
+    producto: 'ETIQUETAS_ADHESIVAS',
+    respuesta_sugerida: RESPUESTA_INSISTENCIA_ACEPTADA
   };
 }
 // Tamaño de los datos variables que recibe el cerebro comercial.

@@ -198,6 +198,63 @@ const contextoComercial =
 
 
 // ======================================================
+// ANUNCIO DE META DEL MENSAJE ACTUAL
+// ======================================================
+//
+// Si el mensaje llegó desde un anuncio de clic a WhatsApp,
+// "Guardar mensaje entrante" lo registra en el prospecto
+// (ultimo_anuncio_*; origen = ANUNCIO_META cuando es su
+// primer mensaje). Lo usa la insistencia a leads.
+//
+// Solo se toma si el evento corresponde a este mismo
+// mensaje. En la ruta de prueba no existe el webhook y
+// el anuncio queda en null.
+//
+// ======================================================
+
+let anuncioMeta = null;
+
+// Id del botón tocado (SEG_SI / SEG_NO de la insistencia).
+let respuestaBotonId = null;
+
+try {
+  const eventoWhatsApp =
+    $('Normalizar evento WhatsApp').first().json?.evento_whatsapp ?? null;
+
+  if (
+    eventoWhatsApp?.mensaje_id &&
+    eventoWhatsApp.mensaje_id === data.mensaje_externo_id &&
+    eventoWhatsApp.respuesta_interactiva?.id
+  ) {
+    respuestaBotonId =
+      String(eventoWhatsApp.respuesta_interactiva.id).slice(0, 100);
+  }
+
+  if (
+    eventoWhatsApp?.es_lead_anuncio === true &&
+    eventoWhatsApp.mensaje_id &&
+    eventoWhatsApp.mensaje_id === data.mensaje_externo_id
+  ) {
+    const anuncio =
+      eventoWhatsApp.anuncio ?? {};
+
+    anuncioMeta = {
+      fuente:
+        String(anuncio.source_type ?? 'ad').slice(0, 30),
+
+      ctwa_clid:
+        anuncio.ctwa_clid
+          ? String(anuncio.ctwa_clid).slice(0, 500)
+          : null
+    };
+  }
+} catch (error) {
+  anuncioMeta = null;
+  respuestaBotonId = null;
+}
+
+
+// ======================================================
 // NORMALIZAR ESTADO DE CONVERSACIÓN
 // ======================================================
 
@@ -286,6 +343,14 @@ return [
       recibido_at:
         data.recibido_at ??
         new Date().toISOString(),
+
+      // Anuncio de Meta de este mensaje: {fuente, ctwa_clid} o null
+      anuncio_meta:
+        anuncioMeta,
+
+      // Botón tocado en este mensaje (o null)
+      respuesta_boton_id:
+        respuestaBotonId,
 
       // ============================================
       // FLAGS

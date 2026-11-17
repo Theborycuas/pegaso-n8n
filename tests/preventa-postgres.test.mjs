@@ -39,7 +39,7 @@ const retry = node('Programar reintento aviso humano').parameters.query;
 const history = node('Recuperar historial conversacion').parameters.query;
 
 function reset() {
-  sql(`TRUNCATE pegaso.metricas_preventa, pegaso.notificaciones_humano, pegaso.mensajes, pegaso.conversaciones, pegaso.prospectos RESTART IDENTITY;
+  sql(`TRUNCATE pegaso.seguimientos_prospecto, pegaso.metricas_preventa, pegaso.notificaciones_humano, pegaso.mensajes, pegaso.conversaciones, pegaso.prospectos RESTART IDENTITY;
 INSERT INTO pegaso.prospectos VALUES (20, FALSE, NULL, NOW());
 INSERT INTO pegaso.conversaciones VALUES (10, 20, '{}'::jsonb, NOW());
 INSERT INTO pegaso.mensajes (id, conversacion_id, direccion, tipo, contenido, mensaje_externo_id, enviado_at, procesado)
@@ -62,14 +62,19 @@ before(async () => {
   }
   assert.ok(ready, 'PostgreSQL temporal debe estar listo');
   sql(`CREATE SCHEMA pegaso;
-CREATE TABLE pegaso.prospectos (id bigint PRIMARY KEY, requiere_humano boolean, ultima_accion text, actualizado_at timestamptz);
+CREATE TABLE pegaso.prospectos (id bigint PRIMARY KEY, requiere_humano boolean, ultima_accion text, actualizado_at timestamptz,
+  origen varchar(50) DEFAULT 'WHATSAPP');
 CREATE TABLE pegaso.conversaciones (id bigint PRIMARY KEY, prospecto_id bigint, contexto_comercial jsonb, ultimo_mensaje_at timestamptz);
 CREATE TABLE pegaso.mensajes (id bigserial PRIMARY KEY, conversacion_id bigint, cliente_id bigint,
   direccion text, tipo text, contenido text, mensaje_externo_id text, enviado_at timestamptz, procesado boolean);
-CREATE UNIQUE INDEX ON pegaso.mensajes (mensaje_externo_id) WHERE mensaje_externo_id IS NOT NULL;`);
+CREATE UNIQUE INDEX ON pegaso.mensajes (mensaje_externo_id) WHERE mensaje_externo_id IS NOT NULL;
+CREATE TABLE pegaso.configuracion_bot (id bigserial PRIMARY KEY, clave varchar(100) NOT NULL UNIQUE,
+  valor_json jsonb NOT NULL, actualizado_at timestamptz NOT NULL DEFAULT now());`);
   // Migración obligatoria de la segunda entrega, aplicada tal como se ejecutará en producción.
   sql(fs.readFileSync(new URL('../schema/preventa-eficiencia.sql', import.meta.url), 'utf8'));
   sql(fs.readFileSync(new URL('../schema/ia_llamadas.sql', import.meta.url), 'utf8'));
+  // Migración de la insistencia a leads (columnas ultimo_anuncio_*, seguimientos y configuración).
+  sql(fs.readFileSync(new URL('../schema/seguimientos-leads.sql', import.meta.url), 'utf8'));
 });
 
 after(() => {
@@ -128,10 +133,37 @@ test('Ausencia de mensaje origen o destino válido termina el envío', () => {
 
 test('Webhook duplicado devuelve una sola fila y conserva el mensaje original', () => {
   reset();
-  const query = bind(insertMessage, [10, null, 'TEXTO', "Cliente O'Connor", 'nuevo-id', timestamp]);
+  const query = bind(insertMessage, [10, null, 'TEXTO', "Cliente O'Connor", 'nuevo-id', timestamp, null, null, null]);
   assert.ok(sql(query));
   assert.equal(sql(query), '');
   assert.equal(sql("SELECT COUNT(*) FROM pegaso.mensajes WHERE mensaje_externo_id='nuevo-id';"), '1');
+  assert.equal(sql('SELECT origen || COALESCE(ultimo_anuncio_fuente, \'-\') FROM pegaso.prospectos WHERE id = 20;'), 'WHATSAPP-');
+});
+
+test('Primer mensaje desde anuncio marca origen ANUNCIO_META y el anuncio', () => {
+  reset();
+  sql('DELETE FROM pegaso.mensajes;');
+  sql(bind(insertMessage, [10, null, 'TEXTO', '¿Precio de las etiquetas adhesivas?', 'ad-1', timestamp, 'ad', 'CLID-1', null]));
+  assert.equal(
+    sql('SELECT origen, ultimo_anuncio_fuente, ultimo_ctwa_clid, ultimo_anuncio_at = \'' + timestamp + '\'::timestamptz FROM pegaso.prospectos WHERE id = 20;'),
+    'ANUNCIO_META|ad|CLID-1|t'
+  );
+});
+
+test('Prospecto con historial vuelve por anuncio: conserva origen y registra el anuncio', () => {
+  reset();
+  sql(bind(insertMessage, [10, null, 'TEXTO', 'Hola otra vez', 'ad-2', timestamp, 'ad', 'CLID-2', null]));
+  assert.equal(sql('SELECT origen, ultimo_ctwa_clid FROM pegaso.prospectos WHERE id = 20;'), 'WHATSAPP|CLID-2');
+});
+
+test('Webhook duplicado de anuncio no vuelve a tocar el prospecto', () => {
+  reset();
+  sql(bind(insertMessage, [10, null, 'TEXTO', 'Hola', 'ad-3', timestamp, 'ad', 'CLID-3', null]));
+  sql(bind(insertMessage, [10, null, 'TEXTO', 'Hola', 'ad-3', '2026-11-18T10:00:00Z', 'ad', 'CLID-OTRO', null]));
+  assert.equal(
+    sql('SELECT ultimo_ctwa_clid, ultimo_anuncio_at = \'' + timestamp + '\'::timestamptz FROM pegaso.prospectos WHERE id = 20;'),
+    'CLID-3|t'
+  );
 });
 
 test('Dos derivaciones concurrentes tienen un único ganador', async () => {
@@ -171,11 +203,21 @@ test('La post-cotización conserva el handoff y puede actualizar la actividad', 
 
 test('Cada envío YCloud tiene una guardia SQL y una condición de permiso', () => {
   const senders = workflow.nodes.filter(item => item.type.endsWith('.httpRequest') && /^YCloud Enviar/.test(item.name));
-  assert.equal(senders.length, 8);
+  assert.equal(senders.length, 9);
   for (const sender of senders) {
     const predecessors = Object.entries(workflow.connections).filter(([, types]) => types.main?.flat().some(edge => edge.node === sender.name));
     assert.equal(predecessors.length, 1);
     const condition = workflow.nodes.find(item => item.name === predecessors[0][0]);
+    if (sender.name === 'YCloud Enviar insistencia lead') {
+      // La insistencia no responde a un mensaje entrante: su guardia revisa la
+      // reserva, la ventana de 24 h y que nadie haya escrito desde entonces.
+      assert.equal(condition.name, 'IF permiso insistencia lead');
+      const guard = workflow.nodes.find(item => item.name === 'Autorizar insistencia lead');
+      for (const motivo of ['RESERVA_PERDIDA', 'VENTANA_CERRADA', 'ATENCION_HUMANA', 'CLIENTE_ESCRIBIO', 'INTERVENCION_HUMANA']) {
+        assert.match(guard.parameters.query, new RegExp(motivo));
+      }
+      continue;
+    }
     assert.ok(condition.name.startsWith('IF permiso salida WhatsApp '));
     const guard = workflow.nodes.find(item => item.name === condition.name.replace('IF permiso', 'Autorizar'));
     assert.equal(guard.parameters.query, gate);

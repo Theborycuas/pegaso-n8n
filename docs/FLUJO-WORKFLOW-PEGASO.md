@@ -125,7 +125,9 @@ flowchart TD
     HUM -->|T| NIH[Normalizar intervención humana §6]
     HUM -->|F| PRO{If: ¿Evento WhatsApp procesable?}
     PRO -->|T| PEW[Preparar entrada WhatsApp]
-    PRO -->|F| FIN1((fin))
+    PRO -->|F| EST{IF: ¿Estado de envío YCloud? §22}
+    EST -->|T| RES[(Registrar estado insistencia lead)]
+    EST -->|F| FIN1((fin))
     PEW --> SOP{IF: ¿Entrada soportada por el flujo?}
     SOP -->|T| NM[Normalizar mensaje]
     SOP -->|F| PNS[Preparar entrada no soportada] --> NM
@@ -134,11 +136,11 @@ flowchart TD
 
 | Nodo | Tipo | Qué hace | Recibe de | Envía a |
 |---|---|---|---|---|
-| Normalizar evento WhatsApp | Code | Detecta el origen del webhook (YCloud inbound `whatsapp.inbound_message.received`, YCloud eco de WhatsApp Business `whatsapp.smb.message.echoes`, Meta Cloud API `body.entry`) y produce un `evento_whatsapp` uniforme: teléfono, nombre, id, tipo, texto, multimedia (`media_filename` en documentos). Clasifica `clasificacion_mensaje`: `ENTRANTE_CLIENTE` (inbound), `SALIENTE_AUTOMATICO` (eco cuyo texto coincide con una automatización de WhatsApp Business de la lista `AUTOMATIZACIONES_WHATSAPP_BUSINESS`; expone `accion_equivalente`, por ejemplo `PEDIR_MEDIDAS`, `SALUDO` o `INFORMAR_MATERIAL`; incluye las respuestas de las preguntas rápidas de los anuncios de Facebook, como "Trabajamos con Plástico Polipropileno de alta adherencia…") o `SALIENTE_HUMANO` (cualquier otro eco). Todo eco tiene `direccion = SALIENTE`. Expone `es_lead_anuncio` y `anuncio` desde `referral` del inbound (anuncios click-to-WhatsApp). No guarda nada | Webhook YCloud | IF: ¿Comando administrador? |
+| Normalizar evento WhatsApp | Code | Detecta el origen del webhook (YCloud inbound `whatsapp.inbound_message.received`, YCloud eco de WhatsApp Business `whatsapp.smb.message.echoes`, Meta Cloud API `body.entry`) y produce un `evento_whatsapp` uniforme: teléfono, nombre, id, tipo, texto, multimedia (`media_filename` en documentos). Clasifica `clasificacion_mensaje`: `ENTRANTE_CLIENTE` (inbound), `SALIENTE_AUTOMATICO` (eco cuyo texto coincide con una automatización de WhatsApp Business de la lista `AUTOMATIZACIONES_WHATSAPP_BUSINESS`; expone `accion_equivalente`, por ejemplo `PEDIR_MEDIDAS`, `SALUDO` o `INFORMAR_MATERIAL`; incluye las respuestas de las preguntas rápidas de los anuncios de Facebook, como "Trabajamos con Plástico Polipropileno de alta adherencia…") o `SALIENTE_HUMANO` (cualquier otro eco). Todo eco tiene `direccion = SALIENTE`. Expone `es_lead_anuncio` y `anuncio` desde `referral` del inbound (anuncios click-to-WhatsApp). Respuestas a botones y listas (`interactive.button_reply` / `list_reply`, `button` de plantilla): usa el título como `texto` y expone `respuesta_interactiva` {tipo, id, titulo}. Para `whatsapp.message.updated` (no procesable) expone `estado_mensaje` {id, wamid, status, pricing_category, pricing_type, total_price, currency, error}. No guarda nada | Webhook YCloud | IF: ¿Comando administrador? |
 | IF: ¿Comando administrador? | IF (expresión sobre teléfono y texto del evento) | Detecta comandos de administración desde teléfonos administradores: `STOP`, `START` o `ACTIVEBOT <teléfono>` (§5) | Normalizar evento WhatsApp | [T] Procesar comando BOT · [F] IF: ¿Mensaje humano de Pegaso? |
 | IF: ¿Mensaje humano de Pegaso? | IF `evento_whatsapp.direccion === 'SALIENTE'` o `es_mensaje_humano_pegaso` | Separa **todo** eco saliente de WhatsApp Business (humano o automático): un eco nunca entra como mensaje del cliente ni llega al cerebro | IF: ¿Comando administrador? [F] | [T] Normalizar intervención humana · [F] If: ¿Evento WhatsApp procesable? |
-| If: ¿Evento WhatsApp procesable? | IF `evento_whatsapp.procesable` | Descarta eventos que no son mensajes procesables (por ejemplo estados) | IF: ¿Mensaje humano de Pegaso? [F] | [T] Preparar entrada WhatsApp · [F] **fin** |
-| Preparar entrada WhatsApp | Code | Valida teléfono e id; traduce el tipo a enum interno (`TEXTO`, `IMAGEN`, `AUDIO`, `VIDEO`, `DOCUMENTO`, `STICKER`, …). Para imagen/audio crea un descriptor `[IMAGEN]/[AUDIO]` + `[MEDIA_PENDIENTE] {json}` que se guarda en `mensajes.contenido`. Emite `apto_para_flujo_conversacional` | If: ¿Evento WhatsApp procesable? [T] | IF: ¿Entrada soportada por el flujo? |
+| If: ¿Evento WhatsApp procesable? | IF `evento_whatsapp.procesable` | Descarta eventos que no son mensajes procesables (por ejemplo estados) | IF: ¿Mensaje humano de Pegaso? [F] | [T] Preparar entrada WhatsApp · [F] IF: ¿Estado de envío YCloud? (§22) |
+| Preparar entrada WhatsApp | Code | Valida teléfono e id; traduce el tipo a enum interno (`TEXTO`, `IMAGEN`, `AUDIO`, `VIDEO`, `DOCUMENTO`, `STICKER`, …). Para imagen/audio crea un descriptor `[IMAGEN]/[AUDIO]` + `[MEDIA_PENDIENTE] {json}` que se guarda en `mensajes.contenido`. Una respuesta a botón o lista con título entra como `TEXTO` apto para el flujo (`meta_whatsapp.respuesta_interactiva`); sin título sigue como `INTERACTIVO` no soportado. Emite `apto_para_flujo_conversacional` | If: ¿Evento WhatsApp procesable? [T] | IF: ¿Entrada soportada por el flujo? |
 | IF: ¿Entrada soportada por el flujo? | IF `apto_para_flujo_conversacional` | Separa entradas que el bot puede atender | Preparar entrada WhatsApp | [T] Normalizar mensaje · [F] Preparar entrada no soportada |
 | Preparar entrada no soportada | Code | Convierte una entrada no soportada (video, documento, sticker…) en un mensaje válido marcado para humano (`requiere_humano_entrada`, `motivo_derivacion_entrada`). No deriva todavía | IF: ¿Entrada soportada…? [F] | Normalizar mensaje |
 | Normalizar mensaje | Code | Unifica la entrada real y la de TEST: teléfono, nombre, mensaje, tipo, canal y metadatos multimedia. No llama IA ni BD | Mensaje entrante TEST · IF: ¿Entrada soportada…? [T] · Preparar entrada no soportada | Buscar Contacto |
@@ -238,7 +240,7 @@ flowchart TD
 | Crear conversación prospecto | Postgres insert `conversaciones` | Inserta `prospecto_id`, teléfono, canal, estado, `ultimo_mensaje_at` | IF [F] | Preparar conversación creada |
 | Preparar conversación creada | Code | Valida el id creado y lo une al contrato original. Lee además: Resolver conversación prospecto | Crear conversación prospecto | Unificar conversación (entrada 2) |
 | Unificar conversación | Merge (append) | Reúne conversación existente y creada | IF [T] · Preparar conversación creada | Preparar conversación |
-| Preparar conversación | Code | Estructura uniforme para guardar el mensaje, recuperar historial y preparar la IA: ids, actor (cliente/contacto/prospecto), `contexto_comercial` parseado (tolera string/JSON inválido), flags | Unificar conversación | Guardar mensaje entrante |
+| Preparar conversación | Code | Estructura uniforme para guardar el mensaje, recuperar historial y preparar la IA: ids, actor (cliente/contacto/prospecto), `contexto_comercial` parseado (tolera string/JSON inválido), flags. `anuncio_meta` {fuente, ctwa_clid} si este mismo mensaje llegó desde un anuncio y `respuesta_boton_id` (id del botón tocado, por ejemplo `SEG_NO`) (lee además: Normalizar evento WhatsApp, con try/catch para la ruta de prueba) | Unificar conversación | Guardar mensaje entrante |
 
 ---
 
@@ -257,7 +259,7 @@ flowchart TD
 
 | Nodo | Tipo | Qué hace | Recibe de | Envía a |
 |---|---|---|---|---|
-| Guardar mensaje entrante | Postgres insert `mensajes` | Guarda el mensaje ENTRANTE (`procesado`, conversación, cliente, dirección, tipo, contenido, id externo, fecha) | Preparar conversación | IF: ¿Derivación directa por entrada? |
+| Guardar mensaje entrante | Postgres SQL (CTE) | Guarda el mensaje ENTRANTE (`procesado`, conversación, cliente, dirección, tipo, contenido, id externo, fecha). Si `anuncio_meta` viene informado y el mensaje no es duplicado, actualiza el prospecto: `ultimo_anuncio_at`, `ultimo_anuncio_fuente`, `ultimo_ctwa_clid` y `origen = ANUNCIO_META` si es su primer mensaje entrante. Si el prospecto tiene una insistencia `ENVIADO` o `SIN_RESPUESTA` de los últimos 30 días, la marca `RECHAZADO` (botón `SEG_NO`) o `RESPONDIDO` (§22). Requiere `schema/seguimientos-leads.sql` | Preparar conversación | IF: ¿Derivación directa por entrada? |
 | IF: ¿Derivación directa por entrada? | IF `$json.puede_responder_bot` | Pretende enviar directo a humano las entradas no soportadas. **Ver §18: la condición parece incorrecta** | Guardar mensaje entrante | [T] Preparar handoff entrada no soportada · [F] Obtener configuración MODO_PRUEBA |
 | Obtener configuración MODO_PRUEBA | Postgres (SQL) | `SELECT` en `configuracion_bot` de las claves `MODO_PRUEBA`, `DEBOUNCE_WHATSAPP`, `IMAGEN_MATERIAL`, `IMAGEN_METODOLOGIA`, `IMAGEN_DATOS_PAGO` y las filas de catálogo (`CATALOGO_TARJETAS`, `CATALOGO_FLYERS`, `IMAGEN_FLYERS`, `CATALOGO_AFICHES`, `CATALOGO_TRIPTICOS`, `CATALOGO_MEMBRETADAS`, `CATALOGO_CALENDARIOS`, `CATALOGO_LIBRETAS`) e `IMAGEN_TRABAJOS` (trabajos realizados, junto con la metodología de pedido); las de imagen y catálogo las lee `Resolver contexto comercial` | IF [F] | Resolver permiso automatización |
 | Resolver permiso automatización | Code | Si MODO_PRUEBA está inactivo, el bot atiende a todos; si está activo, solo a teléfonos autorizados. Ante configuración ausente o inválida asume MODO_PRUEBA activo (seguro). Emite `puede_responder_bot`, `motivo_bloqueo_bot` y la configuración de debounce (`debounce_segundos`, `debounce_motivo`). En primer contacto (lead de anuncio, conversación nueva o sin turno del bot en 24 h) usa `debounce_primer_contacto_ms` de `DEBOUNCE_WHATSAPP` (10 s por defecto, máximo 15 s) para que el eco automático de WhatsApp Business llegue antes de resolver el turno. Lee además: Normalizar mensaje, Preparar conversación, Normalizar evento WhatsApp | Obtener configuración MODO_PRUEBA | IF: ¿Puede responder el BOT? |
@@ -369,7 +371,7 @@ flowchart TD
 
 | Nodo | Tipo | Qué hace | Recibe de | Envía a |
 |---|---|---|---|---|
-| Preparar contexto IA | Code | Construye el contexto final del cerebro: identidad y memoria comercial (de Preparar conversación), turno enriquecido (audios transcritos, análisis de imagen válido, medidas detectadas en imágenes) e historial (sin marcadores internos: respuesta omitida y `[BOT REACTIVADO POR ADMINISTRADOR]`). Los links del turno y del historial (Canva, Drive, WeTransfer, redes…) llegan como `[ENLACE · servicio=… · tipo=DISENO|ARCHIVO|REFERENCIA|UBICACION|WEB]`, sin dígitos, para que su ruta no se lea como cantidad, medida ni nombre de archivo; expone `mensaje_actual_original` (con los links) y `enlaces_turno`. `diseno_recibido_turno` (`IMAGEN` / `ARCHIVO` / `ENLACE`): imagen de diseño, logo o referencia (o ilegible), documento PDF/AI/CDR/imagen o link de diseño/repositorio, **solo** en conversaciones de etiquetas (no tarjetas, flyers, afiches, trípticos, membretadas, calendarios ni libretas); la mención de etiquetas se mide en las palabras del cliente, no en el resumen del análisis de imagen. Una cotización no cuenta como `INFORMAR_UBICACION` en `ultimo_saliente` aunque pregunte la ciudad. Expone `ultimo_saliente` (origen BOT / AUTOMATICO / HUMANO, `accion_equivalente`, `posterior_al_turno`) y `medidas_ya_solicitadas`. Reglas pre-IA: `TARJETAS_PRESENTACION` (también con multimedia; primer contacto `INFORMAR_TARJETAS` con frase corta; si el catálogo ya se envió, no salta cerebro; no mezcla con etiquetas) → salta cerebro solo en el primer contacto; `FLYERS_VOLANTES`, `AFICHES`, `TRIPTICOS`, `HOJAS_MEMBRETADAS`, `CALENDARIOS` (`INFORMAR_CALENDARIOS`) y `LIBRETAS` (`INFORMAR_LIBRETAS`: libretas, cuadernos anillados o personalizados; "etiquetas para cuadernos" sigue siendo etiquetas) igual (imagen + precios; "calendario tipo/formato tarjeta" no abre tarjetas); para texto sin multimedia: `SALUDO_SIMPLE`, `PRODUCTO_NO_P4` (carpetas, talonarios, boletos, entradas, formularios, dípticos, brochures — **sin** tarjetas/flyers/afiches/trípticos/membretadas/calendarios/libretas; agendas sí; sin mencionar etiquetas/stickers/adhesivos) → `DERIVAR_HUMANO`, `DIVISION_MINIMO_DISENOS` (`INFORMAR_MINIMO` sin derivar), y `TABLA_FAQ_PRE_IA` (`FAQ_*`: precio Meta de etiquetas, material, ubicación/dirección, más información, IVA, envío, mínimo, metodología, datos de pago, local, horario, diseño — sin Redis). Si una regla aplica emite `decision` con el contrato del cerebro y `requiere_cerebro_comercial = false`. Lee además: Preparar conversación, Resolver turno conversacional, Recuperar historial conversación | IF: ¿Hay audios…? [F] · IF: ¿Audio listo para cerebro? [T] | IF: ¿Requiere cerebro comercial? |
+| Preparar contexto IA | Code | Construye el contexto final del cerebro: identidad y memoria comercial (de Preparar conversación), turno enriquecido (audios transcritos, análisis de imagen válido, medidas detectadas en imágenes) e historial (sin marcadores internos: respuesta omitida y `[BOT REACTIVADO POR ADMINISTRADOR]`). Los links del turno y del historial (Canva, Drive, WeTransfer, redes…) llegan como `[ENLACE · servicio=… · tipo=DISENO|ARCHIVO|REFERENCIA|UBICACION|WEB]`, sin dígitos, para que su ruta no se lea como cantidad, medida ni nombre de archivo; expone `mensaje_actual_original` (con los links) y `enlaces_turno`. `diseno_recibido_turno` (`IMAGEN` / `ARCHIVO` / `ENLACE`): imagen de diseño, logo o referencia (o ilegible), documento PDF/AI/CDR/imagen o link de diseño/repositorio, **solo** en conversaciones de etiquetas (no tarjetas, flyers, afiches, trípticos, membretadas, calendarios ni libretas); la mención de etiquetas se mide en las palabras del cliente, no en el resumen del análisis de imagen. Una cotización no cuenta como `INFORMAR_UBICACION` en `ultimo_saliente` aunque pregunte la ciudad. Expone `ultimo_saliente` (origen BOT / AUTOMATICO / HUMANO, `accion_equivalente`, `posterior_al_turno`) y `medidas_ya_solicitadas`. Reglas pre-IA: `TARJETAS_PRESENTACION` (también con multimedia; primer contacto `INFORMAR_TARJETAS` con frase corta; si el catálogo ya se envió, no salta cerebro; no mezcla con etiquetas) → salta cerebro solo en el primer contacto; `FLYERS_VOLANTES`, `AFICHES`, `TRIPTICOS`, `HOJAS_MEMBRETADAS`, `CALENDARIOS` (`INFORMAR_CALENDARIOS`) y `LIBRETAS` (`INFORMAR_LIBRETAS`: libretas, cuadernos anillados o personalizados; "etiquetas para cuadernos" sigue siendo etiquetas) igual (imagen + precios; "calendario tipo/formato tarjeta" no abre tarjetas); para texto sin multimedia: `SALUDO_SIMPLE`, `PRODUCTO_NO_P4` (carpetas, talonarios, boletos, entradas, formularios, dípticos, brochures — **sin** tarjetas/flyers/afiches/trípticos/membretadas/calendarios/libretas; agendas sí; sin mencionar etiquetas/stickers/adhesivos) → `DERIVAR_HUMANO`, `DIVISION_MINIMO_DISENOS` (`INFORMAR_MINIMO` sin derivar), y `TABLA_FAQ_PRE_IA` (`FAQ_*`: precio Meta de etiquetas, material, ubicación/dirección, más información, IVA, envío, mínimo, metodología, datos de pago, local, horario, diseño — sin Redis). Si el último saliente es la insistencia a leads y el cliente responde solo un rechazo o una aceptación (`INSISTENCIA_RECHAZADA` / `INSISTENCIA_ACEPTADA`, módulo `code/preventa/insistencia-leads.js`), responde sin IA. Si una regla aplica emite `decision` con el contrato del cerebro y `requiere_cerebro_comercial = false`. Lee además: Preparar conversación, Resolver turno conversacional, Recuperar historial conversación | IF: ¿Hay audios…? [F] · IF: ¿Audio listo para cerebro? [T] | IF: ¿Requiere cerebro comercial? |
 | IF: ¿Requiere cerebro comercial? | IF `requiere_cerebro_comercial !== false` | Salta los tres proveedores de IA cuando una regla pre-IA ya decidió | Preparar contexto IA | [T] Cerebro comercial Groq · [F] Normalizar decisión IA |
 | Cerebro comercial Groq | Information Extractor (modelo: Groq Chat Model1; schema manual) | Interpreta la conversación y decide intención, acción, datos de cotización, clasificación y respuesta sugerida. El prompt (idéntico en los tres proveedores) le pide razonar sobre lo que el cliente pide ahora antes de cotizar (§5.1: no recotizar sin datos nuevos, "otras medidas" → pedir medidas, ml/gramos no son cantidad), define tarjetas de presentación (§27A → `INFORMAR_TARJETAS`, sin cotizar P4), calendarios (§27E → `INFORMAR_CALENDARIOS`), libretas A5 (§27G → `INFORMAR_LIBRETAS`; entrega, diseño o número de hojas → `DERIVAR_HUMANO`), diseño de etiqueta recibido (§27F: no derivar; solo etiquetas), fajillas (§18), IVA y valor del envío (§17A: solo etiquetas incluyen IVA; envío no incluido, ~$5.00), lo que no sabe (§33: `DERIVAR_HUMANO` con "Permítame un momento por favor, ya verificamos su requerimiento."), los links del cliente (§28.0: sus números no son datos; link de diseño o archivo con medidas o cotización previa → `DERIVAR_HUMANO` `ARCHIVO_DISENO`; sin medidas → `PEDIR_MEDIDAS`) y el diseño: Pegaso es productor de impresión, replica un ejemplo con el logo del cliente y no crea logos ni marcas (§27, CASOS A, B y E) | IF: ¿Requiere cerebro comercial? [T] | Validar extracción Cerebro comercial |
 | Validar extracción Cerebro comercial | Code | Valida el contrato del cerebro: enums, tipos, respuesta sugerida (tono, anti-repetición), cotización P4, medidas no producibles (lado ≤ 1 cm), derivación, clasificación A/B/C, motivo y notificación. Acepta `INFORMAR_LIBRETAS` y la línea `LIBRETAS` (V2.11). En tarjetas/flyers, `CONSULTAR_PRECIO` + `RESPONDER_GENERAL` es válido (el resolver arma el catálogo; no se gasta DeepSeek/OpenAI). Emite `valid`. Lee además: Preparar contexto IA | Cerebro comercial Groq | If GROQ1 |
@@ -635,7 +637,7 @@ flowchart LR
 | Actualizar configuración MODO_PRUEBA | Comando STOP/START de administrador |
 | Reactivar bot prospecto | Comando ACTIVEBOT de administrador |
 | Actualizar conversación por intervención humana | Mensaje de un humano de Pegaso registrado |
-| If: ¿Evento WhatsApp procesable? [F] | Evento que no es un mensaje |
+| IF: ¿Estado de envío YCloud? [F] / Registrar estado insistencia lead | Evento que no es un mensaje (estados de envío y otros) |
 | ¿Cliente existente? [T] | Continúa a Buscar prospecto conservando cliente y contacto |
 | Finalizar mensaje modo prueba | Teléfono no autorizado con MODO_PRUEBA activo |
 | Finalizar mensaje atención humana | Prospecto ya atendido por humano |
@@ -647,6 +649,8 @@ flowchart LR
 | Finalizar cotización comercial | Fin de cotización |
 | Confirmar aviso humano enviado / Programar reintento aviso humano | Fin de notificación interna (enviada o pendiente de reintento) |
 | Reservar avisos humanos pendientes (0 filas) | Recuperación sin avisos pendientes |
+| Reservar insistencias leads (0 filas) / Confirmar insistencia enviada / Registrar error insistencia lead / Cancelar insistencia lead | Rutina de insistencia a leads (§22) |
+| Anonimizar leads inactivos | Purga a 180 días de los leads cerrados por la insistencia (§22) |
 | YCloud Enviar Wts / If:¿Enviar por WhatsApp? [F] | Fin del envío al cliente (incluye respuestas omitidas por duplicado) |
 
 ### Mantener este documento
@@ -732,7 +736,7 @@ Eficiencia de la conversación, modularización y aviso persistente al encargado
 
 - **Requisito previo:** aplicar `schema/preventa-eficiencia.sql` en PostgreSQL antes de publicar. `Marcar prospecto requiere humano` escribe en `notificaciones_humano` y `Guardar contexto comercial` en `metricas_preventa`.
 - `Recuperar historial conversación` deja de leer toda la conversación: devuelve los últimos 60 mensajes de 24 h, los entrantes sin procesar de los últimos 10 min, el mensaje de esta ejecución, la última reactivación `ACTIVEBOT` y la última intervención humana, en orden cronológico. Conserva lo que usan `Resolver turno conversacional` y `Preparar contexto IA`.
-- `Preparar contexto IA` combina varias FAQs en una respuesta (`TABLA_FAQ_PRE_IA`, módulo `code/preventa/preguntas-frecuentes.js`), restringe las FAQs de etiquetas cuando la línea es un producto de catálogo y detecta la decisión de compra antes de llamar al cerebro (`COMPRA_EXPLICITA`, módulo `code/preventa/cierre-comercial.js`). Expone `cache_faq` y `caracteres_contexto_ia`.
+- `Preparar contexto IA` combina varias FAQs en una respuesta (`TABLA_FAQ_PRE_IA`, módulo `code/preventa/preguntas-frecuentes.js`), restringe las FAQs de etiquetas cuando la línea es un producto de catálogo (entre ellas `CIRELES`: «No trabajamos con cireles, realizamos impresión offset…») y detecta la decisión de compra antes de llamar al cerebro (`COMPRA_EXPLICITA`, módulo `code/preventa/cierre-comercial.js`). Expone `cache_faq` y `caracteres_contexto_ia`.
 - `Resolver contexto comercial` usa el mismo módulo de compra, recuerda en `contexto_comercial.editable` si el cliente tiene o no el editable y guarda `calificacion_preventa` (`CONSULTA`, `INTERES_CONCRETO`, `DECISION_COMPRA`).
 - `Guardar contexto comercial` registra una métrica por mensaje en `metricas_preventa` dentro de la misma sentencia.
 - Los tres `Cerebro comercial` conservan el prompt publicado. Sus datos variables están al final, por lo que el texto fijo es un prefijo que los proveedores pueden cachear.
@@ -771,3 +775,77 @@ flowchart LR
 | Guardar consumo IA | Postgres executeQuery | Marca las ejecuciones revisadas, sustituye la fila `FLUJO` de esa ejecución e inserta el detalle con `origen = 'EJECUCION'`. Idempotente | Extraer consumo IA | — (**fin**) |
 
 `Consultar uso IA STATUSIA` agrupa ahora por período, rol y proveedor, con tokens de entrada, salida, total y segundos de audio.
+
+## 22. Insistencia a leads de anuncio
+
+Una sola insistencia a los leads de anuncio que no responden después de que el bot pide las medidas. Se envía dentro de la ventana de 24 h, sin plantilla, como mensaje interactivo con los botones «Sí, quiero cotizar» (`SEG_SI`) y «Ya no, gracias» (`SEG_NO`). Diseño y reglas de Meta: [ROADMAP-INSISTENCIA-LEADS-ANUNCIO.md](ROADMAP-INSISTENCIA-LEADS-ANUNCIO.md). Requiere `schema/seguimientos-leads.sql`. Se enciende y configura con la clave `INSISTENCIA_LEADS` de `configuracion_bot` (nace con `activo: false`).
+
+```mermaid
+flowchart LR
+    T[Insistencia leads cada 15 min] --> P[(Programar insistencias leads)] --> R[(Reservar insistencias leads)]
+    R --> PI[Preparar insistencia lead] --> A[(Autorizar insistencia lead)] --> IF{IF permiso insistencia lead}
+    IF -->|T| Y[YCloud Enviar insistencia lead]
+    IF -->|F| C[(Cancelar insistencia lead)]
+    Y --> OK[(Confirmar insistencia enviada)]
+    Y -->|err| ER[(Registrar error insistencia lead)]
+```
+
+| Nodo | Tipo | Qué hace | Recibe de | Envía a |
+|---|---|---|---|---|
+| Insistencia leads cada 15 min | Schedule Trigger (cada 15 min) | Inicia la rutina. Las franjas se calculan en SQL con hora de Ecuador (`America/Guayaquil`), sin depender de la zona horaria de n8n | — | Programar insistencias leads |
+| Programar insistencias leads | Postgres executeQuery (`$1` = ahora) | Cierra a `SIN_RESPUESTA` las insistencias `ENVIADO` de hace más de 48 h; pasa a `ERROR` las reservas `ENVIANDO` vencidas (no reintenta para no duplicar); inserta `PROGRAMADO` para cada lead elegible (origen `ANUNCIO_META`, último mensaje del bot hace 4 h o más, cliente escribió hace menos de 24 h, como máximo 2 mensajes del cliente, sin cotización, medidas, derivación ni humano, sin insistencia en 30 días ni rechazo previo, teléfono permitido y `MODO_PRUEBA`) en la primera franja disponible, o `EXPIRADO` si no hay franja antes del cierre de la ventana. Siempre devuelve una fila con conteos | Insistencia leads cada 15 min | Reservar insistencias leads |
+| Reservar insistencias leads | Postgres executeQuery (`$1` = ahora) | Pasa a `EXPIRADO` las programadas con la ventana por cerrar (30 min). Si la rutina está activa y la hora de Ecuador cae en una franja, reserva (`ENVIANDO`, `FOR UPDATE SKIP LOCKED`) las que tocan, sin pasar `limite_por_corrida` ni `limite_diario`. Devuelve teléfono, emisor, producto y hora local | Programar insistencias leads | Preparar insistencia lead |
+| Preparar insistencia lead | Code | Saludo según la hora, texto y cuerpo YCloud interactivo con los dos botones (módulo `code/preventa/insistencia-leads.js`) | Reservar insistencias leads | Autorizar insistencia lead |
+| Autorizar insistencia lead | Postgres executeQuery | Guardia final. Devuelve el cuerpo y `permitir_envio`, o el `motivo`: `RESERVA_PERDIDA`, `VENTANA_CERRADA`, `ATENCION_HUMANA`, `CLIENTE_ESCRIBIO`, `INTERVENCION_HUMANA`, `CONVERSACION_AVANZADA` | Preparar insistencia lead | IF permiso insistencia lead |
+| IF permiso insistencia lead | IF `permitir_envio` | | Autorizar insistencia lead | [T] YCloud Enviar insistencia lead · [F] Cancelar insistencia lead |
+| YCloud Enviar insistencia lead | HTTP POST `/v2/whatsapp/messages` (credencial YCloud API, `onError: continueErrorOutput`) | Envía el mensaje interactivo | IF [T] | Confirmar insistencia enviada · [err] Registrar error insistencia lead |
+| Confirmar insistencia enviada | Postgres executeQuery | `ENVIADO` con el id de YCloud; guarda el saliente en `mensajes` **sin** `mensaje_externo_id` (como todo mensaje del bot, para que no cuente como intervención humana) y actualiza `ultimo_mensaje_at`. Idempotente por reserva. Lee además: Autorizar insistencia lead | YCloud Enviar insistencia lead | — (**fin**) |
+| Registrar error insistencia lead | Postgres executeQuery | `ERROR` con el mensaje de YCloud; no reintenta. Lee además: Autorizar insistencia lead | YCloud Enviar insistencia lead [err] | — (**fin**) |
+| Cancelar insistencia lead | Postgres executeQuery | `CANCELADO` (o `EXPIRADO` si cerró la ventana) con el motivo de la guardia | IF [F] | — (**fin**) |
+| IF: ¿Estado de envío YCloud? | IF `evento_whatsapp.estado_mensaje.status` en sent / delivered / read / failed | Estados de entrega de `whatsapp.message.updated` | If: ¿Evento WhatsApp procesable? [F] | [T] Registrar estado insistencia lead · [F] **fin** |
+| Registrar estado insistencia lead | Postgres executeQuery | Si el mensaje es una insistencia (por id YCloud o wamid), guarda estado de entrega (solo avanza; `failed` siempre), `categoria_precio`, `tipo_precio`, `precio_total` y `moneda`. Otros mensajes: 0 filas | IF: ¿Estado de envío YCloud? [T] | — (**fin**) |
+
+La respuesta del cliente se registra en `Guardar mensaje entrante` (§8) y, si solo rechaza o acepta, `Preparar contexto IA` (§11) responde sin IA; `Resolver contexto comercial` aplica sus textos aprobados de rechazo y de medidas ya pedidas. El estado de la insistencia vive en `seguimientos_prospecto`: `prospectos.estado` no se toca, porque el flujo comercial lo reescribe con el valor leído al inicio del turno.
+
+### Purga a 180 días
+
+Requiere `schema/purga-leads.sql`. Se enciende con la clave `PURGA_DATOS_LEADS` de `configuracion_bot` (nace con `activo: false` y `simulacion: true`).
+
+```mermaid
+flowchart LR
+    PT[Purga leads cada hora] --> AN[(Anonimizar leads inactivos)]
+```
+
+| Nodo | Tipo | Qué hace | Recibe de | Envía a |
+|---|---|---|---|---|
+| Purga leads cada hora | Schedule Trigger (cada hora) | Inicia la purga. La consulta solo actúa en la `hora_local` de Ecuador configurada (03:00 por defecto), una vez al día | — | Anonimizar leads inactivos |
+| Anonimizar leads inactivos | Postgres executeQuery (`$1` = ahora) | Candidatos: prospectos no anonimizados cuyo último seguimiento es `SIN_RESPUESTA`, `RECHAZADO` o `EXPIRADO`, sin mensajes en `dias_inactividad` (180), sin cliente ni contacto, sin cotización ni derivación, sin intervención humana y sin `requiere_humano` (hasta `lote` por día, `FOR UPDATE SKIP LOCKED`). En una sola sentencia borra sus `mensajes`, `ia_llamadas` y `notificaciones_humano`; deja la conversación con `telefono = ANON-<prospecto>` y `contexto_comercial = {}`, y el prospecto con `telefono = ANON-<id>`, sin nombre, ciudad, provincia ni `ctwa_clid`, `activo = false` y `anonimizado_at`. Conserva `seguimientos_prospecto` y `metricas_preventa`. Con `simulacion: true` solo cuenta candidatos. Siempre devuelve una fila con los conteos | Purga leads cada hora | — (**fin**) |
+
+Si la persona vuelve a escribir, entra como prospecto nuevo: el número ya no coincide con el anonimizado.
+
+## 23. Galería de trabajos
+
+En etiquetas, después de responder cireles («impresión offset»), material («Polipropileno») o la ciudad («somos de Quito»), el bot envía una galería de fotos y videos de trabajos realizados y cierra con «Le adjunto varios de nuestros trabajos.». Se envía una sola vez por conversación (`contexto_comercial.galeria_trabajos.enviada_at`) y no se envía si en el historial reciente un asesor ya escribió «Le adjunto varios/algunos de nuestros trabajos». No sale en cotizaciones, derivaciones, datos de pago, productos de catálogo ni cuando la respuesta se omite.
+
+Los links viven en la fila `GALERIA_TRABAJOS` de `configuracion_bot` (módulo `code/preventa/galeria-trabajos.js`). Cada galería tiene `clave`, `palabras` y `medios`. Se elige la primera galería cuyas palabras aparezcan en lo que escribió el prospecto (mensaje actual e historial entrante); si ninguna coincide, la marcada `predeterminada`. Solo se aceptan links `https`, como máximo 15 por galería. El tipo sale de la extensión (`.mp4`, `.mov`, `.3gp` = video) o de `tipo`.
+
+```mermaid
+flowchart LR
+    T[YCloud Enviar Wts] --> IVA{IF: ¿Enviar nota IVA?}
+    IVA -->|F| G{IF: ¿Enviar galería trabajos?} --> A[(Autorizar salida galería trabajos)] --> P{IF permiso salida galería trabajos}
+    P -->|T| PG[Preparar galería trabajos] --> Y[YCloud Enviar galería trabajos<br/>1 por lote · 600 ms] --> E[Esperar cierre galería<br/>4 s · una vez] --> C[YCloud Enviar cierre galería]
+```
+
+| Nodo | Tipo | Qué hace | Recibe de | Envía a |
+|---|---|---|---|---|
+| Resolver contexto comercial (V3.36) | Code | Decide la galería con `decidirGaleriaTrabajos` sobre la respuesta final. Emite `enviar_galeria_trabajos`, `galeria_trabajos` (`tipo`, `url`), `galeria_trabajos_clave`, `texto_cierre_galeria` y guarda `contexto_comercial.galeria_trabajos` (`clave`, `motivo`, `medios`, `enviada_at`) | — | — |
+| Preparar envío WhatsApp (V3.8) | Code | Arma un cuerpo YCloud por medio, sin caption, para que WhatsApp los agrupe, y `ycloud_request_cierre_galeria`. No aplica con los videos de tarjetas | — | — |
+| IF: ¿Enviar galería trabajos? | IF `enviar_galeria_trabajos` | | IF: ¿Enviar nota IVA? [F] | Autorizar salida galería trabajos |
+| Autorizar salida galería trabajos | Postgres executeQuery | La misma guardia que las demás salidas: no envía si el cliente escribió de nuevo o un humano atiende | IF galería [T] | IF permiso salida galería trabajos |
+| IF permiso salida galería trabajos | IF `permitir_envio` | | Autorizar salida galería trabajos | [T] Preparar galería trabajos |
+| Preparar galería trabajos | Code | Un item por medio | IF permiso [T] | YCloud Enviar galería trabajos |
+| YCloud Enviar galería trabajos | HTTP POST `/v2/whatsapp/messages` (credencial YCloud API, lotes de 1 cada 600 ms, timeout 20 s, `onError: continueRegularOutput`) | Envía cada foto o video en orden. Un medio que falla no detiene los demás | Preparar galería trabajos | Esperar cierre galería |
+| Esperar cierre galería | Wait 4 s (`executeOnce`) | Deja llegar los medios y continúa una sola vez | YCloud Enviar galería trabajos | YCloud Enviar cierre galería |
+| YCloud Enviar cierre galería | HTTP POST (credencial YCloud API, `onError: continueRegularOutput`) | «Le adjunto varios de nuestros trabajos.» (o `texto_cierre` de la configuración) | Esperar cierre galería | — (**fin**) |
+
+`Obtener configuración MODO_PRUEBA` lee también la clave `GALERIA_TRABAJOS`. Sin esa fila, o con `activo` distinto de `true`, el flujo no cambia.

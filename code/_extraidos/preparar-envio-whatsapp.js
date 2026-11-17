@@ -19,7 +19,7 @@
 // ======================================================
 // PREPARAR ENVÍO WHATSAPP - YCLOUD
 // PEGASO ADHESIVOS
-// VERSION: 3.7
+// VERSION: 3.8
 // ======================================================
 //
 // V2.1: no envía si el texto persistido es el marcador
@@ -58,6 +58,10 @@
 //
 // V3.7: enviar_imagen_flyers también cubre afiches,
 // trípticos y hojas membretadas (misma ruta YCloud).
+//
+// V3.8: galería de trabajos después del texto
+// (galeria_trabajos[].body sin caption) y texto de cierre
+// (ycloud_request_cierre_galeria).
 //
 // Puede recibir datos desde distintas rutas:
 //
@@ -893,6 +897,59 @@ const bodyYCloudSaludoTarjetas =
       }
     : null;
 
+// ======================================================
+// 13.2 GALERÍA DE TRABAJOS (DESPUÉS DEL TEXTO) - V3.8
+// ======================================================
+//
+// Un request por foto o video, sin caption, para que
+// WhatsApp los agrupe como galería. "YCloud Enviar galería
+// trabajos" los manda en orden (lotes de 1) y después sale
+// el texto de cierre una sola vez.
+//
+// ======================================================
+
+const MAX_MEDIOS_GALERIA = 15;
+
+const galeriaTrabajos =
+  enviarWhatsApp &&
+  !enviarVideosTarjetasFinal &&
+  decision.enviar_galeria_trabajos === true &&
+  Array.isArray(decision.galeria_trabajos)
+    ? decision.galeria_trabajos
+        .map(medio => ({
+          tipo: medio?.tipo === 'video' ? 'video' : 'image',
+          url: textoONull(medio?.url)
+        }))
+        .filter(medio => medio.url !== null && /^https:\/\/\S+$/i.test(medio.url))
+        .slice(0, MAX_MEDIOS_GALERIA)
+        .map((medio, indice) => ({
+          orden: indice + 1,
+          body: {
+            from: telefonoE164(telefonoEmisor),
+            to: telefonoE164(telefonoDestino),
+            type: medio.tipo,
+            [medio.tipo]: { link: medio.url }
+          }
+        }))
+    : [];
+
+const enviarGaleriaTrabajos =
+  galeriaTrabajos.length > 0;
+
+const textoCierreGaleria =
+  String(decision.texto_cierre_galeria ?? '').trim() ||
+  'Le adjunto varios de nuestros trabajos.';
+
+const bodyYCloudCierreGaleria =
+  enviarGaleriaTrabajos
+    ? {
+        from: telefonoE164(telefonoEmisor),
+        to: telefonoE164(telefonoDestino),
+        type: 'text',
+        text: { body: textoCierreGaleria }
+      }
+    : null;
+
 const textoNotaIva =
   enviarWhatsApp &&
   decision.enviar_nota_iva === true
@@ -1130,6 +1187,22 @@ return [
 
       videos_tarjetas:
         videosTarjetas,
+
+      enviar_galeria_trabajos:
+        enviarGaleriaTrabajos,
+
+      galeria_trabajos:
+        galeriaTrabajos,
+
+      galeria_trabajos_clave:
+        enviarGaleriaTrabajos
+          ? textoONull(decision.galeria_trabajos_clave)
+          : null,
+
+      ycloud_request_cierre_galeria: {
+        body:
+          bodyYCloudCierreGaleria
+      },
 
       enviar_saludo:
         enviarSaludoTarjetas,

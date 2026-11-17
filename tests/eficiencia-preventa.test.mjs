@@ -25,6 +25,19 @@ test('Una consulta combinada atiende material, envío e IVA', () => {
   assert.match(result.respuesta, /envíos/);
 });
 
+test('Los cireles se responden con el texto aprobado de impresión offset', () => {
+  for (const message of ['cobran cireles', 'el cirel va aparte', 'hay que pagar clises', 'cuanto cuesta el cyrel', 'sireles', 'necesitan cliches']) {
+    const result = faq(message);
+    assert.equal(result?.id, 'CIRELES', message);
+    assert.equal(result.accion, 'RESPONDER_GENERAL');
+    assert.match(result.respuesta, /^No trabajamos con cireles, realizamos impresión offset/);
+  }
+  assert.deepEqual(faq('cobran cireles y hacen envios').temas, ['CIRELES', 'ENVIO']);
+  for (const message of ['cirios', 'cereales', 'precio de etiquetas para botellones']) {
+    assert.notEqual(faq(message)?.id, 'CIRELES', message);
+  }
+});
+
 test('Las FAQs preservan las medidas y cantidades para el cotizador', () => {
   assert.equal(faq('10x15 cm incluye iva'), null);
   assert.equal(faq('quiero 3000 etiquetas incluye iva'), null);

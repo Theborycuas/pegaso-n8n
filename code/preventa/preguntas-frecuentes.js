@@ -42,6 +42,10 @@ const RESPUESTA_FAQ_ENVASE_VOLUMEN =
   'Si puede, envíenos también una foto del vaso o envase con una regla o midiendo el área a etiquetar. ' +
   'Con esos datos le cotizamos de inmediato.';
 
+const RESPUESTA_FAQ_CIRELES =
+  'No trabajamos con cireles, realizamos impresión offset por lo que no necesita cireles. ' +
+  'Puede hacer cambios cuando usted lo requiera.';
+
 const TABLA_FAQ_PRE_IA = [
   {
     id: 'PRECIO_ETIQUETAS_ADHESIVAS',
@@ -81,6 +85,15 @@ const TABLA_FAQ_PRE_IA = [
     intencion: 'CONSULTAR_UBICACION',
     accion: 'INFORMAR_UBICACION',
     respuesta: RESPUESTA_FAQ_LOCAL
+  },
+  {
+    id: 'CIRELES',
+    // "¿Cobran cireles?", "el cirel va aparte", "clisé", "Cyrel" y errores de tipeo.
+    patron:
+      /\b(c|s)[iy]rr?el(es|s)?\b|\bclis(e|es|ses)\b|\bclich(e|es)\b|\bfotopolimeros?\b/,
+    intencion: 'CONSULTAR_PRODUCTO',
+    accion: 'RESPONDER_GENERAL',
+    respuesta: RESPUESTA_FAQ_CIRELES
   },
   {
     id: 'IVA',

@@ -19,7 +19,7 @@
 // ======================================================
 // NODO N8N: Normalizar evento WhatsApp
 // ARCHIVO: code/01-entrada/normalizar-evento-whatsapp.js
-// VERSION: 2.3
+// VERSION: 2.5
 // RESPONSABILIDAD:
 // - Detectar el origen del webhook:
 //      1. YCloud inbound:
@@ -66,6 +66,14 @@
 //
 // - Exponer el contexto de anuncio (referral CTWA) del
 //   mensaje entrante: es_lead_anuncio y anuncio.
+//
+// - V2.4: respuestas a botones y listas (interactive /
+//   button). Expone respuesta_interactiva {tipo, id,
+//   titulo} y usa el título como texto del cliente.
+//
+// - V2.5: whatsapp.message.updated expone estado_mensaje
+//   {id, wamid, status, pricing_*, total_price, currency,
+//   error}. Sigue sin ser procesable como conversación.
 //
 // - NO guardar mensajes.
 // - NO modificar prospectos.
@@ -249,6 +257,145 @@ const extraerAnuncio = (referral) => {
 };
 
 
+// ------------------------------------------------------
+// Respuesta a un mensaje con botones o lista
+// ------------------------------------------------------
+//
+// - interactive.button_reply: botón de un mensaje
+//   interactivo propio (insistencia a leads: SEG_SI /
+//   SEG_NO).
+// - interactive.list_reply: opción de una lista.
+// - button: botón de respuesta rápida de una plantilla.
+//
+// Se aceptan también los nombres camelCase por si el
+// proveedor los entrega así. Sin título no hay texto
+// utilizable y se devuelve null.
+// ------------------------------------------------------
+
+const extraerRespuestaInteractiva = (message, tipoMensaje) => {
+  if (
+    !message ||
+    typeof message !== 'object'
+  ) {
+    return null;
+  }
+
+  let respuesta = null;
+
+  if (tipoMensaje === 'interactive') {
+    const interactivo =
+      message.interactive ?? {};
+
+    const boton =
+      interactivo.button_reply ??
+      interactivo.buttonReply ??
+      null;
+
+    const lista =
+      interactivo.list_reply ??
+      interactivo.listReply ??
+      null;
+
+    const opcion =
+      boton ?? lista;
+
+    if (opcion) {
+      respuesta = {
+        tipo: boton ? 'BOTON' : 'LISTA',
+        id: textoONull(opcion.id),
+        titulo: textoONull(opcion.title)
+      };
+    }
+  }
+
+  if (tipoMensaje === 'button') {
+    const boton =
+      message.button ?? {};
+
+    respuesta = {
+      tipo: 'BOTON_PLANTILLA',
+      id: textoONull(boton.payload),
+      titulo: textoONull(boton.text)
+    };
+  }
+
+  if (!respuesta?.titulo) {
+    return null;
+  }
+
+  return {
+    ...respuesta,
+    titulo:
+      respuesta.titulo
+        .replace(/\s+/g, ' ')
+        .slice(0, 200)
+  };
+};
+
+
+// ------------------------------------------------------
+// Estado de un mensaje enviado (whatsapp.message.updated)
+// ------------------------------------------------------
+//
+// YCloud documenta status, pricingCategory, totalPrice y
+// currency. pricingType y los errores se leen si llegan.
+// ------------------------------------------------------
+
+const extraerEstadoMensaje = (mensaje) => {
+  if (
+    !mensaje ||
+    typeof mensaje !== 'object'
+  ) {
+    return null;
+  }
+
+  const id =
+    textoONull(mensaje.id);
+
+  const wamid =
+    textoONull(mensaje.wamid);
+
+  if (!id && !wamid) {
+    return null;
+  }
+
+  const precio =
+    Number(mensaje.totalPrice);
+
+  const error =
+    Array.isArray(mensaje.errors) && mensaje.errors.length > 0
+      ? mensaje.errors[0]
+      : null;
+
+  return {
+    id,
+    wamid,
+    status:
+      textoONull(mensaje.status)?.toLowerCase() ?? null,
+    pricing_category:
+      textoONull(mensaje.pricingCategory),
+    pricing_type:
+      textoONull(mensaje.pricingType),
+    total_price:
+      mensaje.totalPrice === undefined ||
+      mensaje.totalPrice === null ||
+      !Number.isFinite(precio)
+        ? null
+        : precio,
+    currency:
+      textoONull(mensaje.currency),
+    error:
+      textoONull(
+        mensaje.errorMessage ??
+        mensaje.errorCode ??
+        error?.message ??
+        error?.title ??
+        error?.code
+      )?.slice(0, 500) ?? null
+  };
+};
+
+
 // ======================================================
 // 2. DETECTAR TIPO DE EVENTO
 // ======================================================
@@ -358,6 +505,10 @@ let clasificacionMensaje = null;
 let automatizacion = null;
 
 let anuncio = null;
+
+let respuestaInteractiva = null;
+
+let estadoMensaje = null;
 
 let eventoConversacional = false;
 
@@ -598,6 +749,30 @@ if (esYCloudInbound) {
     texto =
       message.text?.body ??
       null;
+  }
+
+
+  // ----------------------------------------------------
+  // RESPUESTA A BOTÓN O LISTA
+  // ----------------------------------------------------
+  //
+  // El título del botón tocado se usa como texto del
+  // cliente para que el turno siga el flujo normal.
+  //
+  // ----------------------------------------------------
+
+  respuestaInteractiva =
+    extraerRespuestaInteractiva(
+      message,
+      tipo
+    );
+
+  if (
+    respuestaInteractiva &&
+    texto === null
+  ) {
+    texto =
+      respuestaInteractiva.titulo;
   }
 
 
@@ -1043,6 +1218,30 @@ else if (esMeta) {
 
 
   // ----------------------------------------------------
+  // RESPUESTA A BOTÓN O LISTA
+  // ----------------------------------------------------
+  //
+  // El título del botón tocado se usa como texto del
+  // cliente para que el turno siga el flujo normal.
+  //
+  // ----------------------------------------------------
+
+  respuestaInteractiva =
+    extraerRespuestaInteractiva(
+      message,
+      tipo
+    );
+
+  if (
+    respuestaInteractiva &&
+    texto === null
+  ) {
+    texto =
+      respuestaInteractiva.titulo;
+  }
+
+
+  // ----------------------------------------------------
   // IMAGEN
   // ----------------------------------------------------
 
@@ -1193,6 +1392,27 @@ else {
     null;
 
 
+  // ----------------------------------------------------
+  // ESTADO DE UN MENSAJE ENVIADO (V2.5)
+  // ----------------------------------------------------
+  //
+  // Entregado / leído / fallido y precio cobrado. Lo usa
+  // la insistencia a leads para saber si el envío fue
+  // gratis. Sigue sin ser procesable como conversación.
+  //
+  // ----------------------------------------------------
+
+  if (
+    tipoEvento === 'whatsapp.message.updated' &&
+    body.whatsappMessage
+  ) {
+    estadoMensaje =
+      extraerEstadoMensaje(
+        body.whatsappMessage
+      );
+  }
+
+
   procesable =
     false;
 
@@ -1330,6 +1550,12 @@ return [
         texto,
 
         caption,
+
+        respuesta_interactiva:
+          respuestaInteractiva,
+
+        estado_mensaje:
+          estadoMensaje,
 
 
         // ==============================================

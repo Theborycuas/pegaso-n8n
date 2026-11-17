@@ -1,4 +1,4 @@
-# Ubicación y registro del consumo de todas las IA
+# Ubicación, cireles y registro del consumo de todas las IA
 
 Estado: preparado en local el 17 de noviembre de 2026. **No publicado.** Antes de publicar hay que aplicar `schema/ia_llamadas.sql` en PostgreSQL. Para activar la lectura de tokens hay que crear la credencial de la API de n8n.
 
@@ -81,6 +81,18 @@ Hasta entonces sigue funcionando el registro resumido del cerebro.
 - Cada ronda lee hasta 15 ejecuciones, de unos 2 MB cada una. Con el volumen observado, de unas 15 ejecuciones por hora de noche, sobra capacidad. Si de día el volumen supera 180 por hora, conviene subir el límite.
 - n8n borra ejecuciones antiguas. Si una ya no existe, se marca `NO_ENCONTRADA` y no se vuelve a pedir.
 
+## 3. Pregunta por cireles
+
+Un cliente preguntó «¿Cobran cireles?». Ninguna regla ni el prompt conocían el término y el cerebro contestó «Disculpe, no comprendí bien su consulta…».
+
+La FAQ `CIRELES` de `code/preventa/preguntas-frecuentes.js` responde sin llamar a la IA:
+
+> No trabajamos con cireles, realizamos impresión offset por lo que no necesita cireles. Puede hacer cambios cuando usted lo requiera.
+
+Reconoce cirel, cireles, sirel, Cyrel, clisé y cliché y fotopolímero. Se combina con otras FAQ del mismo mensaje, por ejemplo «¿cobran cireles y hacen envíos?». Como las demás FAQ, no actúa en tarjetas ni en otros productos de catálogo.
+
+Límite: si el mismo mensaje trae medidas o una cantidad («quiero 10000 etiquetas, ¿cobran cireles?»), el turno sigue a la cotización y el cerebro no conoce los cireles. El prompt queda igual que en producción. Cubrir ese caso requiere añadir una línea al prompt de los tres cerebros.
+
 ## Verificación
 
 ```powershell
@@ -91,7 +103,7 @@ node scripts/prepare-update.mjs
 node scripts/check-encoding.mjs
 ```
 
-- Pasan 98 pruebas: 71 de nodos y módulos y 27 SQL contra PostgreSQL 17 temporal. Las pruebas SQL aplican `schema/preventa-eficiencia.sql` y `schema/ia_llamadas.sql`.
+- Pasan 99 pruebas: 72 de nodos y módulos y 27 SQL contra PostgreSQL 17 temporal. Las pruebas SQL aplican `schema/preventa-eficiencia.sql` y `schema/ia_llamadas.sql`.
 - Las pruebas nuevas cubren:
   - clasificación de 9 preguntas de ubicación;
   - textos exactos;
@@ -115,7 +127,8 @@ node scripts/check-encoding.mjs
 3. Prueba funcional:
    - «¿En qué ciudad se encuentran?» desde un anuncio: el bot no repite la ubicación;
    - «¿Cuál es su dirección?»: responde con las direcciones y la cita previa;
-   - el comando `STATUSIA`.
+   - «¿Cobran cireles?»: responde con el texto de impresión offset;
+  - el comando `STATUSIA`.
 4. Crear la credencial de la API de n8n y activar el registro de consumo.
 
 ## Decisión pendiente

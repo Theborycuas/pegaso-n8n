@@ -38,6 +38,10 @@ Un reporte por intervención sobre el workflow **SISTEMA AUTOMATIZADO PEGASO**: 
 | 2026-11-16 | [Primera entrega de preventa y cierre al humano](2026-11-16-preventa-cierre-humano.md) | Publicado (presente en la copia remota del 17-11) |
 | 2026-11-17 | [Segunda entrega: eficiencia, modularización y avisos persistentes](2026-11-17-preventa-eficiencia-avisos.md) | Publicado |
 | 2026-11-17 | [Ubicación y consumo de todas las IA](2026-11-17-ubicacion-y-consumo-ia.md) | Implementado en local; requiere `schema/ia_llamadas.sql` y credencial de la API de n8n |
+| 2026-11-17 | [Insistencia a leads de anuncio · Sprint 1: base de datos y respuestas de botón](2026-11-17-insistencia-leads-sprint1.md) | Implementado en local, sin publicar ni commit; requiere `schema/seguimientos-leads.sql` antes de publicar |
+| 2026-11-17 | [Insistencia a leads de anuncio · Sprint 2: rutina programada, respuesta del cliente y estados de entrega](2026-11-17-insistencia-leads-sprint2.md) | Implementado en local, sin publicar ni commit; requiere `schema/seguimientos-leads.sql`; la rutina nace apagada (`INSISTENCIA_LEADS`) |
+| 2026-11-17 | [Insistencia a leads de anuncio · Sprint 3: purga a 180 días](2026-11-17-insistencia-leads-sprint3.md) | Implementado en local, sin publicar ni commit; requiere `schema/purga-leads.sql`; nace apagada y en simulación (`PURGA_DATOS_LEADS`) |
+| 2026-11-17 | [Galería de trabajos en el enganche](2026-11-17-galeria-trabajos.md) | Implementado en local, sin publicar ni commit; se activa con la fila `GALERIA_TRABAJOS` de `configuracion_bot` |
 
 ## Convenciones
 

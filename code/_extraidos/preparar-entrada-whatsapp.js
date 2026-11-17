@@ -19,7 +19,9 @@
 // ======================================================
 // NODO N8N: Preparar entrada WhatsApp
 // ARCHIVO: code/01-entrada/preparar-entrada-whatsapp.js
-// VERSION: 2.2
+// VERSION: 2.3
+// - V2.3: respuesta a botón o lista con título -> TEXTO apto
+//   para el flujo (meta_whatsapp.respuesta_interactiva).
 // RESPONSABILIDAD:
 // - Validar que exista evento_whatsapp procesable con telefono_cliente y mensaje_id (lanza error si no)
 // - Traducir tipo_mensaje de WhatsApp a enum interno
@@ -230,6 +232,7 @@ switch (tipoOriginal) {
     break;
 
   case 'interactive':
+  case 'button':
     tipoMensaje = 'INTERACTIVO';
     break;
 }
@@ -246,6 +249,35 @@ if (tipoOriginal === 'text') {
     textoONull(
       evento.texto
     );
+}
+
+
+// ------------------------------------------------------
+// Respuesta a botón o lista: el título tocado entra
+// como TEXTO del cliente y sigue el flujo normal.
+// Sin título sigue siendo INTERACTIVO no soportado.
+// ------------------------------------------------------
+
+const respuestaInteractiva =
+  evento.respuesta_interactiva &&
+  typeof evento.respuesta_interactiva === 'object'
+    ? evento.respuesta_interactiva
+    : null;
+
+const esRespuestaInteractiva =
+  tipoMensaje === 'INTERACTIVO' &&
+  textoONull(
+    respuestaInteractiva?.titulo
+  ) !== null;
+
+if (esRespuestaInteractiva) {
+  mensaje =
+    textoONull(
+      respuestaInteractiva.titulo
+    );
+
+  tipoMensaje =
+    'TEXTO';
 }
 
 
@@ -318,7 +350,10 @@ const requiereProcesamientoMedia =
 
 
 const aptoParaFlujoTexto =
-  tipoOriginal === 'text' &&
+  (
+    tipoOriginal === 'text' ||
+    esRespuestaInteractiva
+  ) &&
   mensaje !== null;
 
 
@@ -676,6 +711,12 @@ return [
 
         tipo_original:
           tipoOriginal || null,
+
+        // Botón o lista tocados: {tipo, id, titulo}.
+        respuesta_interactiva:
+          esRespuestaInteractiva
+            ? respuestaInteractiva
+            : null,
 
 
         // ---------------------------------------------

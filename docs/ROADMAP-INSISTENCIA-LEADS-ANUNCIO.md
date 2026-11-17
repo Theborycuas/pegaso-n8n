@@ -2,7 +2,7 @@
 
 Muchos prospectos llegan por los anuncios de Facebook, Instagram o Estados de WhatsApp. Tocan el botón del anuncio, envían el mensaje precargado ("¿Precio de las etiquetas adhesivas?", "¡Hola! Quiero más información") y no vuelven a escribir después de que el bot les pide las medidas. Esta rutina les envía **una sola insistencia**, en un horario tranquilo y sin costo. Si no hay respuesta, cierra el prospecto y, a los 180 días, borra sus datos personales.
 
-Documento creado el 17 de noviembre de 2026. Estado: **diseño aprobado, pendiente de implementación**.
+Documento creado el 17 de noviembre de 2026. Estado: **Sprints 1 y 2 implementados en local, sin publicar** ([reporte Sprint 1](reportes/2026-11-17-insistencia-leads-sprint1.md) · [reporte Sprint 2](reportes/2026-11-17-insistencia-leads-sprint2.md) · [reporte Sprint 3](reportes/2026-11-17-insistencia-leads-sprint3.md)). La rutina y la purga nacen apagadas. Pendientes: el piloto, los ajustes que salgan de él y tres decisiones (sección 8).
 
 Decisiones tomadas por Pegaso:
 
@@ -53,12 +53,14 @@ El riesgo real no es el costo. Si los clientes bloquean o reportan el número, M
 
 | Pieza | Estado | Dónde |
 |---|---|---|
-| Detección de lead de anuncio (`es_lead_anuncio`, `ctwa_clid`, tipo de origen) | Existe, **pero no se guarda** en la base | [normalizar-evento-whatsapp.js](../code/_extraidos/normalizar-evento-whatsapp.js) |
+| Detección de lead de anuncio (`es_lead_anuncio`, `ctwa_clid`, tipo de origen) | Existía sin guardarse. **Sprint 1:** se guarda en el prospecto (`origen`, `ultimo_anuncio_*`) | [normalizar-evento-whatsapp.js](../code/_extraidos/normalizar-evento-whatsapp.js), "Guardar mensaje entrante" |
 | Envío por YCloud (`POST https://api.ycloud.com/v2/whatsapp/messages`) | Existe | Nodos HTTP de salida |
 | Disparador programado con reserva y reintento | Existe ("Reintentar avisos humanos"), sirve de modelo | `notificaciones_humano` en [preventa-eficiencia.sql](../schema/preventa-eficiencia.sql) |
-| Respuestas de botón del cliente | **No se procesan.** Llegan como `INTERACTIVO` con texto `null` y no entran al flujo conversacional | [normalizar-evento-whatsapp.js](../code/_extraidos/normalizar-evento-whatsapp.js) solo lee `message.text.body` |
-| Columnas `prospectos.origen` y `prospectos.fuente` | Existen sin uso claro; sirven para marcar el lead de anuncio | [pegaso_schema.sql](../schema/pegaso_schema.sql) |
+| Respuestas de botón del cliente | Antes se derivaban como entrada no soportada (`MENSAJE_INTERACTIVO_NO_PROCESABLE`). **Sprint 1:** entran como `TEXTO` al flujo normal | [normalizar-evento-whatsapp.js](../code/_extraidos/normalizar-evento-whatsapp.js), [preparar-entrada-whatsapp.js](../code/_extraidos/preparar-entrada-whatsapp.js) |
+| Columna `prospectos.origen` | Siempre `WHATSAPP`. **Sprint 1:** `ANUNCIO_META` si el primer mensaje llegó desde un anuncio | [pegaso_schema.sql](../schema/pegaso_schema.sql) |
 | Dirección de mensajes | `mensajes.direccion` = `ENTRANTE` / `SALIENTE` | `pegaso.mensajes` |
+| Webhooks de estado de YCloud (entregado, leído, precio) | Llegaban como `whatsapp.message.updated` y se descartaban. **Sprint 2:** se registran en el seguimiento de cada insistencia (entrega, `categoria_precio`, `precio_total`) | [normalizar-evento-whatsapp.js](../code/_extraidos/normalizar-evento-whatsapp.js) |
+| "Buscar prospecto" | Filtra `activo = true`. Si un prospecto queda con `activo = false` y vuelve a escribir, "Crear prospecto" choca con el índice único `(telefono, canal)`. **Por eso el cierre lógico no usa `activo`** | Nodo "Buscar prospecto" |
 
 ---
 
@@ -147,10 +149,12 @@ Cuerpo de referencia para YCloud:
 
 | El cliente… | El sistema… |
 |---|---|
-| Toca **"Sí, quiero cotizar"** | Marca el seguimiento `RESPONDIDO` y pasa "Sí, quiero cotizar" al flujo normal; el bot pide las medidas |
-| Toca **"Ya no, gracias"** | Marca `RECHAZADO`, responde *"Entendido, gracias por su tiempo. Si más adelante necesita etiquetas, aquí estaremos 🙌"* y deja el prospecto en `DESCARTADO` / `activo = false`. No se le vuelve a escribir |
-| Escribe cualquier otra cosa | Marca `RESPONDIDO` y sigue el flujo normal |
-| No responde en 48 h | Marca `SIN_RESPUESTA` y cierra el prospecto (`estado = SIN_RESPUESTA`, `activo = false`). Si vuelve a escribir algún día, se reactiva como siempre |
+| Toca **"Sí, quiero cotizar"** (o escribe solo "sí", "claro", "me interesa") | Marca el seguimiento `RESPONDIDO` y responde sin IA pidiendo las medidas. Como las medidas ya se pidieron, el resolver usa su texto aprobado: *"Gracias. Para cotizar sus etiquetas solo nos falta el ancho y alto en centímetros."* |
+| Toca **"Ya no, gracias"** (o escribe solo "no gracias", "no me interesa", "por ahora no") | Con el botón marca `RECHAZADO` (no se le vuelve a escribir nunca). Responde sin IA con el texto aprobado de rechazo del resolver: *"Cualquier duda o inquietud hágamela saber, estamos para servirle."* |
+| Escribe cualquier otra cosa (medidas, preguntas) | Marca `RESPONDIDO` y sigue el flujo normal |
+| No responde en 48 h | Marca el seguimiento `SIN_RESPUESTA`. Si vuelve a escribir algún día, el flujo normal lo atiende y el seguimiento pasa a `RESPONDIDO` |
+
+El estado de la insistencia vive solo en `seguimientos_prospecto`. **`prospectos.estado` no se toca**: el flujo comercial reescribe ese campo en cada turno con el valor que leyó al inicio, y pisaría cualquier cambio hecho a mitad del turno.
 
 ---
 
@@ -160,10 +164,35 @@ Todas estas condiciones deben cumplirse:
 
 1. El prospecto llegó por un **anuncio** (`prospectos.origen = 'ANUNCIO_META'`, ver fase 1).
 2. No es cliente registrado, está `activo`, no tiene `requiere_humano = true` y no hubo intervención humana en la conversación.
-3. **No conversó:** como máximo 2 mensajes entrantes en total y ninguna cotización en `contexto_comercial`. *Primera versión, centrada en los "chats de un solo toque". Más adelante se puede ampliar a quien abandona a mitad de la conversación.*
-4. El **último mensaje** de la conversación es del bot (`SALIENTE`) y el último del cliente tiene entre 4 h y 23,5 h de antigüedad.
-5. No recibió ninguna insistencia en los últimos **30 días**.
-6. El permiso de automatización (modo prueba, pausa del bot) lo permite.
+3. **No conversó:** como máximo 2 mensajes entrantes en total (`max_mensajes_cliente`), sin cotización, medidas ni derivación en `contexto_comercial`, y la línea de producto es etiquetas (o no se conoce). *Primera versión, centrada en los "chats de un solo toque". Más adelante se puede ampliar a quien abandona a mitad de la conversación.*
+4. El **último mensaje** de la conversación es saliente (del bot o la automatización de WhatsApp Business), pasaron al menos 4 h desde él y el cliente escribió hace menos de 24 h.
+5. No recibió ninguna insistencia en los últimos **30 días** (las `CANCELADO` no cuentan) y nunca tocó "Ya no, gracias".
+6. Su teléfono está permitido: `INSISTENCIA_LEADS.telefonos_permitidos` (si no está vacía) y `MODO_PRUEBA` (si está activo; el comando STOP lo activa).
+
+### Configuración (`configuracion_bot`, clave `INSISTENCIA_LEADS`)
+
+La migración la crea **apagada**. Se cambia con un `UPDATE` sin volver a publicar el workflow.
+
+| Campo | Valor inicial | Para qué |
+|---|---|---|
+| `activo` | `false` | Interruptor general |
+| `telefonos_permitidos` | `[]` | Si tiene números, solo se insiste a esos (pruebas y piloto) |
+| `limite_diario` / `limite_por_corrida` | 20 / 10 | Tope de envíos por día (hora de Ecuador) y por corrida de 15 min |
+| `espera_minima_horas` | 4 | Espera desde el último mensaje del bot |
+| `cierre_sin_respuesta_horas` | 48 | Paso a `SIN_RESPUESTA` |
+| `max_mensajes_cliente` | 2 | Máximo de mensajes del cliente para considerarlo "de un solo toque" |
+| `franjas` | `[["10:00","12:30"],["15:00","16:00"],["18:30","20:30"]]` | Franjas de envío, hora de Ecuador |
+| `telefono_emisor` | `593962645735` | Número de Pegaso en YCloud |
+| `producto_texto` | `etiquetas adhesivas` | Texto de "Nos escribió por …" |
+
+Encender solo para un número de prueba:
+
+```sql
+UPDATE pegaso.configuracion_bot
+SET valor_json = valor_json || '{"activo": true, "telefonos_permitidos": ["5939XXXXXXXX"]}'::jsonb,
+    actualizado_at = now()
+WHERE clave = 'INSISTENCIA_LEADS';
+```
 
 ---
 
@@ -173,13 +202,13 @@ Todas estas condiciones deben cumplirse:
 
 - [ ] Confirmar que hay un **método de pago activo** en Meta/YCloud (obligatorio desde el 1-oct-2026 para todo el bot).
 - [ ] Anotar la *quality rating* actual del número en WhatsApp Manager, como punto de partida.
-- [ ] Verificar si el workflow recibe los **webhooks de estado** de YCloud (entregado/leído y tipo de precio). Si no, revisar el tipo de precio en el panel de YCloud.
+- [ ] Verificar que el webhook de YCloud tenga activado el evento **`whatsapp.message.updated`** (entregado/leído y precio). Sin él, la rutina funciona igual, pero no registra si el envío fue gratis: habría que revisarlo en el panel de YCloud.
 - [ ] Confirmar la zona horaria del workflow en n8n (`America/Guayaquil`).
 
-### Fase 1: Datos (`schema/seguimientos-leads.sql`)
+### Fase 1: Datos (`schema/seguimientos-leads.sql`) · Sprint 1, hecha en local
 
-- [ ] Guardar el origen del lead al crear el prospecto: `origen = 'ANUNCIO_META'`, `fuente` = tipo de anuncio (`ad`, `post`…) y el `ctwa_clid` dentro de `contexto_comercial`.
-- [ ] Nueva tabla de seguimientos, con el mismo patrón de reserva que `notificaciones_humano`:
+- [x] Guardar el anuncio en el prospecto desde "Guardar mensaje entrante": `origen = 'ANUNCIO_META'` si es su primer mensaje entrante, y en columnas nuevas `ultimo_anuncio_at`, `ultimo_anuncio_fuente` y `ultimo_ctwa_clid` el anuncio más reciente. Se descartó guardar el `ctwa_clid` en `contexto_comercial` porque el cerebro reescribe ese JSON en cada turno.
+- [x] Nueva tabla de seguimientos, con el mismo patrón de reserva que `notificaciones_humano`:
 
 ```sql
 CREATE TABLE IF NOT EXISTS pegaso.seguimientos_prospecto (
@@ -215,33 +244,34 @@ CREATE INDEX IF NOT EXISTS ix_seguimientos_programados
   WHERE estado = 'PROGRAMADO';
 ```
 
-- [ ] Verificar qué valores de `prospectos.estado` usa hoy el bot y añadir `SIN_RESPUESTA` y `DESCARTADO`, de forma coherente con ellos.
+- [x] (Sprint 2) Se descartó cambiar `prospectos.estado`: el estado vive en `seguimientos_prospecto` (sección 4). La migración suma columnas de entrega y precio (`wamid`, `estado_entrega`, `categoria_precio`, `precio_total`, `moneda`) y la configuración `INSISTENCIA_LEADS` apagada.
 
 ### Fase 2: Entrada de botones (flujo principal)
 
-- [ ] En [normalizar-evento-whatsapp.js](../code/_extraidos/normalizar-evento-whatsapp.js): para `interactive.button_reply`, usar `title` como `texto` y conservar `id` (`SEG_SI` / `SEG_NO`).
-- [ ] En [preparar-entrada-whatsapp.js](../code/_extraidos/preparar-entrada-whatsapp.js): tratar el botón como texto apto para el flujo conversacional.
-- [ ] Antes del cerebro comercial: si hay un seguimiento `ENVIADO` del prospecto, marcarlo `RESPONDIDO` o `RECHAZADO`. Con `SEG_NO`, enviar la despedida y cerrar sin pasar por la IA.
+- [x] En [normalizar-evento-whatsapp.js](../code/_extraidos/normalizar-evento-whatsapp.js): para `interactive.button_reply` / `list_reply` y `button` de plantilla, usar el título como `texto` y conservar el `id` en `respuesta_interactiva` (`SEG_SI` / `SEG_NO`). *Sprint 1.*
+- [x] En [preparar-entrada-whatsapp.js](../code/_extraidos/preparar-entrada-whatsapp.js): tratar el botón como `TEXTO` apto para el flujo conversacional. *Sprint 1.*
+- [x] (Sprint 2) "Guardar mensaje entrante" marca el seguimiento `ENVIADO` o `SIN_RESPUESTA` de los últimos 30 días como `RECHAZADO` (botón `SEG_NO`) o `RESPONDIDO`. "Preparar contexto IA" responde sin IA al rechazo o la aceptación sola (`INSISTENCIA_RECHAZADA` / `INSISTENCIA_ACEPTADA`).
 
-### Fase 3: Workflow programado "Insistencia a leads"
+### Fase 3: Workflow programado "Insistencia a leads" · Sprint 2, hecha en local
 
-Disparador cada 15 min, solo dentro de las franjas (cron `*/15 10-20 * * *` en `America/Guayaquil`; el código descarta lo que quede fuera de las franjas exactas).
+Disparador cada 15 min. Las franjas se calculan en SQL con hora de Ecuador, sin depender de la zona horaria de n8n. Detalle nodo por nodo en [FLUJO-WORKFLOW-PEGASO.md §22](FLUJO-WORKFLOW-PEGASO.md#22-insistencia-a-leads-de-anuncio).
 
-1. **Programar:** buscar candidatos (sección 5) sin seguimiento, calcular `programado_para` (sección 3.2) e insertarlos como `PROGRAMADO`. Si `programado_para` cae después del cierre de la ventana menos 30 min, se inserta directamente como `EXPIRADO`.
-2. **Reservar:** tomar los `PROGRAMADO` con `programado_para <= now()` (máximo 20 por corrida), pasarlos a `ENVIANDO` con `reserva` y `reservada_hasta`.
-3. **Revalidar justo antes de enviar:** el cliente no escribió desde entonces, la ventana sigue abierta, no hubo intervención humana y el permiso de automatización lo permite. Si algo falla, el seguimiento pasa a `CANCELADO` o `EXPIRADO`.
-4. **Enviar** el mensaje interactivo por YCloud con el saludo según la hora real.
-5. **Registrar:** `ENVIADO`, `mensaje_externo_id` y `texto_enviado`. También se guarda en `pegaso.mensajes` como `SALIENTE`, para que la IA vea la insistencia en el historial cuando el cliente responda.
-6. **Errores:** `ERROR` con `ultimo_error`. No hay reintentos fuera de la ventana.
+1. [x] **Programar:** candidatos de la sección 5 → `PROGRAMADO` en la primera franja, o `EXPIRADO` si no hay franja antes del cierre de la ventana menos 30 min.
+2. [x] **Reservar:** dentro de una franja y con la rutina activa, los `PROGRAMADO` que tocan pasan a `ENVIANDO` con `reserva` (`FOR UPDATE SKIP LOCKED`), sin pasar los límites.
+3. [x] **Guardia justo antes de enviar** ("Autorizar insistencia lead"): misma reserva, ventana abierta, sin atención humana, el cliente no escribió, sin intervención humana, sin cotización ni derivación. Si algo falla: `CANCELADO` o `EXPIRADO`.
+4. [x] **Enviar** el mensaje interactivo por YCloud con el saludo según la hora real.
+5. [x] **Registrar:** `ENVIADO`, id de YCloud y texto. Se guarda en `pegaso.mensajes` como `SALIENTE` **sin** `mensaje_externo_id`, igual que los mensajes del bot: varias consultas tratan un saliente con id externo como intervención humana.
+6. [x] **Errores:** `ERROR` con `ultimo_error`, sin reintentos. Una reserva que vence sin confirmación también pasa a `ERROR` (no se sabe si salió).
+7. [x] **Estados de entrega:** los webhooks `whatsapp.message.updated` (antes descartados) guardan entrega, categoría y precio de cada insistencia.
 
-### Fase 4: Cierre lógico (rutina diaria)
+### Fase 4: Cierre lógico · Sprint 2, hecha en local
 
-- [ ] Seguimientos `ENVIADO` con `enviado_at` de hace más de 48 h → `SIN_RESPUESTA`. El prospecto pasa a `estado = 'SIN_RESPUESTA'`, `activo = false`.
-- [ ] Si el cliente escribe más tarde, el flujo normal lo reactiva (`activo = true`).
+- [x] En cada corrida, los seguimientos `ENVIADO` de hace más de 48 h pasan a `SIN_RESPUESTA`. No se tocan `prospectos.estado` ni `activo` ("Buscar prospecto" filtra `activo = true` y un prospecto inactivo que vuelve a escribir haría fallar "Crear prospecto" por el índice único).
+- [x] Si el cliente escribe más tarde, el seguimiento pasa a `RESPONDIDO` y el flujo normal lo atiende.
 
 ### Fase 5: Purga a los 180 días (rutina semanal, domingo de madrugada)
 
-**Candidatos:** prospectos `activo = false`, con estado `SIN_RESPUESTA` o `DESCARTADO`, sin actividad en 180 días, que no son clientes y no tienen cotización, diseño ni pedido.
+**Candidatos:** prospectos cuyo último seguimiento es `SIN_RESPUESTA` o `RECHAZADO`, sin mensajes en 180 días, que no son clientes y no tienen cotización, diseño ni pedido.
 
 **Acción:** anonimizar en vez de borrar todo. Así se eliminan los datos personales y se conservan los conteos para las métricas de los anuncios.
 
@@ -258,6 +288,14 @@ Disparador cada 15 min, solo dentro de las franjas (cron `*/15 10-20 * * *` en `
 - No se usa un hash del teléfono: el espacio de números es pequeño y un hash se puede revertir por fuerza bruta.
 - Si la misma persona vuelve a escribir, entra como prospecto nuevo.
 - Esto alinea el sistema con la **Ley Orgánica de Protección de Datos Personales** de Ecuador (no conservar datos personales más tiempo del necesario).
+
+**Implementación (Sprint 3, hecha en local):**
+
+- [x] `schema/purga-leads.sql`: columna `prospectos.anonimizado_at`, índice de `ia_llamadas` por conversación y configuración `PURGA_DATOS_LEADS`, que nace con `activo: false` y `simulacion: true`.
+- [x] Nodos "Purga leads cada hora" y "Anonimizar leads inactivos" ([FLUJO §22](FLUJO-WORKFLOW-PEGASO.md#purga-a-180-días)). Corre una vez al día a las 03:00 de Ecuador (`hora_local`).
+- [x] Además de `SIN_RESPUESTA` y `RECHAZADO`, entran los `EXPIRADO`: leads de un solo toque a los que no se alcanzó a enviar la insistencia.
+- [x] También se borra `ultimo_ctwa_clid` (identificador del clic en el anuncio) y el prospecto queda `activo = false`.
+- [ ] **Fuera de alcance por ahora:** los leads de anuncio anteriores a la insistencia. No tienen seguimiento ni `origen = ANUNCIO_META` (se empezó a guardar en el Sprint 1), así que la purga no los toca. Ver la decisión pendiente en la sección 8.
 
 ### Fase 6: Piloto y métricas
 
@@ -285,7 +323,29 @@ Disparador cada 15 min, solo dentro de las franjas (cron `*/15 10-20 * * *` en `
 | Ráfagas de envíos | Máximo 20 por corrida de 15 min |
 | Meta cambia las reglas de precio | Revisar la página oficial de precios cada trimestre |
 
-## 8. Fuentes
+## 8. Plan de sprints
+
+Se divide en tres sprints, cada uno con una entrega propia en producción:
+
+- El sprint 1 toca el flujo principal (entrada de mensajes), así que conviene publicarlo y observarlo solo, sin cambios de comportamiento visibles para el cliente.
+- El origen de anuncio empieza a guardarse recién al publicar el sprint 1. Cuanto antes salga, antes hay prospectos con los que la rutina pueda trabajar.
+- La purga no tiene urgencia: los primeros prospectos cerrados por la rutina cumplen 180 días medio año después. Se arma después del piloto, con datos reales.
+
+| Sprint | Objetivo | Incluye | Entrega verificable |
+|---|---|---|---|
+| **1. Base** (sin envíos a clientes) | Preparar datos y entrada | Fase 0 (Pegaso, en paralelo), fase 1 (SQL y guardar origen del lead), fase 2 (respuestas de botón en el flujo principal) | Un lead nuevo de anuncio queda con `origen = 'ANUNCIO_META'`; un botón de prueba enviado a un número propio entra al flujo con su texto |
+| **2. Rutina y piloto** | Enviar la insistencia | Fase 3 (workflow programado), fase 4 (cierre a 48 h), respuesta a la insistencia (último punto de la fase 2), webhooks de estado para `tipo_precio`, pruebas en modo prueba y piloto de una semana con máximo 20 envíos diarios | Los tres caminos (Sí, Ya no, sin respuesta) probados con números propios; métricas de la semana piloto |
+| **3. Ajuste y purga** | Afinar y limpiar datos | Ajustes según las métricas del piloto (horario, texto, criterio de candidatos), fase 5 (anonimización a 180 días), decidir si se amplía a quien abandona a mitad de conversación | Purga probada en una copia de la base; decisión documentada sobre la ampliación |
+
+Cada sprint termina con un reporte en [docs/reportes/](reportes/README.md) y, si cambia nodos, la actualización de [FLUJO-WORKFLOW-PEGASO.md](FLUJO-WORKFLOW-PEGASO.md).
+
+**Estado del Sprint 3:** la purga (fase 5) está hecha en local ([reporte](reportes/2026-11-17-insistencia-leads-sprint3.md)). Los ajustes por métricas esperan al piloto. Decisiones pendientes de Pegaso:
+
+1. ¿Un "no gracias" **escrito** después de la insistencia bloquea para siempre, igual que el botón "Ya no, gracias"? Hoy bloquea 30 días.
+2. ¿Se amplía la insistencia a quien conversó y abandonó a mitad (por ejemplo, recibió la cotización y no respondió)? Conviene decidirlo con los datos del piloto.
+3. ¿Se incluyen en la purga los leads de anuncio **anteriores** a la insistencia? Habría que reconocerlos por el texto precargado del anuncio ("¿Precio de las etiquetas adhesivas?", "¡Hola! Quiero más información").
+
+## 9. Fuentes
 
 - [Meta: Pricing on the WhatsApp Business Platform](https://developers.facebook.com/docs/whatsapp/pricing): ventana gratuita de hasta 7 días, 1.000 mensajes gratis al mes, cambios del 1-oct-2026.
 - [Meta: Pricing updates](https://developers.secure.facebook.com/docs/whatsapp/pricing/updates-to-pricing)

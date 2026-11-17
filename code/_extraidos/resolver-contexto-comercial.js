@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.35
+// RESOLVER CONTEXTO COMERCIAL - V3.36
 // ======================================================
 //
 // Objetivo:
@@ -203,6 +203,9 @@
 //   (antes a veces iban a humano). Alineado con FAQ pre-IA.
 // - V3.35: vaso/botella con onzas/ml sin cm no deriva ni
 //   "Permítame…": pide ancho×alto en cm y foto del envase.
+// - V3.36: galería de trabajos (GALERIA_TRABAJOS) una sola
+//   vez por conversación tras responder cireles, material o
+//   ciudad en etiquetas. Salida enviar_galeria_trabajos.
 //
 // ======================================================
 
@@ -7397,6 +7400,64 @@ const calificacionPreventa = derivacionCompra ? 'DECISION_COMPRA'
       ? 'INTERES_CONCRETO' : 'CONSULTA';
 contextoComercialNuevo.calificacion_preventa = calificacionPreventa;
 
+
+// ------------------------------------------------------
+// 14.1 GALERÍA DE TRABAJOS (V3.36)
+// ------------------------------------------------------
+//
+// Después de responder cireles, material o ciudad en
+// etiquetas, "Preparar envío WhatsApp" manda la galería
+// tras el texto y cierra con "Le adjunto varios de nuestros
+// trabajos.". Una sola vez por conversación; tampoco si un
+// asesor ya la envió a mano.
+//
+// ------------------------------------------------------
+
+// @pegaso-module code/preventa/galeria-trabajos.js
+
+const historialGaleria =
+  Array.isArray(contextoIA.historial) ? contextoIA.historial : [];
+
+const galeriaTrabajos =
+  decidirGaleriaTrabajos({
+    config: objeto(
+      filasConfiguracion.find(fila => fila.clave === 'GALERIA_TRABAJOS')?.valor_json
+    ),
+    respuesta: respuestaSugerida,
+    accion: derivacionCompra ? 'DERIVAR_HUMANO' : accion,
+    permitido:
+      !omitirEnvio &&
+      !suprimirMediosTurno &&
+      !derivacionPorCantidad &&
+      !enviarImagenTrabajos &&
+      !primerEnvioCatalogoTurno &&
+      !esLineaTarjetas &&
+      !esLineaFlyers &&
+      !esLineaRapida &&
+      !esLineaCalendarios &&
+      !esLineaLibretas &&
+      !ACCIONES_CATALOGO.includes(accion),
+    contextoAnterior,
+    historial: historialGaleria,
+    // Lo que escribió el prospecto elige la galería de su producto.
+    textoProspecto: [
+      producto,
+      textoTurnoCrudo,
+      ...historialGaleria
+        .filter(mensaje => String(mensaje?.direccion ?? '').toUpperCase() === 'ENTRANTE')
+        .map(mensaje => mensaje?.contenido)
+    ].filter(Boolean).join(' ')
+  });
+
+if (galeriaTrabajos) {
+  contextoComercialNuevo.galeria_trabajos = {
+    clave: galeriaTrabajos.clave,
+    motivo: galeriaTrabajos.motivo,
+    medios: galeriaTrabajos.medios.length,
+    enviada_at: new Date().toISOString()
+  };
+}
+
 return [
   {
     json: {
@@ -7660,6 +7721,18 @@ return [
           ? videosTarjetasValidos
           : [],
 
+      enviar_galeria_trabajos:
+        galeriaTrabajos !== null,
+
+      galeria_trabajos:
+        galeriaTrabajos?.medios ?? [],
+
+      galeria_trabajos_clave:
+        galeriaTrabajos?.clave ?? null,
+
+      texto_cierre_galeria:
+        galeriaTrabajos?.texto_cierre ?? null,
+
       texto_saludo_tarjetas:
         textoSaludoTarjetas,
 
@@ -7755,7 +7828,8 @@ return [
         motivo_omision_envio: null,
         enviar_imagen_informativa: false,
         enviar_videos_tarjetas: false,
-        enviar_imagen_flyers: false
+        enviar_imagen_flyers: false,
+        enviar_galeria_trabajos: false
       } : {})
     }
   }
