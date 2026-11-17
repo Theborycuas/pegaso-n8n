@@ -1,0 +1,530 @@
+function construirNotificacionHumano(input) {
+function escaparHtml(valor) {
+  return String(valor ?? '').replace(/[&<>"']/g, caracter => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[caracter]);
+}
+
+const cierreComercial = input.cierre_comercial ?? input.contexto_comercial?.cierre_comercial;
+const esCierreComercial =
+  ['CIERRE_COMERCIAL_ACEPTADO', 'INTERES_FIRME_PARA_COORDINAR'].includes(input.handoff_motivo ?? input.motivo_derivacion);
+
+// ======================================================
+// 1. HELPERS
+// ======================================================
+
+function texto(valor) {
+
+  if (
+    valor === undefined ||
+    valor === null
+  ) {
+    return null;
+  }
+
+  const limpio =
+    String(valor).trim();
+
+  return limpio !== ''
+    ? limpio
+    : null;
+}
+
+
+function numeroONull(valor) {
+
+  if (
+    valor === undefined ||
+    valor === null ||
+    valor === ''
+  ) {
+    return null;
+  }
+
+  const n =
+    Number(valor);
+
+  return Number.isFinite(n)
+    ? n
+    : null;
+}
+
+
+// ======================================================
+// 2. DATOS PRINCIPALES
+// ======================================================
+
+const conversacionId =
+  numeroONull(
+    input.conversacion_id
+  );
+
+
+const prospectoId =
+  numeroONull(
+    input.prospecto_id
+  );
+
+
+const nombre =
+  texto(
+    input.prospecto_nombre
+  ) ??
+  texto(
+    input.nombre_whatsapp
+  ) ??
+  'Sin nombre';
+
+
+const telefono =
+  texto(
+    input.telefono
+  ) ??
+  'No disponible';
+
+
+const ciudad =
+  texto(
+    input.prospecto_ciudad
+  ) ??
+  texto(
+    input.ciudad_detectada
+  ) ??
+  'No registrada';
+
+
+const intencion =
+  (
+    texto(
+      input.intencion
+    ) ??
+    'OTRO'
+  ).toUpperCase();
+
+
+const motivo =
+  (
+    texto(
+      input.handoff_motivo
+    ) ??
+    texto(
+      input.motivo_derivacion
+    ) ??
+    'OTRO'
+  ).toUpperCase();
+
+
+const prioridad =
+  (
+    texto(
+      input.handoff_prioridad
+    ) ??
+    texto(
+      input.prioridad_derivacion
+    ) ??
+    'NORMAL'
+  ).toUpperCase();
+
+
+const mensajeCliente =
+  texto(
+    input.handoff_mensaje_cliente
+  ) ??
+  texto(
+    input.mensaje_actual
+  ) ??
+  'No disponible';
+
+
+const clasificacionProspecto =
+  texto(
+    input.clasificacion_prospecto
+  ) ??
+  texto(
+    input.prospecto_clasificacion
+  ) ??
+  null;
+
+
+// ======================================================
+// 3. CLASIFICAR TIPO DE ALERTA
+// ======================================================
+
+let categoriaNotificacion =
+  'REVISION_GENERAL';
+
+
+if (
+  [
+    'SOLICITA_DATOS_PAGO',
+    'SOLICITA_CUENTA',
+    'SOLICITA_DATOS_BANCARIOS',
+    'PIDE_CUENTA',
+    'PIDE_NUMERO_CUENTA',
+    'INTERES_PAGO'
+  ].includes(motivo)
+) {
+
+  categoriaNotificacion =
+    'INTERESADO_PAGO';
+
+}
+
+
+else if (
+  [
+    'REPORTA_PAGO',
+    'ENVIA_COMPROBANTE',
+    'COMPROBANTE_PAGO',
+    'PAGO_REALIZADO'
+  ].includes(motivo)
+) {
+
+  categoriaNotificacion =
+    'PAGO_REPORTADO';
+
+}
+
+
+else if (
+  [
+    'SOLICITA_LLAMADA',
+    'QUIERE_LLAMAR',
+    'QUIERE_QUE_LO_LLAMEN',
+    'ATENCION_TELEFONICA'
+  ].includes(motivo)
+) {
+
+  categoriaNotificacion =
+    'SOLICITA_CONTACTO';
+
+}
+
+
+else if (
+  [
+    'IMAGEN_REQUIERE_REVISION',
+    'ARCHIVO_NO_PROCESABLE',
+    'ARCHIVO_DISENO',
+    'ARCHIVO_NO_ANALIZABLE',
+    'IMAGEN_NO_ANALIZABLE',
+    'ARCHIVO_REQUIERE_REVISION',
+    'DISENO_REQUIERE_REVISION'
+  ].includes(motivo)
+) {
+
+  categoriaNotificacion =
+    'ARCHIVO_REQUIERE_REVISION';
+
+}
+
+
+else if (
+  [
+    'NEGOCIACION',
+    'NEGOCIAR_PRECIO',
+    'PRECIO_ESPECIAL',
+    'DESCUENTO'
+  ].includes(motivo)
+) {
+
+  categoriaNotificacion =
+    'NEGOCIACION';
+
+}
+
+
+else if (
+  [
+    'RECLAMO',
+    'INCONVENIENTE',
+    'QUEJA'
+  ].includes(motivo)
+) {
+
+  categoriaNotificacion =
+    'RECLAMO';
+
+}
+
+
+// ======================================================
+// 4. RESOLVER PRIORIDAD REAL
+// ======================================================
+
+let prioridadFinal =
+  prioridad;
+
+if (esCierreComercial) {
+  categoriaNotificacion = cierreComercial?.tipo ?? 'INTERES_FIRME_PARA_COORDINAR';
+  prioridadFinal = 'ALTA';
+}
+
+
+if (
+  categoriaNotificacion ===
+  'PAGO_REPORTADO'
+) {
+
+  prioridadFinal =
+    'ALTA';
+
+}
+
+
+else if (
+  categoriaNotificacion ===
+  'INTERESADO_PAGO'
+) {
+
+  prioridadFinal =
+    'ALTA';
+
+}
+
+
+else if (
+  categoriaNotificacion ===
+  'RECLAMO'
+) {
+
+  prioridadFinal =
+    'ALTA';
+
+}
+
+
+else if (
+  categoriaNotificacion ===
+  'SOLICITA_CONTACTO'
+) {
+
+  prioridadFinal =
+    'MEDIA';
+
+}
+
+
+// ======================================================
+// 5. ASUNTO EMAIL
+// ======================================================
+
+let asunto =
+  'Pegaso - Prospecto requiere revisión';
+
+
+if (
+  categoriaNotificacion ===
+  'INTERESADO_PAGO'
+) {
+
+  asunto =
+    '🔥 Pegaso - Prospecto solicita datos de pago';
+
+}
+
+
+else if (
+  categoriaNotificacion ===
+  'PAGO_REPORTADO'
+) {
+
+  asunto =
+    [
+      'ENVIA_COMPROBANTE',
+      'COMPROBANTE_PAGO'
+    ].includes(motivo)
+      ? 'SE RECIBIÓ UN COMPROBANTE DE PAGO'
+      : 'SE RECIBIÓ UN REPORTE DE PAGO';
+
+}
+
+
+else if (
+  categoriaNotificacion ===
+  'RECLAMO'
+) {
+
+  asunto =
+    '⚠️ Pegaso - Reclamo requiere atención';
+
+}
+
+
+else if (
+  categoriaNotificacion ===
+  'ARCHIVO_REQUIERE_REVISION'
+) {
+
+  asunto =
+    '📎 Pegaso - Archivo requiere revisión';
+
+}
+
+
+// ======================================================
+// 6. TEXTO INTERNO
+// ======================================================
+
+const encabezadoAlerta =
+  esCierreComercial
+    ? (categoriaNotificacion === 'CIERRE_COMERCIAL_ACEPTADO'
+        ? 'EL PROSPECTO ACEPTÓ LA PROPUESTA. CONTINUAR ATENCIÓN HUMANA.'
+        : 'EL PROSPECTO DESEA COMPRAR. CONCRETAR LOS DETALLES PENDIENTES.')
+    : categoriaNotificacion === 'PAGO_REPORTADO'
+    ? (
+      [
+        'ENVIA_COMPROBANTE',
+        'COMPROBANTE_PAGO'
+      ].includes(motivo)
+        ? 'SE RECIBIÓ UN COMPROBANTE DE PAGO.'
+        : 'SE RECIBIÓ UN REPORTE DE PAGO.'
+    )
+    : 'Nueva conversación requiere atención.';
+
+const lineas = [
+  'PEGASO ADHESIVOS',
+  '',
+  encabezadoAlerta,
+  '',
+  `Prioridad: ${prioridadFinal}`,
+  `Categoría: ${categoriaNotificacion}`,
+  `Motivo: ${motivo}`,
+  `Intención: ${intencion}`,
+  '',
+  `Prospecto: ${nombre}`,
+  `Teléfono: ${telefono}`,
+  `Ciudad: ${ciudad}`,
+  `Clasificación: ${clasificacionProspecto ?? 'No definida'}`,
+  '',
+  'Último mensaje:',
+  mensajeCliente,
+  '',
+  `Conversación ID: ${conversacionId ?? 'N/D'}`,
+  `Prospecto ID: ${prospectoId ?? 'N/D'}`
+];
+
+if (esCierreComercial) {
+  asunto = categoriaNotificacion === 'CIERRE_COMERCIAL_ACEPTADO'
+    ? '[CIERRE COMERCIAL] Pegaso - Propuesta aceptada'
+    : '[INTERESADO EN COMPRAR] Pegaso - Requiere coordinación';
+  const contexto = input.contexto_comercial ?? {};
+  const propuesta = cierreComercial?.propuesta ?? contexto.cotizacion ?? {};
+  lineas.push('', 'Resumen de preventa:',
+    `Cotización ID: ${cierreComercial?.cotizacion_id ?? 'Pendiente de identificar'}`,
+    `Producto: ${input.producto ?? propuesta.producto ?? 'Pendiente'}`,
+    `Cantidad: ${input.cantidad ?? propuesta.cantidad_cotizable ?? propuesta.cantidad_solicitada ?? 'Pendiente'}`,
+    `Medidas cotizadas (cm): ${propuesta.ancho_cm ?? 'Pendiente'} x ${propuesta.alto_cm ?? 'Pendiente'}`,
+    `Forma cotizada: ${propuesta.forma ?? 'Pendiente'}`,
+    `Total cotizado: ${propuesta.total ?? cierreComercial?.pedido_catalogo?.total ?? 'Pendiente'}`,
+    `Selección de catálogo: ${cierreComercial?.pedido_catalogo ? JSON.stringify(cierreComercial.pedido_catalogo) : 'No registrada'}`,
+    `Diseño recibido: ${contexto.diseno_recibido ? JSON.stringify(contexto.diseno_recibido) : 'Pendiente de verificar con el cliente'}`,
+    `Fecha requerida: ${contexto.fecha_deseada_cliente ? JSON.stringify(contexto.fecha_deseada_cliente) : 'No indicada'}`,
+    '', 'Siguiente acción del encargado: coordinar la compra, corroborar condiciones y gestionar el cobro.',
+    'La aceptación corresponde al cierre de preventa. Los pagos y la operación los corrobora el equipo.');
+}
+
+const mensajeNotificacion =
+  lineas.join('\n');
+
+
+// ======================================================
+// 7. HTML EMAIL
+// ======================================================
+
+const htmlEmail = esCierreComercial
+  ? `<h2>Pegaso Adhesivos</h2><pre style="white-space:pre-wrap">${escaparHtml(mensajeNotificacion)}</pre>`
+  : `
+<h2>Pegaso Adhesivos</h2>
+
+<p><strong>${escaparHtml(encabezadoAlerta)}</strong></p>
+
+<table style="border-collapse:collapse;">
+  <tr>
+    <td><strong>Prioridad</strong></td>
+    <td>${escaparHtml(prioridadFinal)}</td>
+  </tr>
+  <tr>
+    <td><strong>Categoría</strong></td>
+    <td>${escaparHtml(categoriaNotificacion)}</td>
+  </tr>
+  <tr>
+    <td><strong>Motivo</strong></td>
+    <td>${escaparHtml(motivo)}</td>
+  </tr>
+  <tr>
+    <td><strong>Intención</strong></td>
+    <td>${escaparHtml(intencion)}</td>
+  </tr>
+  <tr>
+    <td><strong>Prospecto</strong></td>
+    <td>${escaparHtml(nombre)}</td>
+  </tr>
+  <tr>
+    <td><strong>Teléfono</strong></td>
+    <td>${escaparHtml(telefono)}</td>
+  </tr>
+  <tr>
+    <td><strong>Ciudad</strong></td>
+    <td>${escaparHtml(ciudad)}</td>
+  </tr>
+  <tr>
+    <td><strong>Clasificación</strong></td>
+    <td>${escaparHtml(clasificacionProspecto ?? 'No definida')}</td>
+  </tr>
+</table>
+
+<h3>Último mensaje</h3>
+
+<p>${escaparHtml(mensajeCliente)}</p>
+
+<hr>
+
+<p>
+Conversación ID: ${escaparHtml(conversacionId ?? 'N/D')}<br>
+Prospecto ID: ${escaparHtml(prospectoId ?? 'N/D')}
+</p>
+`;
+
+
+// ======================================================
+// 8. SALIDA
+// ======================================================
+
+return [
+  {
+    json: {
+
+      ...input,
+
+      notificacion_interna: true,
+
+      categoria_notificacion:
+        categoriaNotificacion,
+
+      prioridad_notificacion:
+        prioridadFinal,
+
+      asunto_notificacion:
+        asunto,
+
+      mensaje_notificacion:
+        mensajeNotificacion,
+
+      html_notificacion:
+        htmlEmail,
+
+      // Inicialmente usaremos EMAIL.
+      canal_notificacion:
+        'EMAIL',
+
+      enviar_notificacion:
+        true,
+
+      notificacion_preparada_at:
+        new Date().toISOString()
+
+    }
+  }
+];
+}

@@ -538,22 +538,30 @@ flowchart TD
     PMT --> FDH[Finalizar derivación humana] --> RN{IF: ¿Requiere notificación?}
     RN -->|T y F| PNH[Peparar notificacion humano] --> BR[Brevo - Enviar notificación humana]
     BR -->|err| RS[Resend - Enviar notificación humana]
+    BR -->|ok| CA[(Confirmar aviso humano enviado)]
+    RS -->|ok| CA
+    RS -->|err| PR[(Programar reintento aviso humano)]
+    RAH[Reintentar avisos humanos cada 10 min] --> RES[(Reservar avisos humanos pendientes)] --> PNH
 ```
 
 | Nodo | Tipo | Qué hace | Recibe de | Envía a |
 |---|---|---|---|---|
 | Preparar handoff entrada no soportada | Code | Contrato de handoff directo para entradas no procesables (video, documento, sticker, ubicación…) o audios cuya transcripción falló en Groq y Deepgram. Lee además: Resolver turno conversacional, Preparar audio del turno, Preparar entrada WhatsApp, Normalizar mensaje, Preparar conversación | IF: ¿Derivación directa por entrada? [T] · Descargar audio YCloud [err] · Transcribir audio Deepgram [err] · Descargar audio YCloud Deepgram [err] · IF: ¿Transcripción válida Deepgram? [F] | Preparar derivación humana |
 | Preparar derivación humana | Code | Convierte la decisión en un contrato estable de HANDOFF: valida ids, decide motivo, clasificación, prioridad (IA + reglas ALTA/MEDIA) y si requiere notificación; separa el mensaje original del cliente del mensaje de transición. Lee además: Recuperar decisión comercial | Enrutar acción comercial (19) · Preparar derivación imagen fallida · Preparar handoff entrada no soportada | Marcar prospecto requiere humano |
-| Marcar prospecto requiere humano | Postgres update `prospectos` | `requiere_humano`, `ultima_accion`, `actualizado_at` | Preparar derivación humana | Preparar contexto handoff |
+| Marcar prospecto requiere humano | Postgres executeQuery `prospectos` + `notificaciones_humano` | Adjudica la derivación (`requiere_humano`, `ultima_accion`, `actualizado_at`) y en la misma sentencia registra el aviso en `notificaciones_humano` con estado `ENVIANDO`, `payload` = salida de Preparar derivación humana y reserva de 5 minutos. Devuelve `notificacion_id` y `notificacion_reserva`; si el aviso no puede registrarse la derivación continúa con ambos en null | Preparar derivación humana | Preparar contexto handoff |
 | Preparar contexto handoff | Code | Recupera el contrato de handoff (el UPDATE solo devuelve el prospecto) y arma el nuevo `contexto_comercial`. Lee además: Preparar derivación humana | Marcar prospecto requiere humano | Guardar contexto handoff |
 | Guardar contexto handoff | Postgres update `conversaciones` | `contexto_comercial`, `ultimo_mensaje_at` | Preparar contexto handoff | Preparar mensaje transición humano |
 | Preparar mensaje transición humano | Code | Elige el texto fijo de transición según el motivo (pago, comprobante, pedido, llamada, imagen, archivo, negociación, reclamo) con fallback por intención; `tipo_mensaje_salida = HANDOFF_HUMANO`. Lee además: Preparar contexto handoff | Guardar contexto handoff | Guardar mensaje transición humano **y** Finalizar derivación humana (en paralelo) |
 | Guardar mensaje transición humano | Postgres insert `mensajes` | Guarda el mensaje de transición (SALIENTE) | Preparar mensaje transición humano | Preparar envío WhatsApp |
-| Finalizar derivación humana | Code | Contrato final del handoff (no cambia decisiones ni prioridad). Lee además: Preparar mensaje transición humano | Preparar mensaje transición humano | IF: ¿Requiere notificación? |
+| Finalizar derivación humana | Code | Contrato final del handoff (no cambia decisiones ni prioridad); conserva `notificacion_id` y `notificacion_reserva`. Lee además: Preparar mensaje transición humano | Preparar mensaje transición humano | IF: ¿Requiere notificación? |
 | IF: ¿Requiere notificación? | IF `requiere_notificacion` | **Ambas salidas van al mismo nodo** (ver §18) | Finalizar derivación humana | [T] y [F] Peparar notificacion humano |
-| Peparar notificacion humano | Code | Notificación interna: categoría (`INTERESADO_PAGO`, `PAGO_REPORTADO`, …), prioridad, asunto (comprobante: `SE RECIBIÓ UN COMPROBANTE DE PAGO`), texto y HTML del email | IF: ¿Requiere notificación? | Brevo - Enviar notificación humana |
-| Brevo - Enviar notificación humana | HTTP POST `api.brevo.com/v3/smtp/email` (credencial Header Auth; `onError: continueErrorOutput`) | Envía el email interno | Peparar notificacion humano | [ok] **fin** · [err] Resend - Enviar notificación humana |
-| Resend - Enviar notificación humana | HTTP POST `api.resend.com/emails` (credencial Header Auth; `onError: continueRegularOutput`) | Respaldo de email si Brevo falla | Brevo [err] | — (**fin**) |
+| Peparar notificacion humano | Code (módulo `code/preventa/notificacion-humano.js`) | Notificación interna: categoría (`INTERESADO_PAGO`, `PAGO_REPORTADO`, `CIERRE_COMERCIAL_ACEPTADO`, …), prioridad, asunto (comprobante: `SE RECIBIÓ UN COMPROBANTE DE PAGO`), texto y HTML del email. Procesa cada item; en un reintento usa `payload` del aviso guardado | IF: ¿Requiere notificación? · Reservar avisos humanos pendientes | Brevo - Enviar notificación humana |
+| Brevo - Enviar notificación humana | HTTP POST `api.brevo.com/v3/smtp/email` (credencial Header Auth; `onError: continueErrorOutput`; timeout 20 s) | Envía el email interno (también el reporte STATUSIA) | Peparar notificacion humano · Preparar reporte STATUSIA | [ok] Confirmar aviso humano enviado · [err] Resend - Enviar notificación humana |
+| Resend - Enviar notificación humana | HTTP POST `api.resend.com/emails` (credencial Header Auth; `onError: continueErrorOutput`; timeout 20 s) | Respaldo de email si Brevo falla. Toma asunto y HTML de Peparar notificacion humano o, en la ruta STATUSIA, de Preparar reporte STATUSIA | Brevo [err] | [ok] Confirmar aviso humano enviado · [err] Programar reintento aviso humano |
+| Confirmar aviso humano enviado | Postgres executeQuery `notificaciones_humano` | Marca `ENVIADA` solo si coincide la reserva. En la ruta STATUSIA recibe null y no actualiza nada | Brevo [ok] · Resend [ok] | — (**fin**) |
+| Programar reintento aviso humano | Postgres executeQuery `notificaciones_humano` | Devuelve el aviso a `PENDIENTE` con espera exponencial (60 s, 120 s… hasta 1 h) | Resend [err] | — (**fin**) |
+| Reintentar avisos humanos | Schedule Trigger (cada 10 min) | Inicia la recuperación de avisos | — | Reservar avisos humanos pendientes |
+| Reservar avisos humanos pendientes | Postgres executeQuery `notificaciones_humano` | Reserva hasta 10 avisos `PENDIENTE` vencidos o `ENVIANDO` con reserva caducada (`FOR UPDATE SKIP LOCKED`), suma un intento y devuelve `payload`, `notificacion_id` y `notificacion_reserva` | Reintentar avisos humanos | Peparar notificacion humano |
 
 ---
 
@@ -637,7 +645,8 @@ flowchart LR
 | Enrutar acción comercial salida 13 | `REGISTRAR_ACEPTACION` continúa a respuesta comercial. La aceptación contextual resuelta usa `DERIVAR_HUMANO`. `ENVIAR_DATOS_PAGO` continúa a derivación humana |
 | EXECUTOR MOMENTANEP | Fin de respuesta comercial |
 | Finalizar cotización comercial | Fin de cotización |
-| Brevo (ok) / Resend | Fin de notificación interna |
+| Confirmar aviso humano enviado / Programar reintento aviso humano | Fin de notificación interna (enviada o pendiente de reintento) |
+| Reservar avisos humanos pendientes (0 filas) | Recuperación sin avisos pendientes |
 | YCloud Enviar Wts / If:¿Enviar por WhatsApp? [F] | Fin del envío al cliente (incluye respuestas omitidas por duplicado) |
 
 ### Mantener este documento
@@ -716,3 +725,16 @@ La consulta comprueba que existe el mensaje origen, que sigue siendo el último 
 Las ocho condiciones de permiso pueden finalizar una salida que quedó desactualizada o bajo atención humana. Un mensaje entrante repetido puede terminar en la deduplicación de entrada. Una derivación simultánea ya adjudicada termina en la actualización condicional del prospecto.
 
 La autorización consulta el estado inmediatamente antes del HTTP. Existe un intervalo entre esa consulta y la petición externa. Las pruebas locales cubren los estados SQL y la competencia por la derivación; el recorrido en la instalación n8n y el proveedor WhatsApp requieren prueba operativa. El correo continúa utilizando Brevo y Resend. La bandeja persistente con reintentos de notificación pertenece a una entrega posterior.
+
+## 20. Segunda entrega local de preventa
+
+Eficiencia de la conversación, modularización y aviso persistente al encargado. El workflow editable tiene 229 nodos: los cuatro nuevos de la sección 15 (`Confirmar aviso humano enviado`, `Programar reintento aviso humano`, `Reservar avisos humanos pendientes`, `Reintentar avisos humanos`).
+
+- **Requisito previo:** aplicar `schema/preventa-eficiencia.sql` en PostgreSQL antes de publicar. `Marcar prospecto requiere humano` escribe en `notificaciones_humano` y `Guardar contexto comercial` en `metricas_preventa`.
+- `Recuperar historial conversación` deja de leer toda la conversación: devuelve los últimos 60 mensajes de 24 h, los entrantes sin procesar de los últimos 10 min, el mensaje de esta ejecución, la última reactivación `ACTIVEBOT` y la última intervención humana, en orden cronológico. Conserva lo que usan `Resolver turno conversacional` y `Preparar contexto IA`.
+- `Preparar contexto IA` combina varias FAQs en una respuesta (`TABLA_FAQ_PRE_IA`, módulo `code/preventa/preguntas-frecuentes.js`), restringe las FAQs de etiquetas cuando la línea es un producto de catálogo y detecta la decisión de compra antes de llamar al cerebro (`COMPRA_EXPLICITA`, módulo `code/preventa/cierre-comercial.js`). Expone `cache_faq` y `caracteres_contexto_ia`.
+- `Resolver contexto comercial` usa el mismo módulo de compra, recuerda en `contexto_comercial.editable` si el cliente tiene o no el editable y guarda `calificacion_preventa` (`CONSULTA`, `INTERES_CONCRETO`, `DECISION_COMPRA`).
+- `Guardar contexto comercial` registra una métrica por mensaje en `metricas_preventa` dentro de la misma sentencia.
+- Los tres `Cerebro comercial` conservan el prompt publicado. Sus datos variables están al final, por lo que el texto fijo es un prefijo que los proveedores pueden cachear.
+
+Los módulos de `code/preventa/` se insertan en el nodo con la directiva `// @pegaso-module code/preventa/<archivo>.js` al ejecutar `inject-code.mjs` y se reconstruyen al extraer (`scripts/lib/node-modules.mjs`). Si el código de un módulo cambia en n8n, la extracción se detiene para revisarlo.

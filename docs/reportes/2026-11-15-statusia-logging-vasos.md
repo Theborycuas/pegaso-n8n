@@ -64,3 +64,18 @@ Campos útiles del reporte: intentos OK/fallo por proveedor, conteo de fallback 
 3. Probar: mensaje tipo “vasos de 7 onzas…” → pide cm + foto.  
 4. Probar: `STATUSIA` desde admin → email (puede ir vacío hasta que haya logs).  
 5. Revisar una ejecución con cerebro: fila en `pegaso.ia_llamadas`.
+
+## 6. Diagnóstico 2026-11-16 — correo vacío
+
+**Causa:** en producción la consulta falló con  
+`relation "pegaso.ia_llamadas" does not exist`.  
+El nodo tiene `onError: continueRegularOutput`, así que el flujo igual armó el email y puso “sin registros” en día/semana/mes.
+
+**Qué hacer ahora (en este orden):**
+
+1. Ejecutar en Postgres el contenido de `schema/ia_llamadas.sql` (crear tabla + índices).  
+2. Publicar el fix del reporte (V1.2) que muestra el error real en el correo si vuelve a fallar.  
+3. Esperar al menos un chat que pase por el cerebro (Groq/DeepSeek/OpenAI) para que `Insertar log IA` escriba filas.  
+4. Volver a enviar `STATUSIA`.
+
+Sin el paso 1 el logging también falla en silencio (mismo `onError` en el INSERT).

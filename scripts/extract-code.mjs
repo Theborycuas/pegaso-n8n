@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { extractNode } from './lib/node-modules.mjs';
 
 // ======================================================
 // PEGASO N8N - EXTRACT CODE NODES
@@ -124,6 +125,12 @@ const codeNodes = workflow.nodes.filter(
     node.type === 'n8n-nodes-base.code'
 );
 
+// Comprobar todos los módulos antes de sobrescribir el directorio extraído.
+const extractedCode = new Map(codeNodes.map(node => [
+  node.id, typeof node.parameters?.jsCode === 'string'
+    ? extractNode(node.parameters.jsCode, process.cwd()) : null
+]));
+
 console.log('');
 console.log(
   `Code Nodes encontrados: ${codeNodes.length}`
@@ -158,8 +165,7 @@ const manifest = [];
 
 for (const node of codeNodes) {
 
-  const jsCode =
-    node?.parameters?.jsCode;
+  const jsCode = extractedCode.get(node.id);
 
   if (typeof jsCode !== 'string') {
 

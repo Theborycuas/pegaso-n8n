@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { compileNode } from './lib/node-modules.mjs';
 
 const ROOT = process.cwd();
 
@@ -103,7 +104,7 @@ for (const item of manifest.nodes) {
   code = code.replace(/\s+$/, '');
 
   node.parameters ??= {};
-  node.parameters.jsCode = code;
+  node.parameters.jsCode = compileNode(code, ROOT);
 
   updated++;
 }

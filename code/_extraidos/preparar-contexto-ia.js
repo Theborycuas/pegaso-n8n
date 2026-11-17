@@ -2496,202 +2496,9 @@ const RESPUESTA_CIERRE_LIBRETAS =
 // con ciudad, anti-duplicado).
 // ------------------------------------------------------
 
-const RESPUESTA_FAQ_REFUERZO_MEDIDAS =
-  'Para enviarle el precio indíquenos por favor el ancho y el alto de sus etiquetas en centímetros. Con esos datos le cotizamos de inmediato.';
+// @pegaso-module code/preventa/preguntas-frecuentes.js
 
-const RESPUESTA_FAQ_MATERIAL =
-  'Trabajamos con plástico Polipropileno de alta adherencia 👌. ' +
-  'Lo que permite a sus productos una elegante presentación. ' +
-  'Nuestras etiquetas resisten refrigeración, congelación y temperaturas relativamente altas (no temperaturas que derritan el plástico), sin que se despegue.';
-
-const RESPUESTA_FAQ_MATERIAL_Y_MEDIDAS =
-  RESPUESTA_FAQ_MATERIAL +
-  '\n\n¿En qué medidas necesita sus etiquetas? Indíquenos ancho y alto en centímetros para cotizarle de inmediato.';
-
-const RESPUESTA_FAQ_UBICACION =
-  'Somos de la ciudad de Quito. Atendemos a nivel nacional y hacemos envíos a todo el país. ¿Desde qué ciudad nos escribe?';
-
-const RESPUESTA_FAQ_LOCAL =
-  'Sí, contamos con local físico en Quito. Los retiros se realizan los viernes a partir de las 5 PM; si el trabajo sale antes le notificamos.';
-
-const RESPUESTA_FAQ_IVA_ETIQUETAS =
-  'Sí, el precio de las etiquetas adhesivas incluye IVA.';
-
-const RESPUESTA_FAQ_ENVIO =
-  'Sí, realizamos envíos a todo el país 🇪🇨🚛. No está incluido el valor del envío; es de $5.00 dólares aproximadamente. ¿Desde qué ciudad nos escribe disculpe?';
-
-const RESPUESTA_FAQ_MINIMO =
-  'El mínimo de impresión es de 1000 etiquetas por diseño (del mismo diseño).';
-
-const RESPUESTA_FAQ_METODOLOGIA =
-  'Trabajamos con una metodología semanal: recibimos pedidos de lunes a miércoles, ' +
-  'producimos miércoles y jueves, y realizamos entregas y envíos los viernes a partir de las 17:00. ' +
-  'El viernes de entrega se confirma según el día en que ingrese su pedido.';
-
-const RESPUESTA_FAQ_DATOS_PAGO =
-  'Le adjunto nuestros datos personales 📃 y números de cuentas 🏦';
-
-const RESPUESTA_FAQ_DISENO =
-  'Realizamos 1 propuesta de diseño con posibilidad de 5 cambios sobre lo propuesto. ' +
-  'Debe tener listo su logo, slogan, fotos e información de direcciones y contactos. ' +
-  'Trabajamos con abono del 50% para iniciar y el 50% restante contra entrega.';
-
-const RESPUESTA_FAQ_ENVASE_VOLUMEN =
-  'Para cotizarle la etiqueta necesitamos el ancho y el alto en centímetros (no basta con onzas o mililitros). ' +
-  'Si puede, envíenos también una foto del vaso o envase con una regla o midiendo el área a etiquetar. ' +
-  'Con esos datos le cotizamos de inmediato.';
-
-const TABLA_FAQ_PRE_IA = [
-  {
-    id: 'PRECIO_ETIQUETAS_ADHESIVAS',
-    // FAQ del anuncio Meta (muy repetida en ejecuciones).
-    patron:
-      /^(hola[!¡. ]*)?(quiero (saber |conocer )?)?(el )?precio de las etiquetas adhesivas\??$/,
-    intencion: 'CONSULTAR_PRECIO',
-    accion: 'PEDIR_MEDIDAS',
-    respuesta: RESPUESTA_FAQ_REFUERZO_MEDIDAS
-  },
-  {
-    id: 'MATERIAL_ETIQUETAS',
-    patron:
-      /\b(de que material|que material|cual (es|seria) el material|material (de las |para )?(sus )?etiquetas|polipropileno)\b/,
-    intencion: 'CONSULTAR_PRODUCTO',
-    accion: 'INFORMAR_MATERIAL',
-    respuesta: RESPUESTA_FAQ_MATERIAL
-  },
-  {
-    id: 'MAS_INFORMACION',
-    patron:
-      /^(hola[!¡. ]*)?(quiero |me gustaria |deseo )?(mas |la )?informacion\??$|^(informacion|info)\??$/,
-    intencion: 'CONSULTAR_PRODUCTO',
-    accion: 'INFORMAR_MATERIAL',
-    respuesta: RESPUESTA_FAQ_MATERIAL_Y_MEDIDAS
-  },
-  {
-    id: 'UBICACION',
-    patron:
-      /\b(donde (estan|quedan|se encuentran)|en ?q(ue)? (ciudad|parte).{0,24}(encuentran|ubicados|estan)|parte de quito|ubicacion|direccion( exacta)?|ayudeme (con )?(la |su )?direccion|me pasa (su |la )?(ubicacion|direccion)|estan ubicados)\b/,
-    intencion: 'CONSULTAR_UBICACION',
-    accion: 'INFORMAR_UBICACION',
-    respuesta: RESPUESTA_FAQ_UBICACION
-  },
-  {
-    id: 'LOCAL_FISICO',
-    patron:
-      /\b(local fisico|tienen local|tiene local|para visitar(les|los)?|puedo (ir|visitar)|retiros? en (el )?local)\b/,
-    intencion: 'CONSULTAR_UBICACION',
-    accion: 'INFORMAR_UBICACION',
-    respuesta: RESPUESTA_FAQ_LOCAL
-  },
-  {
-    id: 'IVA',
-    patron:
-      /\b(incluye|incluyen|incluido|con|sin|el|del)?\s*iva\b|\biva\b/,
-    intencion: 'CONSULTAR_PRECIO',
-    accion: 'RESPONDER_GENERAL',
-    respuesta: RESPUESTA_FAQ_IVA_ETIQUETAS,
-    // Solo turnos cortos: "¿incluye IVA?" no una cotización larga.
-    maxLen: 80
-  },
-  {
-    id: 'ENVIO',
-    patron:
-      /\b(hacen|realizan|tienen)?\s*envios?\b|\benvian (a|hasta|para)\b|\b(transporte|flete|delivery|encomienda)\b|\bme (hacen|pueden) llegar\b/,
-    intencion: 'CONSULTAR_ENVIO',
-    accion: 'RESPONDER_GENERAL',
-    respuesta: RESPUESTA_FAQ_ENVIO,
-    maxLen: 120
-  },
-  {
-    id: 'MINIMO',
-    patron:
-      /\b(cual (es|seria) (el )?minimo|minimo (de|de impresion|por diseno)|desde cuantas|cantidad minima|el minimo)\b/,
-    intencion: 'CONSULTAR_MINIMO',
-    accion: 'INFORMAR_MINIMO',
-    respuesta: RESPUESTA_FAQ_MINIMO
-  },
-  {
-    id: 'METODOLOGIA_ENTREGA',
-    patron:
-      /\b(tiempo de entrega|tiempos? de (produccion|entrega)|metodologia|cuando (entregan|envian|salen|despachan)|en cuantos dias|cuanto (se )?demora|cuanto tarda|plazo de entrega|dias habiles)\b/,
-    intencion: 'CONSULTAR_ENTREGA',
-    accion: 'INFORMAR_METODOLOGIA',
-    respuesta: RESPUESTA_FAQ_METODOLOGIA
-  },
-  {
-    id: 'DATOS_PAGO',
-    patron:
-      /\b(datos (de )?pago|numero(s)? de cuenta|cuenta(s)? (bancaria|banco)?|transferencia|deposito|datos bancarios|para (el )?abono|como (pago|abono|abonar|transferir))\b/,
-    intencion: 'CONSULTAR_PAGO',
-    accion: 'ENVIAR_DATOS_PAGO',
-    respuesta: RESPUESTA_FAQ_DATOS_PAGO
-  },
-  {
-    id: 'HORARIO',
-    patron:
-      /\b(horario|a que hora|estan abiertos|atienden|hora(s)? de atencion)\b/,
-    intencion: 'CONSULTAR_ENTREGA',
-    accion: 'INFORMAR_METODOLOGIA',
-    respuesta: RESPUESTA_FAQ_METODOLOGIA
-  },
-  {
-    id: 'DISENO',
-    patron:
-      /\b(hacen (el )?diseno|incluyen (el )?diseno|como (es|funciona) (el )?diseno|propuesta(s)? de diseno|cuantos cambios|disenan)\b/,
-    intencion: 'CONSULTAR_DISENO',
-    accion: 'INFORMAR_DISENO',
-    respuesta: RESPUESTA_FAQ_DISENO,
-    maxLen: 140
-  },
-  {
-    id: 'ENVASE_VOLUMEN',
-    // "vasos de 7 onzas circular", "botella 600 ml", etc.
-    patron:
-      /\b(vasos?|botellas?|envases?|frascos?|potes?|bidon(es)?|botellon(es)?)\b.*\b(\d+([.,]\d+)?\s*(oz|onzas?|ml|cc|litros?|lt|l)\b|\b(oz|onzas?|ml)\b)|\b(\d+([.,]\d+)?\s*(oz|onzas?|ml|cc)\b).*\b(vasos?|botellas?|envases?|circular|redond)/,
-    intencion: 'SOLICITAR_COTIZACION',
-    accion: 'PEDIR_MEDIDAS',
-    respuesta: RESPUESTA_FAQ_ENVASE_VOLUMEN,
-    maxLen: 220
-  }
-];
-
-function resolverFaqPreIA(textoPlano, opciones = {}) {
-  const plano =
-    String(textoPlano ?? '').trim();
-
-  if (!plano) {
-    return null;
-  }
-
-  if (opciones.hayMedidas) {
-    return null;
-  }
-
-  // Cotización / pedido con cantidad grande: no FAQ corta.
-  // (NxN en cm sí es medida; oz/ml no cuentan como hayMedidas.)
-  if (
-    /\b\d{1,3}([.,]\d+)?\s*(x|por|\*|×)\s*\d{1,3}([.,]\d+)?\s*(cm|mm)?\b/.test(plano) ||
-    /\b\d{3,}\s*(etiquetas?|unidades?|mil)\b/.test(plano)
-  ) {
-    return null;
-  }
-
-  for (const faq of TABLA_FAQ_PRE_IA) {
-    const maxLen =
-      Number(faq.maxLen) > 0 ? Number(faq.maxLen) : 220;
-
-    if (plano.length > maxLen) {
-      continue;
-    }
-
-    if (faq.patron.test(plano)) {
-      return faq;
-    }
-  }
-
-  return null;
-}
-
+// @pegaso-module code/preventa/cierre-comercial.js
 
 const MINIMO_POR_DISENO = 1000;
 
@@ -3573,7 +3380,8 @@ if (
   if (decisionPreIA === null) {
     const faqHit =
       resolverFaqPreIA(textoTurnoPlano, {
-        hayMedidas: hayParesMedidaTurno
+        hayMedidas: hayParesMedidaTurno,
+        productoLinea: contextoComercial.producto_linea
       });
 
     if (faqHit) {
@@ -3595,6 +3403,33 @@ if (
 // ======================================================
 // 11. SALIDA
 // ======================================================
+
+const compraPreIA = mediaTurno.requiere_revision_humana || mediaTurno.comprobante_detectado
+  ? null : resolverCompraPreventa({
+      mensaje: textoTurno,
+      ultimoSaliente: ultimoMensajeSaliente,
+      cotizacion: contextoComercial.cotizacion ?? {},
+      catalogo: contextoComercial.pedido_catalogo ?? {},
+      // Medidas o cantidades nuevas convierten la aceptación en coordinación.
+      modificoDatos: extraerParesMedidaDeTexto(textoTurno).length > 0 ||
+        /\b\d{3,}\b/.test(textoTurnoPlano),
+      sesionNueva: sesionConversacionalNueva
+    });
+if (compraPreIA) {
+  reglaPreIA = 'COMPRA_EXPLICITA';
+  decisionPreIA = {
+    ...decisionBase(), intencion: 'CONFIRMAR_PEDIDO', accion: 'DERIVAR_HUMANO',
+    requiere_humano: true, requiere_notificacion: true, motivo_derivacion: 'CONFIRMAR_PEDIDO',
+    clasificacion_prospecto: 'A',
+    respuesta_sugerida: 'Perfecto, le comunicamos con el encargado para coordinar su compra.'
+  };
+}
+// Tamaño de los datos variables que recibe el cerebro comercial.
+// El texto fijo del prompt queda antes y los proveedores pueden cachearlo.
+const caracteresContextoIA = [
+  textoTurno, mediaTurno, contextoComercial, ultimoMensajeSaliente, historial
+].reduce((total, valor) => total + (typeof valor === 'string'
+  ? valor.length : (JSON.stringify(valor ?? null) ?? '').length), 0);
 
 return [
   {
@@ -3933,6 +3768,14 @@ return [
 
       requiere_cerebro_comercial:
         decisionPreIA === null,
+
+      caracteres_contexto_ia: caracteresContextoIA,
+      cache_faq: {
+        version: 'preventa-2',
+        acierto: String(reglaPreIA ?? '').startsWith('FAQ_'),
+        regla: reglaPreIA,
+        llamada_cerebro_evitada: decisionPreIA !== null
+      },
 
       ...(
         decisionPreIA

@@ -8,6 +8,8 @@ Este documento recoge el análisis de 11 archivos de chats y del workflow local 
 
 Primera entrega local iniciada el 16 de noviembre. Incluye aceptación contextual, entrega al encargado, ficha por correo, continuidad de clientes registrados, deduplicación de entrada y comprobación del permiso antes de los envíos. El workflow editable preparado tiene 225 nodos. La publicación, la prueba operativa, la optimización del prompt y la bandeja persistente de notificaciones siguen pendientes. El detalle de esta entrega está en [el reporte de implementación](reportes/2026-11-16-preventa-cierre-humano.md).
 
+Segunda entrega local preparada el 17 de noviembre (puntos 2 y 5, y aviso persistente del punto 3). Incluye FAQs combinadas sin IA, detección de compra antes del cerebro, memoria del editable, calificación por turno, historial acotado, módulos en `code/preventa/`, métricas de preventa y avisos al encargado con reintento. El prompt comercial publicado se conserva. La versión compacta queda como candidata hasta evaluarla con casos reales (punto 4). Requiere `schema/preventa-eficiencia.sql` antes de publicar. Detalle en [el reporte de la segunda entrega](reportes/2026-11-17-preventa-eficiencia-avisos.md).
+
 ## 1. Qué enseñan los chats para la preventa
 
 ### Cobertura de la muestra

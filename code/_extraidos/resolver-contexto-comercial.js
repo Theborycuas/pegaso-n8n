@@ -6000,6 +6000,14 @@ let enviarMetodologiaDiseno = false;
 let derivacionPorDisenoFinal = false;
 let limpiarDerivacionIA = false;
 
+let editableRecordado = objeto(contextoAnterior.editable);
+const mencionaEditable = /\b(editable|original|solo (la |una |esa )?(imagen|foto))\b/.test(mensajeTurnoPlano);
+if ((preguntaEditablePendiente || mencionaEditable) && respondeNoEditable) {
+  editableRecordado = { estado: 'NO_DISPONIBLE', confirmado_at: new Date().toISOString() };
+} else if ((preguntaEditablePendiente || mencionaEditable) && respondeSiEditable) {
+  editableRecordado = { estado: 'DISPONIBLE', confirmado_at: new Date().toISOString() };
+}
+
 function aplicarRespuestaFlujo(nuevaAccion, texto_, paso) {
   accion = nuevaAccion;
   respuestaSugerida = texto_;
@@ -6024,7 +6032,16 @@ if (puedeFlujoEtiquetas && hayDisenoTurno) {
   const llegaArchivoFinal =
     disenoTurno.tipo === 'ARCHIVO' || disenoTurno.tipo === 'ENLACE';
 
-  if (pasoDisenoPrevio === 'METODOLOGIA_ENVIADA') {
+  if (editableRecordado.estado === 'NO_DISPONIBLE' && !llegaArchivoFinal) {
+    aplicarRespuestaFlujo(
+      faltaMedidas && !cotizacionVigente ? 'PEDIR_MEDIDAS' : 'RESPONDER_GENERAL',
+      `${prefijoReciboMedia(disenoTurno)}. Ya tengo registrado que cuenta con una imagen. ` +
+        (faltaMedidas && !cotizacionVigente
+          ? '¿Qué ancho y alto desea para sus etiquetas en centímetros?'
+          : '¿Desea que avancemos con esta cotización? El encargado le ayudará con la revisión para impresión.'),
+      pasoDisenoPrevio ?? 'RECIBIDO'
+    );
+  } else if (pasoDisenoPrevio === 'METODOLOGIA_ENVIADA') {
     // Llega el archivo para producir: lo revisa el asesor.
     aplicarRespuestaFlujo(
       'DERIVAR_HUMANO',
@@ -6082,7 +6099,9 @@ if (puedeFlujoEtiquetas && hayDisenoTurno) {
       ciudadLocalTurno
         ? 'Perfecto, nosotros también estamos en Quito. '
         : 'Nosotros somos de Quito y realizamos envíos a todo el país 🇪🇨🚛. '
-    ) + PREGUNTA_EDITABLE,
+    ) + (editableRecordado.estado === 'NO_DISPONIBLE'
+      ? 'Ya tenemos registrado que cuenta con una imagen. ¿Desea que avancemos con esta cotización?'
+      : PREGUNTA_EDITABLE),
     'ESPERA_EDITABLE'
   );
 } else if (
@@ -7125,6 +7144,8 @@ const enviarImagenInformativaFinal =
 const contextoComercialNuevo = {
   ...contextoAnterior,
 
+  editable: editableRecordado,
+
   ...(
     Object.keys(fechaDeseadaCliente).length > 0
       ? { fecha_deseada_cliente: fechaDeseadaCliente }
@@ -7334,49 +7355,28 @@ if (confirmacionListaMedidas !== null) {
 // 14. SALIDA
 // ======================================================
 
-// La decisión de compra se comprueba al final, después de resolver
-// medidas, catálogo y preguntas. Así el siguiente paso es el encargado.
-const textoCompra = textoPlano(textoTurnoCrudo);
-const textoDudasCompra = textoCompra.replace(/\bno hay (ningun |ninguna )?(problemas?|inconvenientes?)\b/g, '');
-const descartaCompra =
-  /\b(no|todavia no|aun no|despues|luego|quizas|tal vez|talvez)\b|\b(solo|solamente) (estoy |quiero )?(viendo|cotizando|consultando|preguntando)\b|\b(si (compro|pido|hago|hiciera)|cuanto|como|que precio|antes de|pero)\b/.test(textoDudasCompra);
-const compraExplicita =
-  /\b(hagamosl[ao]s?|hagal[ao]s?|agale|proceda|deme haciendo|me d[ae] haciendo|quiero comprar|quiero (hacer|realizar|confirmar|coordinar) (el |mi |un |las |los |estas |esas )?(pedido|compra|etiquetas|adhesivos|trabajo)|necesito (hacer|realizar|confirmar) (el |mi |un |las |los )?(pedido|etiquetas)|confirmo (el |mi )?pedido|avancemos|sigamos con (el|mi) pedido)\b/.test(textoCompra);
-const solicitaCuenta =
-  /\b(pas[ae](me)?|envie(me)?|ayud[ae](me)?|necesito|deme)\b.{0,65}\b(cuenta|datos bancarios|datos para (la )?transferencia)\b/.test(textoCompra);
-const anunciaAbono =
-  /\b(ya|manana|hoy|ahorita)\b.{0,35}\b(le )?(deposito|transfiero|hago (el |la )?(pago|abono)|realizo (el )?abono)\b/.test(textoCompra);
-const confirmaBreve =
-  /^(si( por favor)?|de acuerdo|esta bien|ok( esta bien)?|listo|perfecto|correcto)[.!\s]*$/.test(textoCompra);
-const ultimaPreguntaCompra =
-  /\b(desea|quiere|gustaria)\b.{0,45}\b(avanzar|avancemos|continuar|continuemos|realizar|confirmar|proceder)\b.{0,30}\b(pedido|compra)\b|\b(esta de acuerdo|me confirma)\b.{0,45}\b(cotizacion|pedido|compra)\b/.test(
-    textoPlano(ultimoSaliente.contenido ?? contextoIA.ultimo_mensaje_saliente)
-  );
-const propuestaCatalogo = objeto(contextoAnterior.pedido_catalogo);
-const propuestaIdentificada =
-  (cotizacionAnterior.estado === 'COTIZADA' && numero(cotizacionAnterior.cotizacion_id) > 0) ||
-  (propuestaCatalogo.estado === 'TOTAL' && numero(propuestaCatalogo.total) !== null);
-const intencionCompra =
-  !descartaCompra &&
-  (compraExplicita || solicitaCuenta || anunciaAbono ||
-    (confirmaBreve && ultimaPreguntaCompra));
-const derivacionCompra = intencionCompra
-  ? {
-      tipo: propuestaIdentificada && !modificoDatosCotizacion
-        ? 'CIERRE_COMERCIAL_ACEPTADO'
-        : 'INTERES_FIRME_PARA_COORDINAR',
-      cotizacion_id: propuestaIdentificada ? cotizacionAnterior.cotizacion_id ?? null : null,
-      propuesta: propuestaIdentificada ? { ...cotizacionAnterior } : null,
-      pedido_catalogo: propuestaCatalogo.estado === 'TOTAL' ? propuestaCatalogo : null,
-      mensaje_cliente: textoTurnoCrudo.trim(),
-      mensaje_externo_id: data.mensaje_externo_id ?? contextoIA.mensaje_externo_id ?? null,
-      registrado_at: new Date().toISOString()
-    }
-  : null;
+// @pegaso-module code/preventa/cierre-comercial.js
+
+const derivacionCompra = resolverCompraPreventa({
+  mensaje: textoTurnoCrudo,
+  ultimoSaliente: ultimoSaliente.contenido ?? contextoIA.ultimo_mensaje_saliente,
+  cotizacion: cotizacionAnterior,
+  catalogo: objeto(contextoAnterior.pedido_catalogo),
+  modificoDatos: modificoDatosCotizacion,
+  sesionNueva: sesionConversacionalNueva,
+  mensajeExternoId: data.mensaje_externo_id ?? contextoIA.mensaje_externo_id ?? null
+});
 
 if (derivacionCompra) {
   contextoComercialNuevo.cierre_comercial = derivacionCompra;
 }
+
+const calificacionPreventa = derivacionCompra ? 'DECISION_COMPRA'
+  : /\b(solo|solamente) (estoy |quiero )?(viendo|cotizando|consultando)\b/.test(planoTurno)
+    ? 'CONSULTA'
+    : (cotizacionVigente || datosSuficientes || turnoAportaInformacion)
+      ? 'INTERES_CONCRETO' : 'CONSULTA';
+contextoComercialNuevo.calificacion_preventa = calificacionPreventa;
 
 return [
   {
@@ -7425,6 +7425,8 @@ return [
         medidasActualesCompletas,
 
       accion,
+
+      calificacion_preventa: calificacionPreventa,
 
       ...(
         derivacionPorCantidad

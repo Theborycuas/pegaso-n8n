@@ -218,6 +218,8 @@ return [
       cierre_comercial: input.cierre_comercial,
       producto: input.producto,
       cantidad: input.cantidad,
+      notificacion_id: input.notificacion_id,
+      notificacion_reserva: input.notificacion_reserva,
 
       success:
         true,

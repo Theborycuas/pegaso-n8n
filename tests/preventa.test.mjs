@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
+import { compileNode } from '../scripts/lib/node-modules.mjs';
 
 const sources = new Map();
 function runNode(file, input, nodes = {}) {
   if (!sources.has(file)) {
-    sources.set(file, new Function('$input', '$', fs.readFileSync(new URL(`../code/_extraidos/${file}.js`, import.meta.url), 'utf8')));
+    sources.set(file, new Function('$input', '$', compileNode(fs.readFileSync(new URL(`../code/_extraidos/${file}.js`, import.meta.url), 'utf8'))));
   }
   const lookup = name => {
     if (!(name in nodes)) throw new Error(`Nodo no ejecutado: ${name}`);
@@ -106,6 +107,24 @@ test('Transición de cierre y persistencia del contexto sobreviven a los UPDATE'
   assert.match(email.asunto_notificacion, /CIERRE COMERCIAL/);
   assert.match(email.mensaje_notificacion, /Cotización ID: 81/);
   assert.match(email.mensaje_notificacion, /Total cotizado: 53/);
+});
+
+test('El reintento del aviso reproduce el correo de la ruta principal', () => {
+  const handoff = runNode('preparar-derivacion-humana', resolve('Hagámoslas'));
+  const claimed = { id: 20, requiere_humano: true, notificacion_id: 5, notificacion_reserva: 'reserva-5' };
+  const saved = runNode('preparar-contexto-handoff', claimed, { 'Preparar derivación humana': handoff });
+  const transition = runNode('preparar-mensaje-transicion-humano', { id: 10 }, { 'Preparar contexto handoff': saved });
+  const final = runNode('finalizar-derivacion-humana', transition, { 'Preparar mensaje transición humano': transition });
+  const main = runNode('peparar-notificacion-humano', final);
+  // "Marcar prospecto requiere humano" guarda como payload la salida de "Preparar derivación humana".
+  const retry = runNode('peparar-notificacion-humano', { payload: handoff, notificacion_id: 5, notificacion_reserva: 'reserva-5' });
+  assert.equal(main.notificacion_id, 5);
+  assert.equal(main.notificacion_reserva, 'reserva-5');
+  assert.equal(retry.notificacion_id, 5);
+  assert.equal(retry.notificacion_reserva, 'reserva-5');
+  assert.equal(retry.asunto_notificacion, main.asunto_notificacion);
+  assert.equal(retry.categoria_notificacion, main.categoria_notificacion);
+  assert.match(retry.mensaje_notificacion, /Cotización ID: 81/);
 });
 
 test('HTML de cierre trata el mensaje del cliente como texto', () => {

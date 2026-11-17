@@ -1,9 +1,9 @@
 {
   "workflowId": "09OF22FOxihypeeh",
   "workflowName": "SISTEMA AUTOMATIZADO PEGASO",
-  "workflowUpdatedAt": "2026-11-17T04:42:48.667Z",
-  "extractedAt": "2026-11-17T04:42:54.716Z",
-  "workflowNodeCount": 225,
+  "workflowUpdatedAt": "2026-11-17T05:07:56.370Z",
+  "extractedAt": "2026-11-17T05:08:02.404Z",
+  "workflowNodeCount": 229,
   "codeNodeCount": 71,
   "nodes": [
     {
@@ -140,7 +140,7 @@
       "fileName": "preparar-contexto-ia.js",
       "relativeFile": "code/_extraidos/preparar-contexto-ia.js",
       "typeVersion": 2,
-      "lines": 3926
+      "lines": 3769
     },
     {
       "nodeId": "f207ef1c-d7ff-4fae-9910-486f2ba24c0a",
@@ -260,7 +260,7 @@
       "fileName": "resolver-contexto-comercial.js",
       "relativeFile": "code/_extraidos/resolver-contexto-comercial.js",
       "typeVersion": 2,
-      "lines": 7723
+      "lines": 7725
     },
     {
       "nodeId": "49b907ef-f963-4ccc-b7bb-db921afc5898",
@@ -316,7 +316,7 @@
       "fileName": "finalizar-derivacion-humana.js",
       "relativeFile": "code/_extraidos/finalizar-derivacion-humana.js",
       "typeVersion": 2,
-      "lines": 354
+      "lines": 356
     },
     {
       "nodeId": "39de2c44-ec67-4f28-9cb1-c469f60993f4",
@@ -388,7 +388,7 @@
       "fileName": "peparar-notificacion-humano.js",
       "relativeFile": "code/_extraidos/peparar-notificacion-humano.js",
       "typeVersion": 2,
-      "lines": 546
+      "lines": 25
     },
     {
       "nodeId": "c6bc9d87-8c34-4847-9cf5-a89b113c1381",
@@ -572,7 +572,7 @@
       "fileName": "preparar-reporte-statusia.js",
       "relativeFile": "code/_extraidos/preparar-reporte-statusia.js",
       "typeVersion": 2,
-      "lines": 176
+      "lines": 313
     }
   ]
 }
