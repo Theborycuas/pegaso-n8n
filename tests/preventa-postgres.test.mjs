@@ -69,6 +69,7 @@ CREATE TABLE pegaso.mensajes (id bigserial PRIMARY KEY, conversacion_id bigint, 
 CREATE UNIQUE INDEX ON pegaso.mensajes (mensaje_externo_id) WHERE mensaje_externo_id IS NOT NULL;`);
   // Migración obligatoria de la segunda entrega, aplicada tal como se ejecutará en producción.
   sql(fs.readFileSync(new URL('../schema/preventa-eficiencia.sql', import.meta.url), 'utf8'));
+  sql(fs.readFileSync(new URL('../schema/ia_llamadas.sql', import.meta.url), 'utf8'));
 });
 
 after(() => {
@@ -285,4 +286,73 @@ VALUES (200, 10, 'ENTRANTE', '10*15 cm', 'entrada-200', now(), FALSE);`);
   assert.ok(!ids.includes(1), 'Los mensajes antiguos quedan fuera de la ventana');
   assert.equal(ids.length, 62);
   assert.deepEqual(ids.slice(0, 2), [3, 4], 'Orden cronológico');
+});
+
+const logInsert = node('Insertar log IA').parameters.query;
+const filterExecutions = node('Filtrar ejecuciones sin consumo').parameters.query;
+const saveConsumption = node('Guardar consumo IA').parameters.query;
+const statusQuery = node('Consultar uso IA STATUSIA').parameters.query;
+
+function resetIa() {
+  sql('TRUNCATE pegaso.ia_llamadas, pegaso.ia_ejecuciones_revisadas;');
+}
+
+test('El registro del cerebro acepta textos con comillas', () => {
+  resetIa();
+  const values = ['GROQ', 'CEREBRO', 'openai/gpt-oss-20b', 'false', 'false', "Falta 'intencion'",
+    "Request too large: it's over", '', '', '', '827', '20', "Cliente O'Connor", 'GROQ', '{"valid":false}', '25657'];
+  sql(bind(logInsert, values));
+  assert.equal(sql("SELECT origen || '|' || execution_id || '|' || error_texto FROM pegaso.ia_llamadas;"), "FLUJO|25657|Request too large: it's over");
+});
+
+test('Solo se piden ejecuciones terminadas, de conversación y sin revisar', () => {
+  resetIa();
+  sql("INSERT INTO pegaso.ia_ejecuciones_revisadas (execution_id, estado) VALUES ('10', 'PROCESADA');");
+  const list = JSON.stringify([
+    { id: '10', mode: 'webhook', stoppedAt: timestamp },
+    { id: '12', mode: 'webhook', stoppedAt: timestamp },
+    { id: '11', mode: 'webhook', stoppedAt: null },
+    { id: '13', mode: 'trigger', stoppedAt: timestamp },
+    { id: '9', mode: 'manual', stoppedAt: timestamp }
+  ]);
+  assert.equal(sql(bind(filterExecutions, [list])), '9\n12');
+});
+
+test('El consumo real reemplaza la fila resumida y no se duplica', () => {
+  resetIa();
+  sql(bind(logInsert, ['DEEPSEEK', 'CEREBRO', '', 'true', 'true', '', '', '', '', '', '827', '20', '', '', '', '25657']));
+  const payload = JSON.stringify({
+    ejecuciones: [{ execution_id: '25657', estado: 'PROCESADA', llamadas: 2 }],
+    llamadas: [
+      { execution_id: '25657', creado_at: timestamp, proveedor: 'GROQ', rol: 'CEREBRO', modelo: 'openai/gpt-oss-20b', exito: false, es_fallback: false,
+        error_texto: "Request too large: it's over", tokens_prompt: null, nodo: 'Groq Chat Model1', duracion_ms: 97, conversacion_id: 827, detalle: { tokens_solicitados: 17115 } },
+      { execution_id: '25657', creado_at: timestamp, proveedor: 'DEEPSEEK', rol: 'CEREBRO', modelo: 'deepseek-flash', exito: true, es_fallback: true,
+        tokens_prompt: 19873, tokens_completion: 888, tokens_estimados: 20761, tokens_origen: 'PROVEEDOR', nodo: 'DeepSeek Chat Model1', duracion_ms: 6380, conversacion_id: 827 }
+    ]
+  });
+  assert.equal(sql(bind(saveConsumption, [payload])), '1|2|1');
+  assert.equal(sql(bind(saveConsumption, [payload])), '0|0|0');
+  assert.equal(sql("SELECT COUNT(*) || '|' || SUM(tokens_prompt) || '|' || MIN(origen) FROM pegaso.ia_llamadas;"), '2|19873|EJECUCION');
+  assert.equal(sql("SELECT response_json->>'tokens_solicitados' FROM pegaso.ia_llamadas WHERE proveedor = 'GROQ';"), '17115');
+});
+
+test('Una ronda sin ejecuciones nuevas no escribe nada', () => {
+  resetIa();
+  assert.equal(sql(bind(saveConsumption, [JSON.stringify({ ejecuciones: [], llamadas: [] })])), '0|0|0');
+});
+
+test('STATUSIA agrupa todas las IA por rol y proveedor con tokens reales', () => {
+  resetIa();
+  sql(`INSERT INTO pegaso.ia_llamadas (proveedor, rol, exito, es_fallback, tokens_prompt, tokens_completion, tokens_estimados, audio_segundos, origen)
+VALUES ('DEEPSEEK', 'CEREBRO', TRUE, TRUE, 19873, 888, 20761, NULL, 'EJECUCION'),
+       ('GROQ', 'CEREBRO', FALSE, FALSE, NULL, NULL, NULL, NULL, 'EJECUCION'),
+       ('GROQ', 'COTIZADOR', TRUE, FALSE, 3734, 898, 4632, NULL, 'EJECUCION'),
+       ('DEEPGRAM', 'AUDIO', TRUE, TRUE, NULL, NULL, NULL, 7.5, 'EJECUCION');`);
+  const rows = sql(statusQuery).split('\n').filter(line => line.startsWith('DIA|'));
+  assert.deepEqual(rows, [
+    'DIA|AUDIO|DEEPGRAM|1|0|1|0|0|0|7.50',
+    'DIA|CEREBRO|DEEPSEEK|1|0|1|19873|888|20761|0',
+    'DIA|CEREBRO|GROQ|0|1|0|0|0|0|0',
+    'DIA|COTIZADOR|GROQ|1|0|0|3734|898|4632|0'
+  ]);
 });

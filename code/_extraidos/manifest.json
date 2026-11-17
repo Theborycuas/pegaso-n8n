@@ -1,10 +1,10 @@
 {
   "workflowId": "09OF22FOxihypeeh",
   "workflowName": "SISTEMA AUTOMATIZADO PEGASO",
-  "workflowUpdatedAt": "2026-11-17T05:07:56.370Z",
-  "extractedAt": "2026-11-17T05:08:02.404Z",
-  "workflowNodeCount": 229,
-  "codeNodeCount": 71,
+  "workflowUpdatedAt": "2026-11-17T14:37:07.202Z",
+  "extractedAt": "2026-11-17T14:37:12.658Z",
+  "workflowNodeCount": 235,
+  "codeNodeCount": 72,
   "nodes": [
     {
       "nodeId": "e581adfb-04f8-4998-a994-c6d425bd395c",
@@ -140,7 +140,7 @@
       "fileName": "preparar-contexto-ia.js",
       "relativeFile": "code/_extraidos/preparar-contexto-ia.js",
       "typeVersion": 2,
-      "lines": 3769
+      "lines": 3771
     },
     {
       "nodeId": "f207ef1c-d7ff-4fae-9910-486f2ba24c0a",
@@ -188,7 +188,7 @@
       "fileName": "preparar-respuesta-comercial.js",
       "relativeFile": "code/_extraidos/preparar-respuesta-comercial.js",
       "typeVersion": 2,
-      "lines": 200
+      "lines": 198
     },
     {
       "nodeId": "1be58b3b-42bc-4ad5-ab46-871491a80742",
@@ -260,7 +260,7 @@
       "fileName": "resolver-contexto-comercial.js",
       "relativeFile": "code/_extraidos/resolver-contexto-comercial.js",
       "typeVersion": 2,
-      "lines": 7725
+      "lines": 7744
     },
     {
       "nodeId": "49b907ef-f963-4ccc-b7bb-db921afc5898",
@@ -564,7 +564,7 @@
       "fileName": "preparar-registro-ia.js",
       "relativeFile": "code/_extraidos/preparar-registro-ia.js",
       "typeVersion": 2,
-      "lines": 246
+      "lines": 256
     },
     {
       "nodeId": "b23a9e01-7c01-457f-8421-84c6d6afa1b9",
@@ -572,7 +572,15 @@
       "fileName": "preparar-reporte-statusia.js",
       "relativeFile": "code/_extraidos/preparar-reporte-statusia.js",
       "typeVersion": 2,
-      "lines": 313
+      "lines": 337
+    },
+    {
+      "nodeId": "9e9e8b85-eab7-496d-8e0c-db7426f959d7",
+      "nodeName": "Extraer consumo IA",
+      "fileName": "extraer-consumo-ia.js",
+      "relativeFile": "code/_extraidos/extraer-consumo-ia.js",
+      "typeVersion": 2,
+      "lines": 232
     }
   ]
 }

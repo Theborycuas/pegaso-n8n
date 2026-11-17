@@ -35,6 +35,8 @@
 //
 // ======================================================
 
+// @pegaso-module code/preventa/ubicacion.js
+
 const PREFIJO_RESPUESTA_OMITIDA = '[RESPUESTA AUTOMÁTICA OMITIDA';
 
 const items =
@@ -123,17 +125,13 @@ return items.map(
       respuestaNorm.startsWith('permitame un momento') &&
       ultimoNorm.startsWith('permitame un momento');
 
+    // Misma familia: ciudad y envíos, o dirección en Quito con cita previa.
+    const familiaRespuesta =
+      familiaRespuestaUbicacion(respuestaNorm);
+
     const mismaUbicacion =
-      (
-        /\bciudad de quito\b|\bestamos ubicados\b|\benvios para todo el pais\b/.test(
-          respuestaNorm
-        )
-      ) &&
-      (
-        /\bciudad de quito\b|\bestamos ubicados\b|\benvios para todo el pais\b/.test(
-          ultimoNorm
-        )
-      );
+      familiaRespuesta !== null &&
+      familiaRespuesta === familiaRespuestaUbicacion(ultimoNorm);
 
     const mismoInicio =
       respuestaNorm.length >= 40 &&

@@ -128,6 +128,11 @@ const hayPreventa =
   Object.keys(preventa).length > 0;
 
 
+function etiquetaFila(r) {
+  return `${r.rol ?? 'CEREBRO'} · ${r.proveedor}`;
+}
+
+
 function bloque(periodo) {
   const delPeriodo =
     filas.filter(r => String(r.periodo).toUpperCase() === periodo);
@@ -153,10 +158,22 @@ function bloque(periodo) {
       const tok =
         num(r.tokens_estimados_suma);
 
+      const tokIn =
+        num(r.tokens_prompt_suma);
+
+      const tokOut =
+        num(r.tokens_completion_suma);
+
+      const audio =
+        num(r.audio_segundos_suma);
+
       return (
-        `  ${r.proveedor}: ${total} intentos` +
+        `  ${etiquetaFila(r)}: ${total} intentos` +
         ` (ok ${ok}, fallos ${fail}, fallback ${fb})` +
-        (tok > 0 ? `, tokens≈${tok}` : '')
+        (tokIn + tokOut > 0
+          ? `, tokens entrada ${tokIn} / salida ${tokOut}`
+          : tok > 0 ? `, tokens≈${tok}` : '') +
+        (audio > 0 ? `, audio ${audio} s` : '')
       );
     });
 
@@ -200,11 +217,14 @@ function tablaHtml(periodo) {
   const rows =
     delPeriodo.map(r => `
   <tr>
+    <td>${esc(r.rol ?? 'CEREBRO')}</td>
     <td>${esc(r.proveedor)}</td>
     <td>${num(r.exitos) + num(r.fallos)}</td>
     <td>${num(r.exitos)}</td>
     <td>${num(r.fallos)}</td>
     <td>${num(r.fallbacks)}</td>
+    <td>${num(r.tokens_prompt_suma) || '—'}</td>
+    <td>${num(r.tokens_completion_suma) || '—'}</td>
     <td>${num(r.tokens_estimados_suma) || '—'}</td>
   </tr>`).join('');
 
@@ -212,12 +232,15 @@ function tablaHtml(periodo) {
 <h3>${periodo}</h3>
 <table cellpadding="6" cellspacing="0" border="1" style="border-collapse:collapse;">
   <tr>
+    <th>Rol</th>
     <th>Proveedor</th>
     <th>Intentos</th>
     <th>OK</th>
     <th>Fallos</th>
     <th>Fallback</th>
-    <th>Tokens≈</th>
+    <th>Tokens entrada</th>
+    <th>Tokens salida</th>
+    <th>Tokens total</th>
   </tr>
   ${rows}
 </table>`;
@@ -261,7 +284,8 @@ const cuerpoTexto =
     '',
     'Notas:',
     '- Fallback = DeepSeek/OpenAI tras fallar el anterior.',
-    '- tokens≈ solo si el Chat Model expuso estimatedTokens/usage.',
+    '- Roles: CEREBRO (comercial), COTIZADOR (extractor), IMAGEN (análisis) y AUDIO (transcripción).',
+    '- Tokens de entrada/salida: datos reales del proveedor guardados por "Registrar consumo IA".',
     '- Requiere tabla pegaso.ia_llamadas (schema/ia_llamadas.sql).'
   ]
     .filter(x => x !== null)
@@ -278,7 +302,7 @@ ${tablaHtml('MES')}
 ${bloquePreventaHtml}
 <p style="color:#666;font-size:12px;">
 Fallback = DeepSeek/OpenAI/NINGUNO tras fallo del anterior.
-Tokens solo si el Chat Model expuso estimatedTokens/usage.
+Roles: CEREBRO, COTIZADOR, IMAGEN y AUDIO. Tokens reales del proveedor guardados por "Registrar consumo IA".
 </p>
 `;
 

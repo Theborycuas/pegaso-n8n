@@ -5646,6 +5646,8 @@ const origenImagenCatalogo =
 // ubicación, material o "Permítame…". No se reenvía.
 //
 
+// @pegaso-module code/preventa/ubicacion.js
+
 const ACCIONES_NO_REPETIR = [
   'SALUDO',
   'INFORMAR_UBICACION',
@@ -5690,7 +5692,7 @@ function accionEquivalenteRespuesta(textoRespuesta) {
   }
 
   if (
-    /\bciudad de quito\b|\bestamos ubicados\b|\bdesde que ciudad nos escribe\b|\blocal fisico\b|\benvios para todo el pais\b/.test(
+    /\bciudad de quito\b|\bestamos ubicados\b|\bdesde que ciudad nos escribe\b|\blocal fisico\b|\benvios para todo el pais\b|\bclientes a nivel nacional\b|\bservientrega\b|\bvalle de los chillos\b|\bcapelo\b|\bprevia cita\b/.test(
       plano
     )
   ) {
@@ -5730,14 +5732,12 @@ if (
   ACCIONES_NO_REPETIR.includes(accionSalida)
 ) {
   const pideLocal =
-    /\b(local fisico|tiene local|tienen local|donde estan ubicados|donde quedan|para visitarles)\b/.test(
-      mensajeTurnoPlano
-    );
+    clasificarConsultaUbicacion(mensajeTurnoPlano) === 'DIRECCION';
 
   const ultimoYaDijoLocal =
-    /\blocal fisico\b/.test(
+    familiaRespuestaUbicacion(
       textoPlano(ultimoSaliente.contenido)
-    );
+    ) === 'DIRECCION';
 
   if (
     accionSalida === 'INFORMAR_UBICACION' &&
@@ -5746,7 +5746,7 @@ if (
   ) {
     accion = 'INFORMAR_UBICACION';
     respuestaSugerida =
-      'Sí, contamos con local físico en Quito. Los retiros se realizan los viernes a partir de las 5 PM; si el trabajo sale antes le notificamos.';
+      UBICACION_RESPUESTA_DIRECCION;
   } else {
     omitirEnvio = true;
     motivoOmisionEnvio =
@@ -6357,7 +6357,7 @@ if (
 
 // Ubicación / llamada: no callar tras un "Permítame…".
 const PATRON_PIDE_UBICACION_O_LLAMADA =
-  /\b(ubicacion|direccion( exacta)?|donde (estan|quedan|se encuentran)|en ?q(ue)? (ciudad|parte).{0,24}(encuentran|ubicados|estan)|parte de quito|estan ubicados|para visitar|local (fisico)?|puedo llamarle|llamar(les|le|nos)|para (poder )?conversar|me pasa (su |la )?(ubicacion|direccion)|ayudeme (con )?(la |su )?(ubicacion|direccion))\b/;
+  /\b(ubicacion|direccion( exacta)?|donde (estan|quedan|se encuentran|son)|de donde son|de que ciudad (son|es)|que ciudad (son|es|estan)|en ?q(ue)? (ciudad|parte).{0,24}(encuentran|ubicados|estan|son|quedan)|parte de quito|estan ubicados|para visitar|visitarles|visitarlos|local (fisico)?|oficinas|en que sector|puedo llamarle|llamar(les|le|nos)|para (poder )?conversar|me pasa (su |la )?(ubicacion|direccion)|ayudeme (con )?(la |su )?(ubicacion|direccion))\b/;
 
 if (
   !flujoDisenoEtiqueta &&
@@ -6365,39 +6365,58 @@ if (
   accion !== 'ENVIAR_DATOS_PAGO' &&
   !derivacionPorCantidad
 ) {
-  const ultimoYaDijoQuito =
-    /\bciudad de quito\b|\blocal fisico\b|\bestamos ubicados\b/.test(
+  // Textos y patrones en code/preventa/ubicacion.js.
+  const familiaUltimo =
+    familiaRespuestaUbicacion(
       textoPlano(ultimoSaliente.contenido)
     );
 
-  const pideLocalExplicito =
-    /\b(local fisico|tiene local|tienen local|para visitar|donde quedan)\b/.test(
-      mensajeTurnoPlano
+  // La respuesta ya salió después de este mensaje (p. ej. la
+  // respuesta automática del anuncio de Meta): el turno está atendido.
+  const ubicacionYaRespondidaEnTurno =
+    familiaUltimo !== null &&
+    (
+      ultimoSaliente.posterior_al_turno === true ||
+      (ultimoSaliente.origen === 'AUTOMATICO' && autoSalienteReciente)
     );
 
-  if (pideLocalExplicito && !ultimoYaDijoQuito) {
-    accion = 'INFORMAR_UBICACION';
-    respuestaSugerida =
-      'Sí, contamos con local físico en Quito. Los retiros se realizan los viernes a partir de las 5 PM; si el trabajo sale antes le notificamos.';
-  } else if (!ultimoYaDijoQuito) {
-    accion = 'INFORMAR_UBICACION';
-    respuestaSugerida =
-      'Somos de la ciudad de Quito. Atendemos a nivel nacional y hacemos envíos a todo el país. ¿Desde qué ciudad nos escribe?';
-  } else if (
-    /\b(llamar|conversar)\b/.test(mensajeTurnoPlano)
-  ) {
+  const consultaUbicacion =
+    clasificarConsultaUbicacion(mensajeTurnoPlano);
+
+  const pideLlamada =
+    /\b(llamar|conversar)\b/.test(mensajeTurnoPlano);
+
+  omitirEnvio = false;
+  motivoOmisionEnvio = null;
+  accion = 'INFORMAR_UBICACION';
+
+  if (ubicacionYaRespondidaEnTurno && familiaUltimo === 'DIRECCION') {
+    omitirEnvio = true;
+    motivoOmisionEnvio = 'UBICACION_YA_RESPONDIDA';
+  } else if (consultaUbicacion === 'DIRECCION') {
+    if (familiaUltimo === 'DIRECCION') {
+      accion = 'RESPONDER_GENERAL';
+      respuestaSugerida = UBICACION_RESPUESTA_CITA;
+    } else {
+      respuestaSugerida = UBICACION_RESPUESTA_DIRECCION;
+    }
+  } else if (ubicacionYaRespondidaEnTurno) {
+    omitirEnvio = true;
+    motivoOmisionEnvio = 'UBICACION_YA_RESPONDIDA';
+  } else if (familiaUltimo === null) {
+    respuestaSugerida = UBICACION_RESPUESTA_GENERAL;
+  } else if (pideLlamada) {
     accion = 'RESPONDER_GENERAL';
-    respuestaSugerida =
-      'Con gusto le atendemos por este chat. Si prefiere, también puede visitarnos en nuestro local en Quito; los retiros son los viernes a partir de las 5 PM.';
+    respuestaSugerida = UBICACION_RESPUESTA_LLAMADA;
+  } else if (familiaUltimo === 'GENERAL') {
+    // Vuelve a preguntar después de conocer la ciudad: necesita el detalle.
+    respuestaSugerida = UBICACION_RESPUESTA_DIRECCION;
   } else {
-    accion = 'INFORMAR_UBICACION';
-    respuestaSugerida =
-      'Sí, contamos con local físico en Quito. Los retiros se realizan los viernes a partir de las 5 PM; si el trabajo sale antes le notificamos.';
+    accion = 'RESPONDER_GENERAL';
+    respuestaSugerida = UBICACION_RESPUESTA_CITA;
   }
 
   limpiarDerivacionIA = true;
-  omitirEnvio = false;
-  motivoOmisionEnvio = null;
 }
 
 // Si el diseño ya llegó, no se vuelve a pedir: la IA o el

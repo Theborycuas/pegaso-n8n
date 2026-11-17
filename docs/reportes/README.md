@@ -36,7 +36,8 @@ Un reporte por intervención sobre el workflow **SISTEMA AUTOMATIZADO PEGASO**: 
 | 2026-11-15 | [FAQ pre-IA desde historial real (sin Redis)](2026-11-15-faq-pre-ia.md) | Implementado en local, sin publicar ni commit |
 | 2026-11-15 | [STATUSIA, logging de IA, Groq TPM y vasos/oz](2026-11-15-statusia-logging-vasos.md) | Implementado en local; requiere `schema/ia_llamadas.sql` antes de publicar |
 | 2026-11-16 | [Primera entrega de preventa y cierre al humano](2026-11-16-preventa-cierre-humano.md) | Publicado (presente en la copia remota del 17-11) |
-| 2026-11-17 | [Segunda entrega: eficiencia, modularización y avisos persistentes](2026-11-17-preventa-eficiencia-avisos.md) | Implementado en local; requiere `schema/preventa-eficiencia.sql` antes de publicar |
+| 2026-11-17 | [Segunda entrega: eficiencia, modularización y avisos persistentes](2026-11-17-preventa-eficiencia-avisos.md) | Publicado |
+| 2026-11-17 | [Ubicación y consumo de todas las IA](2026-11-17-ubicacion-y-consumo-ia.md) | Implementado en local; requiere `schema/ia_llamadas.sql` y credencial de la API de n8n |
 
 ## Convenciones
 

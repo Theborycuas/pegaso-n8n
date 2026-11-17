@@ -1735,7 +1735,7 @@ function accionEquivalenteSaliente(contenido) {
   }
 
   if (
-    /\bciudad de quito\b|\bestamos ubicados\b|\bdesde que ciudad nos escribe\b|\blocal fisico\b|\benvios para todo el pais\b/.test(
+    /\bciudad de quito\b|\bestamos ubicados\b|\bdesde que ciudad nos escribe\b|\blocal fisico\b|\benvios para todo el pais\b|\bclientes a nivel nacional\b|\bservientrega\b|\bvalle de los chillos\b|\bcapelo\b|\bprevia cita\b/.test(
       plano
     )
   ) {
@@ -2495,6 +2495,8 @@ const RESPUESTA_CIERRE_LIBRETAS =
 // enriquecer (imagen material/metodología/pago, IVA/envío
 // con ciudad, anti-duplicado).
 // ------------------------------------------------------
+
+// @pegaso-module code/preventa/ubicacion.js
 
 // @pegaso-module code/preventa/preguntas-frecuentes.js
 

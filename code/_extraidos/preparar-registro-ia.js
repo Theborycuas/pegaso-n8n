@@ -56,7 +56,15 @@ function sqlTexto(valor) {
     return null;
   }
 
-  return t.replace(/'/g, "''");
+  // V1.1: "Insertar log IA" usa parámetros; el texto viaja sin escapar.
+  return t;
+}
+
+let executionId = null;
+try {
+  executionId = typeof $execution !== 'undefined' ? String($execution.id) : null;
+} catch (_) {
+  executionId = null;
 }
 
 
@@ -190,6 +198,8 @@ return [
 
       ia_log_proveedor:
         proveedor,
+      ia_log_execution_id:
+        executionId ?? '',
 
       ia_log_rol:
         'CEREBRO',

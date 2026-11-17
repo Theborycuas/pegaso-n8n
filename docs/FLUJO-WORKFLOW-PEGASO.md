@@ -738,3 +738,36 @@ Eficiencia de la conversación, modularización y aviso persistente al encargado
 - Los tres `Cerebro comercial` conservan el prompt publicado. Sus datos variables están al final, por lo que el texto fijo es un prefijo que los proveedores pueden cachear.
 
 Los módulos de `code/preventa/` se insertan en el nodo con la directiva `// @pegaso-module code/preventa/<archivo>.js` al ejecutar `inject-code.mjs` y se reconstruyen al extraer (`scripts/lib/node-modules.mjs`). Si el código de un módulo cambia en n8n, la extracción se detiene para revisarlo.
+
+## 21. Ubicación y consumo de IA
+
+### Respuestas de ubicación
+
+Los textos aprobados y los patrones viven en `code/preventa/ubicacion.js`, incluido en `Preparar contexto IA`, `Resolver contexto comercial` y `Preparar respuesta comercial`.
+
+- Pregunta por la ciudad («¿En qué ciudad se encuentran?», «¿De qué ciudad son?») → texto predeterminado: Quito, clientes a nivel nacional, envíos por Servientrega o transporte.
+- Pregunta por la dirección en Quito, el local o una visita → oficinas en el Valle de los Chillos (Capelo) y planta en Av. América y José Riofrío, solo con cita previa.
+- Si la ubicación ya se respondió después del mensaje (por ejemplo, la respuesta automática del anuncio de Meta), el bot no la repite. En conversaciones de etiquetas sigue con el siguiente paso comercial (pedir medidas).
+- Si ya se envió la ciudad y el cliente vuelve a preguntar, recibe la dirección. Si ya se envió la dirección, recibe solo la invitación a agendar la visita.
+- `Preparar respuesta comercial` distingue las familias «ciudad» y «dirección» al detectar respuestas duplicadas.
+
+### Registro de llamadas a IA
+
+```mermaid
+flowchart LR
+    T[Registrar consumo IA · cada 5 min] --> L[Listar ejecuciones n8n] --> F[(Filtrar ejecuciones sin consumo)]
+    F --> R[Leer ejecución n8n] --> X[Extraer consumo IA] --> G[(Guardar consumo IA)]
+```
+
+| Nodo | Tipo | Qué hace | Recibe de | Envía a |
+|---|---|---|---|---|
+| Preparar registro IA | Code | Resumen del turno del cerebro comercial (proveedor final) con `execution_id` | Validar extracción Cerebro comercial · Validar extracción DeepSeek1 · Validar extracción OpenApi1 · Error ninguna IA funciono cerebro | Insertar log IA |
+| Insertar log IA | Postgres executeQuery parametrizado | Inserta la fila resumida con `origen = 'FLUJO'` | Preparar registro IA | — (**fin**) |
+| Registrar consumo IA | Schedule Trigger (5 min). **Desactivado** hasta asignar la credencial de la API de n8n | Inicia la lectura del consumo real | — | Listar ejecuciones n8n |
+| Listar ejecuciones n8n | HTTP GET `/api/v1/executions` (Header Auth `X-N8N-API-KEY`). **Desactivado** sin credencial | Últimas 100 ejecuciones de este workflow | Registrar consumo IA | Filtrar ejecuciones sin consumo |
+| Filtrar ejecuciones sin consumo | Postgres executeQuery | Hasta 15 ejecuciones terminadas, no `trigger`, sin fila en `ia_ejecuciones_revisadas` | Listar ejecuciones n8n | Leer ejecución n8n |
+| Leer ejecución n8n | HTTP GET `/api/v1/executions/{id}?includeData=true` (`onError: continueRegularOutput`). **Desactivado** sin credencial | Datos completos de la ejecución | Filtrar ejecuciones sin consumo | Extraer consumo IA |
+| Extraer consumo IA | Code | Una fila por llamada: rol (`CEREBRO`, `COTIZADOR`, `IMAGEN`, `AUDIO`), proveedor, modelo, éxito, motivo de validación, error, duración, tokens reales del proveedor y segundos de audio. No copia mensajes | Leer ejecución n8n | Guardar consumo IA |
+| Guardar consumo IA | Postgres executeQuery | Marca las ejecuciones revisadas, sustituye la fila `FLUJO` de esa ejecución e inserta el detalle con `origen = 'EJECUCION'`. Idempotente | Extraer consumo IA | — (**fin**) |
+
+`Consultar uso IA STATUSIA` agrupa ahora por período, rol y proveedor, con tokens de entrada, salida, total y segundos de audio.

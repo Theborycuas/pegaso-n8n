@@ -4,7 +4,8 @@ import test from 'node:test';
 import { compileNode, extractNode } from '../scripts/lib/node-modules.mjs';
 
 const load = name => fs.readFileSync(new URL(`../code/preventa/${name}.js`, import.meta.url), 'utf8');
-const faq = new Function(`${load('preguntas-frecuentes')}\nreturn resolverFaqPreIA;`)();
+// Mismo orden que en "Preparar contexto IA": ubicación antes de las FAQs.
+const faq = new Function(`${load('ubicacion')}\n${load('preguntas-frecuentes')}\nreturn resolverFaqPreIA;`)();
 const compra = new Function(`${load('cierre-comercial')}\nreturn resolverCompraPreventa;`)();
 const compactar = new Function(`${load('contexto-modelo')}\nreturn construirContextoModelo;`)();
 
@@ -116,5 +117,6 @@ test('Ubicación y envío combinados preguntan la ciudad una sola vez', () => {
   const result = faq('donde estan ubicados y hacen envios');
   assert.deepEqual(result.temas, ['UBICACION', 'ENVIO']);
   assert.equal(result.respuesta.match(/Desde qué ciudad/g).length, 1);
-  assert.match(result.respuesta, /¿Desde qué ciudad nos escribe\?$/);
+  assert.match(result.respuesta, /^Somos de la ciudad de Quito pero no tiene de qué preocuparse/);
+  assert.match(result.respuesta, /¿Desde qué ciudad nos escribe( disculpe)?\?$/);
 });

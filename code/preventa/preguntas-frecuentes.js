@@ -10,11 +10,10 @@ const RESPUESTA_FAQ_MATERIAL_Y_MEDIDAS =
   RESPUESTA_FAQ_MATERIAL +
   '\n\n¿En qué medidas necesita sus etiquetas? Indíquenos ancho y alto en centímetros para cotizarle de inmediato.';
 
-const RESPUESTA_FAQ_UBICACION =
-  'Somos de la ciudad de Quito. Atendemos a nivel nacional y hacemos envíos a todo el país. ¿Desde qué ciudad nos escribe?';
+// Requiere el módulo code/preventa/ubicacion.js incluido antes en el nodo.
+const RESPUESTA_FAQ_UBICACION = UBICACION_RESPUESTA_GENERAL;
 
-const RESPUESTA_FAQ_LOCAL =
-  'Sí, contamos con local físico en Quito. Los retiros se realizan los viernes a partir de las 5 PM; si el trabajo sale antes le notificamos.';
+const RESPUESTA_FAQ_LOCAL = UBICACION_RESPUESTA_DIRECCION;
 
 const RESPUESTA_FAQ_IVA_ETIQUETAS =
   'Sí, el precio de las etiquetas adhesivas incluye IVA.';
@@ -71,16 +70,14 @@ const TABLA_FAQ_PRE_IA = [
   },
   {
     id: 'UBICACION',
-    patron:
-      /\b(donde (estan|quedan|se encuentran)|en ?q(ue)? (ciudad|parte).{0,24}(encuentran|ubicados|estan)|parte de quito|ubicacion|direccion( exacta)?|ayudeme (con )?(la |su )?direccion|me pasa (su |la )?(ubicacion|direccion)|estan ubicados)\b/,
+    patron: UBICACION_PIDE_CIUDAD,
     intencion: 'CONSULTAR_UBICACION',
     accion: 'INFORMAR_UBICACION',
     respuesta: RESPUESTA_FAQ_UBICACION
   },
   {
     id: 'LOCAL_FISICO',
-    patron:
-      /\b(local fisico|tienen local|tiene local|para visitar(les|los)?|puedo (ir|visitar)|retiros? en (el )?local)\b/,
+    patron: UBICACION_PIDE_DIRECCION,
     intencion: 'CONSULTAR_UBICACION',
     accion: 'INFORMAR_UBICACION',
     respuesta: RESPUESTA_FAQ_LOCAL
@@ -180,7 +177,7 @@ function resolverFaqPreIA(textoPlano, opciones = {}) {
 
   // El texto cacheado procede del catálogo de respuestas aprobadas.
   // Cantidades, condiciones particulares y compras se resuelven por su propia ruta.
-  const hallazgos = [];
+  let hallazgos = [];
   for (const faq of TABLA_FAQ_PRE_IA) {
     const maxLen =
       Number(faq.maxLen) > 0 ? Number(faq.maxLen) : 220;
@@ -198,6 +195,10 @@ function resolverFaqPreIA(textoPlano, opciones = {}) {
     }
   }
 
+  // La dirección en Quito ya indica la ciudad: sustituye a la respuesta general.
+  if (hallazgos.some(faq => faq.id === 'LOCAL_FISICO')) {
+    hallazgos = hallazgos.filter(faq => faq.id !== 'UBICACION');
+  }
   if (hallazgos.length === 0) return null;
   // Una intención que exige al encargado tiene prioridad sobre las FAQs informativas.
   const pago = hallazgos.find(faq => faq.id === 'DATOS_PAGO');
