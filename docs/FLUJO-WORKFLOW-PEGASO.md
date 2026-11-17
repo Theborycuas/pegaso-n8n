@@ -2,6 +2,8 @@
 
 Recorrido completo del workflow de producción: qué hace cada nodo, de quién recibe datos y a quién los envía.
 
+> La sección 19 documenta la primera entrega local de preventa del 16 de noviembre de 2026, con 225 nodos. Complementa el mapa histórico y actualiza las rutas de aceptación, clientes registrados y salida WhatsApp. Su publicación y prueba operativa están pendientes.
+
 > **Fuente:** versión de producción con `updatedAt 2026-10-13T16:28:08.664Z` (`versionId 3e62b91c…`), descargada vía Node (sin mojibake).
 > **Contenido:** 186 nodos, 223 conexiones (211 de flujo `main`, 9 de modelo de lenguaje `ai_languageModel`, 3 de parser `ai_outputParser`).
 > Si el workflow cambia, este documento debe actualizarse a mano (ver §17).
@@ -626,13 +628,13 @@ flowchart LR
 | Reactivar bot prospecto | Comando ACTIVEBOT de administrador |
 | Actualizar conversación por intervención humana | Mensaje de un humano de Pegaso registrado |
 | If: ¿Evento WhatsApp procesable? [F] | Evento que no es un mensaje |
-| ¿Cliente existente? [T] | Cliente registrado (sin rama implementada) |
+| ¿Cliente existente? [T] | Continúa a Buscar prospecto conservando cliente y contacto |
 | Finalizar mensaje modo prueba | Teléfono no autorizado con MODO_PRUEBA activo |
 | Finalizar mensaje atención humana | Prospecto ya atendido por humano |
 | IF: ¿Procesar turno? [F] | Llegó otro mensaje durante la espera (lo atiende la ejecución más reciente) o un humano de Pegaso escribió hace menos de 10 minutos (`ATENCION_HUMANA`) |
 | IF: ¿Audio listo para cerebro? [F] | Sin conexión |
 | Error ninguna IA funciono cerebro / Error ninguna IA funciono | Fallaron los 3 proveedores (sin respuesta al cliente) |
-| Enrutar acción comercial salida 13 | `REGISTRAR_ACEPTACION` (sin respuesta; `INFORMAR_FLYERS`, `ENVIAR_DATOS_PAGO` e `INFORMAR_TARJETAS` ya cableadas a §12) |
+| Enrutar acción comercial salida 13 | `REGISTRAR_ACEPTACION` continúa a respuesta comercial. La aceptación contextual resuelta usa `DERIVAR_HUMANO`. `ENVIAR_DATOS_PAGO` continúa a derivación humana |
 | EXECUTOR MOMENTANEP | Fin de respuesta comercial |
 | Finalizar cotización comercial | Fin de cotización |
 | Brevo (ok) / Resend | Fin de notificación interna |
@@ -668,3 +670,49 @@ Detectados al documentar. Son hechos del workflow actual; **no se ha cambiado na
 20. **Red de seguridad de respuestas rápidas de anuncio.** `respuesta_rapida_apertura` (en `Buscar prospecto intervención humana`) trata como automático un eco largo que llega en 15 s o menos tras el primer mensaje de una conversación. Falla en dos casos raros: si el eco llega antes de que el mensaje del cliente se guarde (no hay ENTRANTE todavía, se trata como humano), o si un asesor pega un texto largo en esos 15 s (se trata como automático y el bot sigue atendiendo).
 18. **Humano que escribe primero a un número sin prospecto.** `IF: ¿Prospecto encontrado?` [F] termina sin registrar el eco; cuando el cliente responda, el bot no sabrá que hubo un humano.
 19. **Reactivación manual del bot.** Si alguien pone `requiere_humano = FALSE` a mano en la base, el bot vuelve a responder solo cuando han pasado 10 minutos desde el último mensaje humano (guardia de `Resolver turno conversacional`). Para reactivar al instante usar el comando `ACTIVEBOT <teléfono>` (§5), que además inserta el marcador que anula la guardia.
+
+## 19. Primera entrega local de preventa
+
+Estado preparado para revisión y publicación. El workflow editable tiene 225 nodos, con 16 nodos nuevos de consulta y condición previas al envío. Los identificadores de los nodos existentes se conservan.
+
+### Rutas modificadas
+
+- `¿Cliente existente?` recibe de `Resolver contacto` y continúa por ambas salidas a `Buscar prospecto`. `Resolver prospecto` conserva los identificadores de cliente y contacto y el permiso de atención humana.
+- `Guardar mensaje entrante` usa un INSERT parametrizado con deduplicación por `mensaje_externo_id`. Un reintento del webhook termina con cero filas; el mensaje original conserva su contenido y la primera ejecución sigue su curso.
+- `Resolver contexto comercial` conserva los cálculos previos y añade la detección contextual de aceptación al final. Guarda la evidencia en `contexto_comercial.cierre_comercial` y deriva al humano con `CIERRE_COMERCIAL_ACEPTADO` o `INTERES_FIRME_PARA_COORDINAR`.
+- `Enrutar acción comercial` corrige la comparación de `PEDIR_PRODUCTO`. La salida `REGISTRAR_ACEPTACION` tiene continuidad hacia respuesta comercial. Las aceptaciones comprobadas por el resolver utilizan `DERIVAR_HUMANO`. `ENVIAR_DATOS_PAGO` conduce al encargado.
+- `Guardar contexto comercial` y `Guardar contexto post cotización` preservan el contexto existente cuando el prospecto está bajo atención humana. Una respuesta comercial tardía puede terminar sus cálculos, pero su envío se somete a la autorización final.
+- `Marcar prospecto requiere humano` actualiza únicamente un prospecto cuya bandera estaba apagada. Dos derivaciones simultáneas tienen un único ganador. La ejecución que obtiene cero filas termina en ese nodo.
+- El contexto y la finalización del handoff conservan el resumen de cierre para el correo. `Peparar notificacion humano` añade asunto de cierre o interés firme, prioridad alta y ficha de preventa. El HTML del resumen escapa el contenido del cliente.
+
+### Comprobación inmediata de salida
+
+Cada HTTP de WhatsApp pasa por este patrón. La consulta usa la misma credencial PostgreSQL existente y parámetros de `Preparar envío WhatsApp`.
+
+```mermaid
+flowchart LR
+    Rama[Rama de texto o multimedia] --> Consulta[Autorizar salida WhatsApp N]
+    Consulta --> Permiso{IF permiso salida WhatsApp N}
+    Permiso -->|true| HTTP[YCloud Enviar correspondiente]
+    Permiso -->|false| Fin[Fin de esta salida]
+    HTTP --> Continuacion[Continuación original]
+```
+
+Fichas de las ocho parejas de nodos nuevos. Cada `Autorizar salida WhatsApp N` es PostgreSQL `executeQuery`, recibe de los antiguos predecesores del HTTP y devuelve `permitir_envio`. Cada `IF permiso salida WhatsApp N` evalúa ese booleano; su salida verdadera conduce al HTTP indicado y su salida falsa termina la rama.
+
+1. Pareja 1 protege `YCloud Enviar Wts`. Su continuación es `IF: ¿Enviar nota IVA?`.
+2. Pareja 2 protege `YCloud Enviar imagen`. Su continuación es `Esperar antes del texto`.
+3. Pareja 3 protege `YCloud Enviar video tarjetas 1`. Conserva la espera posterior.
+4. Pareja 4 protege `YCloud Enviar video tarjetas 2`. Conserva la espera posterior.
+5. Pareja 5 protege `YCloud Enviar video tarjetas 3`. Conserva la espera posterior.
+6. Pareja 6 protege `YCloud Enviar video tarjetas 4`. Conserva la espera posterior.
+7. Pareja 7 protege `YCloud Enviar saludo tarjetas`. Su continuación es `Esperar saludo tarjetas`.
+8. Pareja 8 protege `YCloud Enviar nota IVA`. El HTTP termina la salida.
+
+La consulta comprueba que existe el mensaje origen, que sigue siendo el último entrante y que la atención humana permite responder. La transición del handoff actual se identifica por su marca de inicio. Una intervención humana posterior al mensaje origen también detiene esa transición. El patrón de eco automático de WhatsApp Business conserva el tratamiento existente.
+
+### Puntos finales añadidos y límites
+
+Las ocho condiciones de permiso pueden finalizar una salida que quedó desactualizada o bajo atención humana. Un mensaje entrante repetido puede terminar en la deduplicación de entrada. Una derivación simultánea ya adjudicada termina en la actualización condicional del prospecto.
+
+La autorización consulta el estado inmediatamente antes del HTTP. Existe un intervalo entre esa consulta y la petición externa. Las pruebas locales cubren los estados SQL y la competencia por la derivación; el recorrido en la instalación n8n y el proveedor WhatsApp requieren prueba operativa. El correo continúa utilizando Brevo y Resend. La bandeja persistente con reintentos de notificación pertenece a una entrega posterior.

@@ -214,6 +214,11 @@ return [
   {
     json: {
 
+      contexto_comercial: input.contexto_comercial,
+      cierre_comercial: input.cierre_comercial,
+      producto: input.producto,
+      cantidad: input.cantidad,
+
       success:
         true,
 

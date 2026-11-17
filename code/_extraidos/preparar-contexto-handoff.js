@@ -216,7 +216,10 @@ const contextoNuevo = {
 
     iniciado_at:
       handoff.handoff_at ??
-      ahora
+      ahora,
+
+    cierre_comercial:
+      handoff.cierre_comercial ?? contextoActual.cierre_comercial ?? null
 
   }
 

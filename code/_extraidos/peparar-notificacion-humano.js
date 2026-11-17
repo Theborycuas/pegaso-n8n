@@ -34,6 +34,15 @@
 const input =
   $input.first().json;
 
+function escaparHtml(valor) {
+  return String(valor ?? '').replace(/[&<>"']/g, caracter => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[caracter]);
+}
+
+const cierreComercial = input.cierre_comercial ?? input.contexto_comercial?.cierre_comercial;
+const esCierreComercial =
+  ['CIERRE_COMERCIAL_ACEPTADO', 'INTERES_FIRME_PARA_COORDINAR'].includes(input.handoff_motivo ?? input.motivo_derivacion);
 
 // ======================================================
 // 1. HELPERS
@@ -182,6 +191,7 @@ let categoriaNotificacion =
 
 if (
   [
+    'SOLICITA_DATOS_PAGO',
     'SOLICITA_CUENTA',
     'SOLICITA_DATOS_BANCARIOS',
     'PIDE_CUENTA',
@@ -279,6 +289,11 @@ else if (
 
 let prioridadFinal =
   prioridad;
+
+if (esCierreComercial) {
+  categoriaNotificacion = cierreComercial?.tipo ?? 'INTERES_FIRME_PARA_COORDINAR';
+  prioridadFinal = 'ALTA';
+}
 
 
 if (
@@ -387,7 +402,11 @@ else if (
 // ======================================================
 
 const encabezadoAlerta =
-  categoriaNotificacion === 'PAGO_REPORTADO'
+  esCierreComercial
+    ? (categoriaNotificacion === 'CIERRE_COMERCIAL_ACEPTADO'
+        ? 'EL PROSPECTO ACEPTÓ LA PROPUESTA. CONTINUAR ATENCIÓN HUMANA.'
+        : 'EL PROSPECTO DESEA COMPRAR. CONCRETAR LOS DETALLES PENDIENTES.')
+    : categoriaNotificacion === 'PAGO_REPORTADO'
     ? (
       [
         'ENVIA_COMPROBANTE',
@@ -420,6 +439,25 @@ const lineas = [
   `Prospecto ID: ${prospectoId ?? 'N/D'}`
 ];
 
+if (esCierreComercial) {
+  asunto = categoriaNotificacion === 'CIERRE_COMERCIAL_ACEPTADO'
+    ? '[CIERRE COMERCIAL] Pegaso - Propuesta aceptada'
+    : '[INTERESADO EN COMPRAR] Pegaso - Requiere coordinación';
+  const contexto = input.contexto_comercial ?? {};
+  const propuesta = cierreComercial?.propuesta ?? contexto.cotizacion ?? {};
+  lineas.push('', 'Resumen de preventa:',
+    `Cotización ID: ${cierreComercial?.cotizacion_id ?? 'Pendiente de identificar'}`,
+    `Producto: ${input.producto ?? propuesta.producto ?? 'Pendiente'}`,
+    `Cantidad: ${input.cantidad ?? propuesta.cantidad_cotizable ?? propuesta.cantidad_solicitada ?? 'Pendiente'}`,
+    `Medidas cotizadas (cm): ${propuesta.ancho_cm ?? 'Pendiente'} x ${propuesta.alto_cm ?? 'Pendiente'}`,
+    `Forma cotizada: ${propuesta.forma ?? 'Pendiente'}`,
+    `Total cotizado: ${propuesta.total ?? cierreComercial?.pedido_catalogo?.total ?? 'Pendiente'}`,
+    `Selección de catálogo: ${cierreComercial?.pedido_catalogo ? JSON.stringify(cierreComercial.pedido_catalogo) : 'No registrada'}`,
+    `Diseño recibido: ${contexto.diseno_recibido ? JSON.stringify(contexto.diseno_recibido) : 'Pendiente de verificar con el cliente'}`,
+    `Fecha requerida: ${contexto.fecha_deseada_cliente ? JSON.stringify(contexto.fecha_deseada_cliente) : 'No indicada'}`,
+    '', 'Siguiente acción del encargado: coordinar la compra, corroborar condiciones y gestionar el cobro.',
+    'La aceptación corresponde al cierre de preventa. Los pagos y la operación los corrobora el equipo.');
+}
 
 const mensajeNotificacion =
   lineas.join('\n');
@@ -429,7 +467,9 @@ const mensajeNotificacion =
 // 7. HTML EMAIL
 // ======================================================
 
-const htmlEmail = `
+const htmlEmail = esCierreComercial
+  ? `<h2>Pegaso Adhesivos</h2><pre style="white-space:pre-wrap">${escaparHtml(mensajeNotificacion)}</pre>`
+  : `
 <h2>Pegaso Adhesivos</h2>
 
 <p><strong>${encabezadoAlerta}</strong></p>

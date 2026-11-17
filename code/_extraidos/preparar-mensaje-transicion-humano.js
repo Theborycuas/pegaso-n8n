@@ -158,6 +158,13 @@ let mensaje = null;
 // ------------------------------------------------------
 
 if (
+  ['CIERRE_COMERCIAL_ACEPTADO', 'INTERES_FIRME_PARA_COORDINAR'].includes(motivo)
+) {
+  mensaje =
+    'Perfecto, muchas gracias. Le comunicamos con el encargado para coordinar su compra. Le compartimos los detalles que nos indicó.';
+}
+
+else if (
   [
     'SOLICITA_DATOS_PAGO',
     'SOLICITA_CUENTA',
@@ -169,7 +176,7 @@ if (
 ) {
 
   mensaje =
-    'Le adjunto nuestros datos personales 📃 y números de cuentas 🏦';
+    'Con gusto. Le comunicamos con el encargado para coordinar su compra y los datos para el pago.';
 
 }
 

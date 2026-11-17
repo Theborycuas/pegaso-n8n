@@ -1170,6 +1170,9 @@ return [
         entradaWhatsApp.mensaje_externo_id ??
         null,
 
+      handoff_iniciado_at:
+        prepararMensajeHumano.handoff_at ?? null,
+
       preparado_at:
         new Date().toISOString()
 

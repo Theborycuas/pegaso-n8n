@@ -7334,6 +7334,50 @@ if (confirmacionListaMedidas !== null) {
 // 14. SALIDA
 // ======================================================
 
+// La decisión de compra se comprueba al final, después de resolver
+// medidas, catálogo y preguntas. Así el siguiente paso es el encargado.
+const textoCompra = textoPlano(textoTurnoCrudo);
+const textoDudasCompra = textoCompra.replace(/\bno hay (ningun |ninguna )?(problemas?|inconvenientes?)\b/g, '');
+const descartaCompra =
+  /\b(no|todavia no|aun no|despues|luego|quizas|tal vez|talvez)\b|\b(solo|solamente) (estoy |quiero )?(viendo|cotizando|consultando|preguntando)\b|\b(si (compro|pido|hago|hiciera)|cuanto|como|que precio|antes de|pero)\b/.test(textoDudasCompra);
+const compraExplicita =
+  /\b(hagamosl[ao]s?|hagal[ao]s?|agale|proceda|deme haciendo|me d[ae] haciendo|quiero comprar|quiero (hacer|realizar|confirmar|coordinar) (el |mi |un |las |los |estas |esas )?(pedido|compra|etiquetas|adhesivos|trabajo)|necesito (hacer|realizar|confirmar) (el |mi |un |las |los )?(pedido|etiquetas)|confirmo (el |mi )?pedido|avancemos|sigamos con (el|mi) pedido)\b/.test(textoCompra);
+const solicitaCuenta =
+  /\b(pas[ae](me)?|envie(me)?|ayud[ae](me)?|necesito|deme)\b.{0,65}\b(cuenta|datos bancarios|datos para (la )?transferencia)\b/.test(textoCompra);
+const anunciaAbono =
+  /\b(ya|manana|hoy|ahorita)\b.{0,35}\b(le )?(deposito|transfiero|hago (el |la )?(pago|abono)|realizo (el )?abono)\b/.test(textoCompra);
+const confirmaBreve =
+  /^(si( por favor)?|de acuerdo|esta bien|ok( esta bien)?|listo|perfecto|correcto)[.!\s]*$/.test(textoCompra);
+const ultimaPreguntaCompra =
+  /\b(desea|quiere|gustaria)\b.{0,45}\b(avanzar|avancemos|continuar|continuemos|realizar|confirmar|proceder)\b.{0,30}\b(pedido|compra)\b|\b(esta de acuerdo|me confirma)\b.{0,45}\b(cotizacion|pedido|compra)\b/.test(
+    textoPlano(ultimoSaliente.contenido ?? contextoIA.ultimo_mensaje_saliente)
+  );
+const propuestaCatalogo = objeto(contextoAnterior.pedido_catalogo);
+const propuestaIdentificada =
+  (cotizacionAnterior.estado === 'COTIZADA' && numero(cotizacionAnterior.cotizacion_id) > 0) ||
+  (propuestaCatalogo.estado === 'TOTAL' && numero(propuestaCatalogo.total) !== null);
+const intencionCompra =
+  !descartaCompra &&
+  (compraExplicita || solicitaCuenta || anunciaAbono ||
+    (confirmaBreve && ultimaPreguntaCompra));
+const derivacionCompra = intencionCompra
+  ? {
+      tipo: propuestaIdentificada && !modificoDatosCotizacion
+        ? 'CIERRE_COMERCIAL_ACEPTADO'
+        : 'INTERES_FIRME_PARA_COORDINAR',
+      cotizacion_id: propuestaIdentificada ? cotizacionAnterior.cotizacion_id ?? null : null,
+      propuesta: propuestaIdentificada ? { ...cotizacionAnterior } : null,
+      pedido_catalogo: propuestaCatalogo.estado === 'TOTAL' ? propuestaCatalogo : null,
+      mensaje_cliente: textoTurnoCrudo.trim(),
+      mensaje_externo_id: data.mensaje_externo_id ?? contextoIA.mensaje_externo_id ?? null,
+      registrado_at: new Date().toISOString()
+    }
+  : null;
+
+if (derivacionCompra) {
+  contextoComercialNuevo.cierre_comercial = derivacionCompra;
+}
+
 return [
   {
     json: {
@@ -7675,7 +7719,23 @@ return [
         respuestaSugerida,
 
       contexto_comercial:
-        contextoComercialNuevo
+        contextoComercialNuevo,
+
+      ...(derivacionCompra ? {
+        accion: 'DERIVAR_HUMANO',
+        intencion: 'CONFIRMAR_PEDIDO',
+        requiere_humano: true,
+        requiere_notificacion: true,
+        motivo_derivacion: derivacionCompra.tipo,
+        prioridad_derivacion: 'ALTA',
+        clasificacion_prospecto: 'A',
+        cierre_comercial: derivacionCompra,
+        omitir_envio: false,
+        motivo_omision_envio: null,
+        enviar_imagen_informativa: false,
+        enviar_videos_tarjetas: false,
+        enviar_imagen_flyers: false
+      } : {})
     }
   }
 ];
