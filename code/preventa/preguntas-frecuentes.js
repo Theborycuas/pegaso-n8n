@@ -48,6 +48,19 @@ const RESPUESTA_FAQ_CIRELES =
 
 const TABLA_FAQ_PRE_IA = [
   {
+    id: 'MUESTRAS_TRABAJOS',
+    // "¿Tiene imágenes de muestra?", "Puede enviarme fotos de trabajos…".
+    // "Resolver contexto comercial" envía la galería del producto o pregunta cuál es
+    // (módulo code/preventa/galeria-trabajos.js, que puede incluirse después).
+    patron: {
+      test: plano => typeof pideMuestrasTrabajos === 'function' && pideMuestrasTrabajos(plano)
+    },
+    intencion: 'CONSULTAR_PRODUCTO',
+    accion: 'RESPONDER_GENERAL',
+    // Igual a GALERIA_INTRO_SOLICITUD.
+    respuesta: 'Claro, con gusto 🤗.'
+  },
+  {
     id: 'PRECIO_ETIQUETAS_ADHESIVAS',
     // FAQ del anuncio Meta (muy repetida en ejecuciones).
     patron:

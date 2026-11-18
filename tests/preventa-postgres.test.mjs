@@ -203,7 +203,8 @@ test('La post-cotización conserva el handoff y puede actualizar la actividad', 
 
 test('Cada envío YCloud tiene una guardia SQL y una condición de permiso', () => {
   const senders = workflow.nodes.filter(item => item.type.endsWith('.httpRequest') && /^YCloud Enviar/.test(item.name));
-  assert.equal(senders.length, 9);
+  // 9 + galería de trabajos (cada medio y el texto de cierre).
+  assert.equal(senders.length, 11);
   for (const sender of senders) {
     const predecessors = Object.entries(workflow.connections).filter(([, types]) => types.main?.flat().some(edge => edge.node === sender.name));
     assert.equal(predecessors.length, 1);

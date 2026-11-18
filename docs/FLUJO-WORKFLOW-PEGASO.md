@@ -825,27 +825,42 @@ Si la persona vuelve a escribir, entra como prospecto nuevo: el número ya no co
 
 ## 23. Galería de trabajos
 
-En etiquetas, después de responder cireles («impresión offset»), material («Polipropileno») o la ciudad («somos de Quito»), el bot envía una galería de fotos y videos de trabajos realizados y cierra con «Le adjunto varios de nuestros trabajos.». Se envía una sola vez por conversación (`contexto_comercial.galeria_trabajos.enviada_at`) y no se envía si en el historial reciente un asesor ya escribió «Le adjunto varios/algunos de nuestros trabajos». No sale en cotizaciones, derivaciones, datos de pago, productos de catálogo ni cuando la respuesta se omite.
+En etiquetas, el bot envía una galería de fotos y videos de trabajos del tipo de producto del prospecto y cierra con «Le adjunto varios de nuestros trabajos.». Lo hace en dos casos:
 
-Los links viven en la fila `GALERIA_TRABAJOS` de `configuracion_bot` (módulo `code/preventa/galeria-trabajos.js`). Cada galería tiene `clave`, `palabras` y `medios`. Se elige la primera galería cuyas palabras aparezcan en lo que escribió el prospecto (mensaje actual e historial entrante); si ninguna coincide, la marcada `predeterminada`. Solo se aceptan links `https`, como máximo 15 por galería. El tipo sale de la extensión (`.mp4`, `.mov`, `.3gp` = video) o de `tipo`.
+- **A pedido (V3.37).** La regla pre-IA `MUESTRAS_TRABAJOS` (`pideMuestrasTrabajos`) reconoce «¿tiene imágenes de muestra?», «puede enviarme fotos de trabajos…» y similares, y responde sin IA.
+  - Si el producto se conoce, sale su galería tras «Claro, con gusto 🤗.».
+  - Si no se conoce, pregunta «¿Para qué producto son sus etiquetas?» (`pendiente_producto = SOLICITUD`) y la envía con la respuesta, o la `predeterminada` si el producto no tiene palabra conocida.
+  - En ese turno, la petición tiene prioridad sobre las medidas sugeridas de agua.
+- **Enganche.** Después de responder cireles («impresión offset»), material («Polipropileno») o la ciudad («somos de Quito»), solo si el producto se conoce. Si no, queda `pendiente_producto = ENGANCHE` y sale cuando el prospecto nombre un producto con galería.
+
+Cada galería sale una sola vez por conversación (`contexto_comercial.galeria_trabajos.claves_enviadas`). Si vuelve a pedirla, responde «Más arriba le compartimos varios de nuestros trabajos 👆.». Tampoco sale si en el historial reciente un asesor ya escribió «Le adjunto varios/algunos de nuestros trabajos». No sale en cotizaciones, derivaciones, datos de pago, productos de catálogo ni cuando la respuesta se omite.
+
+Los links viven en la fila `GALERIA_TRABAJOS` de `configuracion_bot` (`schema/galeria-trabajos.sql`, módulo `code/preventa/galeria-trabajos.js`). Cada galería tiene `clave`, `palabras` y `medios`. Se elige la primera galería cuyas palabras aparezcan en el mensaje actual y, si no, en el historial entrante:
+- LACTEOS cubre lácteos y alimentos;
+- AGUA cubre aguas, detergentes y líquidos.
+
+Solo se aceptan links `https`, como máximo 15 por galería. El tipo sale de la extensión (`.mp4`, `.mov`, `.3gp` = video) o de `tipo`.
 
 ```mermaid
 flowchart LR
     T[YCloud Enviar Wts] --> IVA{IF: ¿Enviar nota IVA?}
-    IVA -->|F| G{IF: ¿Enviar galería trabajos?} --> A[(Autorizar salida galería trabajos)] --> P{IF permiso salida galería trabajos}
-    P -->|T| PG[Preparar galería trabajos] --> Y[YCloud Enviar galería trabajos<br/>1 por lote · 600 ms] --> E[Esperar cierre galería<br/>4 s · una vez] --> C[YCloud Enviar cierre galería]
+    IVA -->|F| G{IF: ¿Enviar galería trabajos?} --> PG[Preparar galería trabajos] --> A9[(Autorizar salida WhatsApp 9)] --> P9{IF permiso salida WhatsApp 9}
+    P9 -->|T| Y[YCloud Enviar galería trabajos<br/>1 por lote · 600 ms] --> E[Esperar cierre galería<br/>4 s · una vez] --> A10[(Autorizar salida WhatsApp 10)] --> P10{IF permiso salida WhatsApp 10}
+    P10 -->|T| C[YCloud Enviar cierre galería]
 ```
 
 | Nodo | Tipo | Qué hace | Recibe de | Envía a |
 |---|---|---|---|---|
-| Resolver contexto comercial (V3.36) | Code | Decide la galería con `decidirGaleriaTrabajos` sobre la respuesta final. Emite `enviar_galeria_trabajos`, `galeria_trabajos` (`tipo`, `url`), `galeria_trabajos_clave`, `texto_cierre_galeria` y guarda `contexto_comercial.galeria_trabajos` (`clave`, `motivo`, `medios`, `enviada_at`) | — | — |
+| Resolver contexto comercial (V3.37) | Code | Decide la galería con `decidirGaleriaTrabajos` sobre el mensaje y la respuesta final, y ajusta el texto (petición, pregunta del producto, ya compartida). Emite `enviar_galeria_trabajos`, `galeria_trabajos` (`tipo`, `url`), `galeria_trabajos_clave`, `texto_cierre_galeria` y guarda `contexto_comercial.galeria_trabajos` (`clave`, `motivo`, `medios`, `enviada_at`) | — | — |
 | Preparar envío WhatsApp (V3.8) | Code | Arma un cuerpo YCloud por medio, sin caption, para que WhatsApp los agrupe, y `ycloud_request_cierre_galeria`. No aplica con los videos de tarjetas | — | — |
-| IF: ¿Enviar galería trabajos? | IF `enviar_galeria_trabajos` | | IF: ¿Enviar nota IVA? [F] | Autorizar salida galería trabajos |
-| Autorizar salida galería trabajos | Postgres executeQuery | La misma guardia que las demás salidas: no envía si el cliente escribió de nuevo o un humano atiende | IF galería [T] | IF permiso salida galería trabajos |
-| IF permiso salida galería trabajos | IF `permitir_envio` | | Autorizar salida galería trabajos | [T] Preparar galería trabajos |
-| Preparar galería trabajos | Code | Un item por medio | IF permiso [T] | YCloud Enviar galería trabajos |
-| YCloud Enviar galería trabajos | HTTP POST `/v2/whatsapp/messages` (credencial YCloud API, lotes de 1 cada 600 ms, timeout 20 s, `onError: continueRegularOutput`) | Envía cada foto o video en orden. Un medio que falla no detiene los demás | Preparar galería trabajos | Esperar cierre galería |
-| Esperar cierre galería | Wait 4 s (`executeOnce`) | Deja llegar los medios y continúa una sola vez | YCloud Enviar galería trabajos | YCloud Enviar cierre galería |
-| YCloud Enviar cierre galería | HTTP POST (credencial YCloud API, `onError: continueRegularOutput`) | «Le adjunto varios de nuestros trabajos.» (o `texto_cierre` de la configuración) | Esperar cierre galería | — (**fin**) |
+| IF: ¿Enviar galería trabajos? | IF `enviar_galeria_trabajos` | | IF: ¿Enviar nota IVA? [F] | Preparar galería trabajos |
+| Preparar galería trabajos | Code | Un item por medio. Lee además: Preparar envío WhatsApp | IF galería [T] | Autorizar salida WhatsApp 9 |
+| Autorizar salida WhatsApp 9 | Postgres executeQuery | La guardia común de salida, una vez por medio: si el cliente escribe o un humano toma la conversación durante la galería, los medios restantes no salen | Preparar galería trabajos | IF permiso salida WhatsApp 9 |
+| IF permiso salida WhatsApp 9 | IF `permitir_envio` | | Autorizar salida WhatsApp 9 | [T] YCloud Enviar galería trabajos |
+| YCloud Enviar galería trabajos | HTTP POST `/v2/whatsapp/messages` (credencial YCloud API, lotes de 1 cada 600 ms, timeout 20 s, `onError: continueRegularOutput`) | Envía cada foto o video en orden; el cuerpo es `$('Preparar galería trabajos').all()[$itemIndex].json.body`. Un medio que falla no detiene los demás | IF permiso 9 [T] | Esperar cierre galería |
+| Esperar cierre galería | Wait 4 s (`executeOnce`) | Deja llegar los medios y continúa una sola vez | YCloud Enviar galería trabajos | Autorizar salida WhatsApp 10 |
+| Autorizar salida WhatsApp 10 | Postgres executeQuery | La guardia común antes del cierre | Esperar cierre galería | IF permiso salida WhatsApp 10 |
+| IF permiso salida WhatsApp 10 | IF `permitir_envio` | | Autorizar salida WhatsApp 10 | [T] YCloud Enviar cierre galería |
+| YCloud Enviar cierre galería | HTTP POST (credencial YCloud API, `onError: continueRegularOutput`) | «Le adjunto varios de nuestros trabajos.» (o `texto_cierre` de la configuración). Lee además: Preparar envío WhatsApp | IF permiso 10 [T] | — (**fin**) |
 
 `Obtener configuración MODO_PRUEBA` lee también la clave `GALERIA_TRABAJOS`. Sin esa fila, o con `activo` distinto de `true`, el flujo no cambia.

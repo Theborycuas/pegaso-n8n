@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.36
+// RESOLVER CONTEXTO COMERCIAL - V3.37
 // ======================================================
 //
 // Objetivo:
@@ -206,6 +206,9 @@
 // - V3.36: galería de trabajos (GALERIA_TRABAJOS) una sola
 //   vez por conversación tras responder cireles, material o
 //   ciudad en etiquetas. Salida enviar_galeria_trabajos.
+// - V3.37: galería cuando el prospecto pide fotos o muestras
+//   de trabajos; si no se conoce su producto, lo pregunta. El
+//   enganche sin producto claro ya no envía una galería al azar.
 //
 // ======================================================
 
@@ -6247,10 +6250,14 @@ if (
 
 // Medidas sugeridas para botella / botellón / bidón de agua.
 // No se confunde con fajillas (Tesalia/Dasani): esas van arriba.
+// V3.37: si pide fotos de trabajos, ese turno responde la
+// galería (14.1); la función del módulo es una declaración
+// sin constantes, disponible antes de su directiva.
 if (
   !flujoDisenoEtiqueta &&
   puedeFlujoEtiquetas &&
   !hayDisenoTurno &&
+  !pideMuestrasTrabajos(mensajeTurnoPlano) &&
   !PATRON_FAJILLAS.test(mensajeTurnoPlano) &&
   PATRON_ENVASE_AGUA.test(mensajeTurnoPlano) &&
   !paresMedidaTurno.length &&
@@ -7402,13 +7409,18 @@ contextoComercialNuevo.calificacion_preventa = calificacionPreventa;
 
 
 // ------------------------------------------------------
-// 14.1 GALERÍA DE TRABAJOS (V3.36)
+// 14.1 GALERÍA DE TRABAJOS (V3.36 · V3.37)
 // ------------------------------------------------------
 //
-// Después de responder cireles, material o ciudad en
-// etiquetas, "Preparar envío WhatsApp" manda la galería
-// tras el texto y cierra con "Le adjunto varios de nuestros
-// trabajos.". Una sola vez por conversación; tampoco si un
+// "Preparar envío WhatsApp" manda la galería del producto
+// del prospecto tras el texto y cierra con "Le adjunto
+// varios de nuestros trabajos.":
+// - V3.37: cuando pide fotos o muestras de trabajos. Si no
+//   se sabe su producto, pregunta para qué producto son y la
+//   envía con lo que responda;
+// - después de responder cireles, material o ciudad, solo si
+//   el producto se conoce (si no, espera a que lo nombre).
+// Cada galería, una sola vez por conversación; tampoco si un
 // asesor ya la envió a mano.
 //
 // ------------------------------------------------------
@@ -7418,7 +7430,7 @@ contextoComercialNuevo.calificacion_preventa = calificacionPreventa;
 const historialGaleria =
   Array.isArray(contextoIA.historial) ? contextoIA.historial : [];
 
-const galeriaTrabajos =
+const decisionGaleria =
   decidirGaleriaTrabajos({
     config: objeto(
       filasConfiguracion.find(fila => fila.clave === 'GALERIA_TRABAJOS')?.valor_json
@@ -7439,6 +7451,7 @@ const galeriaTrabajos =
       !ACCIONES_CATALOGO.includes(accion),
     contextoAnterior,
     historial: historialGaleria,
+    textoTurno: textoTurnoCrudo,
     // Lo que escribió el prospecto elige la galería de su producto.
     textoProspecto: [
       producto,
@@ -7446,16 +7459,35 @@ const galeriaTrabajos =
       ...historialGaleria
         .filter(mensaje => String(mensaje?.direccion ?? '').toUpperCase() === 'ENTRANTE')
         .map(mensaje => mensaje?.contenido)
-    ].filter(Boolean).join(' ')
+    ].filter(Boolean).join(' '),
+    medidasConocidas: medidasActualesCompletas === true
   });
 
-if (galeriaTrabajos) {
-  contextoComercialNuevo.galeria_trabajos = {
-    clave: galeriaTrabajos.clave,
-    motivo: galeriaTrabajos.motivo,
-    medios: galeriaTrabajos.medios.length,
-    enviada_at: new Date().toISOString()
-  };
+const galeriaTrabajos =
+  decisionGaleria?.galeria ?? null;
+
+if (decisionGaleria?.texto) {
+  // La respuesta de la regla de muestras o una petición genérica de datos
+  // cede su lugar al texto de la galería; otra respuesta lo lleva al final.
+  const restoRespuesta =
+    String(respuestaSugerida ?? '')
+      .replace(GALERIA_INTRO_SOLICITUD, '')
+      .trim();
+  const respuestaGenerica =
+    restoRespuesta === '' ||
+    ['PEDIR_MEDIDAS', 'PEDIR_PRODUCTO'].includes(accion);
+
+  if (decisionGaleria.texto_reemplaza && respuestaGenerica) {
+    respuestaSugerida = decisionGaleria.texto;
+  } else if (decisionGaleria.texto !== GALERIA_INTRO_SOLICITUD && decisionGaleria.texto !== GALERIA_INTRO_PRODUCTO) {
+    respuestaSugerida = restoRespuesta
+      ? `${restoRespuesta}\n\n${decisionGaleria.texto}`
+      : decisionGaleria.texto;
+  }
+}
+
+if (decisionGaleria?.estado) {
+  contextoComercialNuevo.galeria_trabajos = decisionGaleria.estado;
 }
 
 return [

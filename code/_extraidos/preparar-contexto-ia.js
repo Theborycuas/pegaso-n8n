@@ -2500,6 +2500,8 @@ const RESPUESTA_CIERRE_LIBRETAS =
 
 // @pegaso-module code/preventa/ubicacion.js
 
+// @pegaso-module code/preventa/galeria-trabajos.js
+
 // @pegaso-module code/preventa/preguntas-frecuentes.js
 
 // @pegaso-module code/preventa/cierre-comercial.js

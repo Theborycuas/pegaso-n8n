@@ -41,7 +41,7 @@ Un reporte por intervención sobre el workflow **SISTEMA AUTOMATIZADO PEGASO**: 
 | 2026-11-17 | [Insistencia a leads de anuncio · Sprint 1: base de datos y respuestas de botón](2026-11-17-insistencia-leads-sprint1.md) | Implementado en local, sin publicar ni commit; requiere `schema/seguimientos-leads.sql` antes de publicar |
 | 2026-11-17 | [Insistencia a leads de anuncio · Sprint 2: rutina programada, respuesta del cliente y estados de entrega](2026-11-17-insistencia-leads-sprint2.md) | Implementado en local, sin publicar ni commit; requiere `schema/seguimientos-leads.sql`; la rutina nace apagada (`INSISTENCIA_LEADS`) |
 | 2026-11-17 | [Insistencia a leads de anuncio · Sprint 3: purga a 180 días](2026-11-17-insistencia-leads-sprint3.md) | Implementado en local, sin publicar ni commit; requiere `schema/purga-leads.sql`; nace apagada y en simulación (`PURGA_DATOS_LEADS`) |
-| 2026-11-17 | [Galería de trabajos en el enganche](2026-11-17-galeria-trabajos.md) | Implementado en local, sin publicar ni commit; se activa con la fila `GALERIA_TRABAJOS` de `configuracion_bot` |
+| 2026-11-17 | [Galería de trabajos: a pedido y en el enganche](2026-11-17-galeria-trabajos.md) | Implementado en local, sin publicar ni commit; se activa con la fila `GALERIA_TRABAJOS` de `configuracion_bot` |
 
 ## Convenciones
 
