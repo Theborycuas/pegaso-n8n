@@ -29,15 +29,22 @@ const CIERRE = 'Le adjunto varios de nuestros trabajos.';
 const SEGUIMIENTO = 'Quedamos atentos de las medidas exactas para cotizarle por favor.';
 const PIDE_MEDIDAS = 'Para enviarle el precio indíquenos por favor el ancho y el alto de sus etiquetas en centímetros. ¿En qué producto las va a usar?';
 
-test('Los momentos de enganche son cireles, material y ciudad', () => {
-  assert.equal(galeria.motivoGaleriaTrabajos(RESPUESTA_CIRELES), 'CIRELES');
-  assert.equal(galeria.motivoGaleriaTrabajos(RESPUESTA_MATERIAL), 'MATERIAL');
-  assert.equal(galeria.motivoGaleriaTrabajos(RESPUESTA_CIUDAD), 'CIUDAD');
-  assert.equal(galeria.motivoGaleriaTrabajos('Perfecto, nosotros también estamos en Quito. ¿Usted cuenta con el diseño?'), 'CIUDAD');
-  // El texto predeterminado de ciudad también es momento de enganche; la dirección para visitas no.
-  assert.equal(galeria.motivoGaleriaTrabajos(faq('en que ciudad se encuentran').respuesta), 'CIUDAD');
-  assert.equal(galeria.motivoGaleriaTrabajos(faq('cual es su direccion').respuesta), null);
-  assert.equal(galeria.motivoGaleriaTrabajos('Para enviarle el precio indíquenos el ancho y el alto.'), null);
+test('Solo pregunta de material o cotización son momentos de la galería', () => {
+  for (const texto of [
+    'Q material son', 'que material usan', 'de que estan hechas las etiquetas', 'son de papel?',
+    'resisten el agua?', 'aguantan la refrigeracion', 'se despegan con el frio?', 'son impermeables'
+  ]) {
+    assert.equal(galeria.motivoGaleriaTrabajos({ textoTurno: texto, accion: 'RESPONDER_GENERAL' }), 'MATERIAL', texto);
+  }
+  assert.equal(galeria.motivoGaleriaTrabajos({ textoTurno: '700 de 10x5', accion: 'COTIZAR_P4' }), 'COTIZACION');
+  // Las capturas: precio, ciudad, ubicación y cireles no son momento de galería,
+  // aunque la respuesta hable del polipropileno o de Quito.
+  for (const texto of [
+    '¿Precio de las etiquetas adhesivas?', '¿En qué ciudad se encuentran?', 'Me ayuda con la ubicación por favor',
+    'Me interesa', 'cobran cireles?', 'necesito etiquetas para mi producto'
+  ]) {
+    assert.equal(galeria.motivoGaleriaTrabajos({ textoTurno: texto, accion: 'RESPONDER_GENERAL' }), null, texto);
+  }
 });
 
 test('Se reconoce cuando el prospecto pide fotos o muestras de trabajos', () => {
@@ -121,25 +128,38 @@ test('Pide fotos sin producto claro: pregunta y envía según lo que responda', 
   assert.equal(velas.galeria.clave, 'AGUA');
 });
 
-test('El enganche sin producto claro espera a que lo nombre', () => {
-  const material = decidir({ textoTurno: 'que material son', textoProspecto: 'precio de etiquetas que material son', respuesta: RESPUESTA_MATERIAL, accion: 'INFORMAR_MATERIAL' });
-  assert.equal(material.galeria, null);
+test('Material y cotización: solo con producto conocido y sin dejar pendientes', () => {
+  // Pregunta el material sin producto claro: no sale ninguna galería ni queda pendiente.
+  assert.equal(decidir({ textoTurno: 'que material son', textoProspecto: 'precio de etiquetas que material son', respuesta: RESPUESTA_MATERIAL }), null);
+
+  // Con producto conocido sale sin texto adicional y con el cierre simple.
+  const material = decidir({ textoTurno: 'que material son', textoProspecto: 'botellones que material son', respuesta: RESPUESTA_MATERIAL });
+  assert.equal(material.galeria.clave, 'AGUA');
+  assert.equal(material.galeria.motivo, 'MATERIAL');
   assert.equal(material.texto, null);
-  assert.equal(material.estado.pendiente_producto, 'ENGANCHE');
+  assert.equal(material.galeria.texto_cierre, CIERRE);
 
-  // Nombra un producto conocido más adelante: sale su galería.
-  const detergente = decidir({ textoTurno: 'es para detergente liquido', textoProspecto: 'es para detergente liquido', contextoAnterior: { galeria_trabajos: material.estado }, accion: 'PEDIR_MEDIDAS', respuesta: PIDE_MEDIDAS });
-  assert.equal(detergente.galeria.clave, 'AGUA');
+  // Junto con la cotización, si se conoce el producto.
+  const cotizacion = decidir({ textoTurno: '1000 de 5x8', textoProspecto: 'etiquetas para yogurt 1000 de 5x8', accion: 'COTIZAR_P4', medidasConocidas: true });
+  assert.equal(cotizacion.galeria.clave, 'LACTEOS');
+  assert.equal(cotizacion.galeria.motivo, 'COTIZACION');
+  assert.equal(cotizacion.texto, null);
+  assert.equal(cotizacion.galeria.texto_cierre, CIERRE);
+  assert.equal(decidir({ textoTurno: '1000 de 5x8', textoProspecto: '1000 de 5x8', accion: 'COTIZAR_P4' }), null);
 
-  // Un producto sin galería no recibe una al azar.
-  assert.equal(decidir({ textoTurno: 'para velas', textoProspecto: 'para velas', contextoAnterior: { galeria_trabajos: material.estado } }), null);
+  // Las capturas: precio respondido con el material, ciudad o cireles no envían galería.
+  for (const [textoTurno, respuesta] of [
+    ['¿Precio de las etiquetas adhesivas?', RESPUESTA_MATERIAL],
+    ['¿En qué ciudad se encuentran?', RESPUESTA_CIUDAD],
+    ['cobran cireles?', RESPUESTA_CIRELES]
+  ]) {
+    assert.equal(decidir({ textoTurno, textoProspecto: `botellones ${textoTurno}`, respuesta }), null, textoTurno);
+  }
 
-  // Con producto conocido, el enganche envía sin texto adicional.
-  const ciudad = decidir({ textoTurno: 'Cuenca', textoProspecto: 'botellones Cuenca', respuesta: RESPUESTA_CIUDAD });
-  assert.equal(ciudad.galeria.clave, 'AGUA');
-  assert.equal(ciudad.galeria.motivo, 'CIUDAD');
-  assert.equal(ciudad.texto, null);
-  assert.equal(ciudad.galeria.texto_cierre, CIERRE);
+  // Un pendiente de versiones anteriores ya no dispara la galería: se limpia.
+  const viejo = decidir({ textoTurno: 'es para detergente', textoProspecto: 'es para detergente', contextoAnterior: { galeria_trabajos: { pendiente_producto: 'ENGANCHE' } } });
+  assert.equal(viejo.galeria, null);
+  assert.equal(viejo.estado.pendiente_producto, null);
 });
 
 test('La galería no se repite si ya salió o la envió un asesor', () => {
@@ -154,13 +174,13 @@ test('La galería no se repite si ya salió o la envió un asesor', () => {
   assert.match(pide.texto, /^Más arriba/);
 });
 
-test('Sin configuración activa, en cotización o derivación no sale la galería', () => {
+test('Sin configuración activa, en derivación o datos de pago no sale la galería', () => {
   const base = { textoTurno: 'tienen fotos de trabajos?', textoProspecto: 'agua' };
   assert.ok(decidir(base).galeria);
   assert.equal(decidir({ ...base, config: { ...CONFIG, activo: false } }), null);
   assert.equal(decidir({ ...base, config: {} }), null);
   assert.equal(decidir({ ...base, permitido: false }), null);
-  for (const accion of ['COTIZAR_P4', 'DERIVAR_HUMANO', 'ENVIAR_DATOS_PAGO']) {
+  for (const accion of ['DERIVAR_HUMANO', 'ENVIAR_DATOS_PAGO']) {
     assert.equal(decidir({ ...base, accion }), null, accion);
   }
   assert.equal(decidir({ ...base, config: { activo: true, galerias: [{ clave: 'X', palabras: ['agua'], medios: ['http://x.jpg'] }] } }).galeria, null);
@@ -246,23 +266,39 @@ test('Captura: "¿tiene imágenes de muestra?" sin producto pregunta cuál es y 
   assert.equal(respuesta.contexto_comercial.galeria_trabajos.pendiente_producto, null);
 });
 
+test('Capturas: precio, ubicación y ciudad ya no envían la galería', () => {
+  const precio = resolver({ mensaje: '¿Precio de las etiquetas adhesivas?', accion: 'PEDIR_MEDIDAS', respuesta: RESPUESTA_MATERIAL });
+  assert.equal(precio.enviar_galeria_trabajos, false);
+  assert.equal(precio.contexto_comercial.galeria_trabajos, undefined);
+
+  for (const mensaje of ['Me ayuda con la ubicación por favor', '¿En qué ciudad se encuentran?']) {
+    const ciudad = resolver({
+      mensaje, accion: 'RESPONDER_GENERAL', respuesta: RESPUESTA_CIUDAD,
+      historial: [{ direccion: 'ENTRANTE', contenido: 'Precio de etiquetas para botellones' }]
+    });
+    assert.equal(ciudad.enviar_galeria_trabajos, false, mensaje);
+  }
+});
+
 test('El resolver no repite la galería ni la envía sin configuración', () => {
   const yaEnviada = resolver({
-    mensaje: 'cobran cireles', accion: 'RESPONDER_GENERAL', respuesta: RESPUESTA_CIRELES,
+    mensaje: 'que material son', accion: 'RESPONDER_GENERAL', respuesta: RESPUESTA_MATERIAL,
+    historial: [{ direccion: 'ENTRANTE', contenido: 'botellones' }],
     contexto: { galeria_trabajos: { clave: 'AGUA', enviada_at: '2026-11-17T10:00:00Z' } }
   });
   assert.equal(yaEnviada.enviar_galeria_trabajos, false);
   assert.equal(yaEnviada.contexto_comercial.galeria_trabajos.enviada_at, '2026-11-17T10:00:00Z');
 
-  const sinConfig = resolver({ mensaje: 'cobran cireles', accion: 'RESPONDER_GENERAL', respuesta: RESPUESTA_CIRELES, config: [] });
+  const sinConfig = resolver({ mensaje: 'que material son', accion: 'RESPONDER_GENERAL', respuesta: RESPUESTA_MATERIAL, config: [] });
   assert.equal(sinConfig.enviar_galeria_trabajos, false);
   assert.equal(sinConfig.contexto_comercial.galeria_trabajos, undefined);
 });
 
-function prepararEnvio(decision) {
+function prepararEnvio(decision, extra = {}) {
   return runNode('preparar-envio-whatsapp', {
     conversacion_id: 10, id: 55, direccion: 'SALIENTE', tipo: 'TEXTO', contenido: 'Respuesta', telefono: '593999999999'
   }, {
+    ...extra,
     'Recuperar decisión comercial': decision,
     'Preparar respuesta comercial': { respuesta_final: 'Respuesta', omitir_envio: false },
     'Preparar entrada WhatsApp': {
@@ -292,6 +328,17 @@ test('El envío arma un request por medio, sin caption, y el cierre', () => {
   assert.deepEqual(envio.galeria_trabajos[1].body.video, { link: `${URL_BASE}/b.mp4` });
   assert.equal(envio.galeria_trabajos[0].body.image.caption, undefined);
   assert.equal(envio.ycloud_request_cierre_galeria.body.text.body, `${CIERRE}\n\n${SEGUIMIENTO}`);
+});
+
+test('Con la cotización, la galería solo sale si la cotización es producible', () => {
+  const decision = {
+    enviar_galeria_trabajos: true, galeria_trabajos_clave: 'AGUA', galeria_trabajos_motivo: 'COTIZACION',
+    galeria_trabajos: [{ tipo: 'image', url: `${URL_BASE}/a.jpg` }], texto_cierre_galeria: CIERRE
+  };
+  assert.equal(prepararEnvio(decision, { 'Construir mensaje comercial': { cotizacion_producible: true } }).enviar_galeria_trabajos, true);
+  assert.equal(prepararEnvio(decision, { 'Construir mensaje comercial': { cotizacion_producible: false } }).enviar_galeria_trabajos, false);
+  // Si la ruta de cotización no corrió, tampoco.
+  assert.equal(prepararEnvio(decision).enviar_galeria_trabajos, false);
 });
 
 test('Preparar galería emite un item por medio', () => {

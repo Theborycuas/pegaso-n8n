@@ -17,7 +17,7 @@
 // ======================================================
 
 // ======================================================
-// RESOLVER CONTEXTO COMERCIAL - V3.37
+// RESOLVER CONTEXTO COMERCIAL - V3.38
 // ======================================================
 //
 // Objetivo:
@@ -209,6 +209,10 @@
 // - V3.37: galería cuando el prospecto pide fotos o muestras
 //   de trabajos; si no se conoce su producto, lo pregunta. El
 //   enganche sin producto claro ya no envía una galería al azar.
+// - V3.38: la galería ya no sale por responder cireles o la
+//   ciudad, ni por mencionar el material. Sale cuando el
+//   prospecto pide muestras, cuando pregunta por el material
+//   o junto con la cotización, si se conoce su producto.
 //
 // ======================================================
 
@@ -7409,7 +7413,7 @@ contextoComercialNuevo.calificacion_preventa = calificacionPreventa;
 
 
 // ------------------------------------------------------
-// 14.1 GALERÍA DE TRABAJOS (V3.36 · V3.37)
+// 14.1 GALERÍA DE TRABAJOS (V3.36 · V3.37 · V3.38)
 // ------------------------------------------------------
 //
 // "Preparar envío WhatsApp" manda la galería del producto
@@ -7418,8 +7422,9 @@ contextoComercialNuevo.calificacion_preventa = calificacionPreventa;
 // - V3.37: cuando pide fotos o muestras de trabajos. Si no
 //   se sabe su producto, pregunta para qué producto son y la
 //   envía con lo que responda;
-// - después de responder cireles, material o ciudad, solo si
-//   el producto se conoce (si no, espera a que lo nombre).
+// - V3.38: cuando pregunta por el material o se le cotiza,
+//   solo si el producto se conoce. Ya no sale por responder
+//   cireles o la ciudad.
 // Cada galería, una sola vez por conversación; tampoco si un
 // asesor ya la envió a mano.
 //
@@ -7764,6 +7769,9 @@ return [
 
       texto_cierre_galeria:
         galeriaTrabajos?.texto_cierre ?? null,
+
+      galeria_trabajos_motivo:
+        galeriaTrabajos?.motivo ?? null,
 
       texto_saludo_tarjetas:
         textoSaludoTarjetas,

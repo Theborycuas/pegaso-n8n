@@ -63,6 +63,9 @@
 // (galeria_trabajos[].body sin caption) y texto de cierre
 // (ycloud_request_cierre_galeria).
 //
+// V3.9: la galería que acompaña a una cotización solo sale
+// si "Construir mensaje comercial" la dejó producible.
+//
 // Puede recibir datos desde distintas rutas:
 //
 // - Guardar mensaje saliente
@@ -910,9 +913,15 @@ const bodyYCloudSaludoTarjetas =
 
 const MAX_MEDIOS_GALERIA = 15;
 
+// Con la cotización, solo si salió una cotización producible.
+const galeriaConCotizacionValida =
+  decision.galeria_trabajos_motivo !== 'COTIZACION' ||
+  obtenerNodo('Construir mensaje comercial').cotizacion_producible === true;
+
 const galeriaTrabajos =
   enviarWhatsApp &&
   !enviarVideosTarjetasFinal &&
+  galeriaConCotizacionValida &&
   decision.enviar_galeria_trabajos === true &&
   Array.isArray(decision.galeria_trabajos)
     ? decision.galeria_trabajos

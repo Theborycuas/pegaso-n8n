@@ -33,11 +33,27 @@
 
 // @pegaso-module code/preventa/notificacion-humano.js
 
-return $input.all().map((item, index) => {
+// V2.3: un item sin datos no genera correo. Cuando "Reservar avisos humanos
+// pendientes" no encontraba avisos, n8n entregaba {"success": true} y cada
+// 10 minutos salía un correo con "Sin nombre" y "N/D".
+const CAMPOS_AVISO = [
+  'conversacion_id', 'prospecto_id', 'telefono', 'handoff_motivo', 'motivo_derivacion',
+  'handoff_mensaje_cliente', 'mensaje_actual'
+];
+
+function avisoSinDatos(json) {
+  const tieneDatos = datos => datos && typeof datos === 'object' &&
+    CAMPOS_AVISO.some(campo => datos[campo] !== undefined && datos[campo] !== null && String(datos[campo]).trim() !== '');
+  if (json?.payload !== undefined && json?.payload !== null) return !tieneDatos(json.payload);
+  return !tieneDatos(json);
+}
+
+return $input.all().flatMap((item, index) => {
+  if (avisoSinDatos(item.json)) return [];
   const input = item.json.payload ? {
     ...item.json.payload,
     notificacion_id: item.json.notificacion_id,
     notificacion_reserva: item.json.notificacion_reserva
   } : item.json;
-  return { ...construirNotificacionHumano(input)[0], pairedItem: { item: index } };
+  return [{ ...construirNotificacionHumano(input)[0], pairedItem: { item: index } }];
 });

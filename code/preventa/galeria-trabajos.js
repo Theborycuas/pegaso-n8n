@@ -5,8 +5,12 @@
 // - SOLICITUD: el prospecto pide fotos, imágenes, videos o muestras de trabajos.
 //   Si su producto ya se conoce, sale esa galería; si no, el bot pregunta para qué
 //   producto son las etiquetas y la envía con lo que responda.
-// - Enganche (CIRELES, MATERIAL, CIUDAD): después de esas respuestas, solo si el
-//   producto se conoce. Si no, queda pendiente y sale cuando el prospecto lo nombre.
+// - MATERIAL: el prospecto pregunta por el material (V3.38), solo si su producto
+//   se conoce.
+// - COTIZACION: junto con la cotización de etiquetas (V3.38), cuando ya se le dio
+//   la información, solo si su producto se conoce.
+// No sale por responder cireles ni la ciudad, ni por mencionar el material en otra
+// respuesta: la galería no se suelta si el prospecto no la busca.
 // Cada galería se envía una sola vez por conversación.
 //
 // valor_json:
@@ -29,7 +33,7 @@ const GALERIA_PREGUNTA_PRODUCTO =
 const GALERIA_YA_COMPARTIDA =
   'Más arriba le compartimos varios de nuestros trabajos 👆.';
 const GALERIA_MAX_MEDIOS = 15;
-const GALERIA_ACCIONES_BLOQUEADAS = ['COTIZAR_P4', 'DERIVAR_HUMANO', 'ENVIAR_DATOS_PAGO'];
+const GALERIA_ACCIONES_BLOQUEADAS = ['DERIVAR_HUMANO', 'ENVIAR_DATOS_PAGO'];
 
 function galeriaPlano(valor) {
   return String(valor ?? '')
@@ -62,19 +66,25 @@ function pideMuestrasTrabajos(texto) {
   );
 }
 
-// Momento de enganche según la respuesta que sale en este turno.
-function motivoGaleriaTrabajos(respuesta) {
-  const plano = galeriaPlano(respuesta);
-  if (!plano) return null;
-  if (/\bimpresion offset\b/.test(plano)) return 'CIRELES';
-  if (/\bpolipropileno\b/.test(plano)) return 'MATERIAL';
-  // Ciudad (no la dirección para visitas).
-  if (
-    /\b(somos de (la ciudad de )?quito|tambien estamos en quito)\b/.test(plano) &&
-    !/\b(valle de los chillos|previa cita)\b/.test(plano)
-  ) {
-    return 'CIUDAD';
-  }
+// El prospecto pregunta por el material o su resistencia.
+function preguntaMaterialEtiquetas(texto) {
+  const plano = galeriaPlano(texto);
+  if (!plano) return false;
+  return (
+    /\bmateria(l|les)\b/.test(plano) ||
+    /\b(de )?que (estan |son |es )?hech[oa]s?\b/.test(plano) ||
+    /\bque tipo de (papel|plastico|adhesivo)\b/.test(plano) ||
+    /\b(son|es|seria[n]?|trabajan con|manejan) (de )?(papel|plastico|vinil|vinilo|polipropileno|couche|bopp)\b/.test(plano) ||
+    /\b(resiste[n]?|aguanta[n]?)\b.{0,25}\b(agua|humedad|frio|refrigeracion|congelacion|calor|sol)\b/.test(plano) ||
+    /\b(se (despega[n]?|moja[n]?|borra[n]?|corre[n]?|rompe[n]?))\b/.test(plano) ||
+    /\b(impermeables?|contra el agua|a prueba de agua)\b/.test(plano)
+  );
+}
+
+// Momento del turno: el prospecto preguntó por el material o se le cotiza.
+function motivoGaleriaTrabajos({ textoTurno, accion } = {}) {
+  if (accion === 'COTIZAR_P4') return 'COTIZACION';
+  if (preguntaMaterialEtiquetas(textoTurno)) return 'MATERIAL';
   return null;
 }
 
@@ -205,28 +215,23 @@ function decidirGaleriaTrabajos({
     };
   }
 
-  if (!yaEnviada && previo.pendiente_producto) {
-    if (delTurno?.por_producto) {
-      return enviar(delTurno, 'PRODUCTO_INDICADO', GALERIA_INTRO_PRODUCTO);
-    }
-    // Pidió fotos y respondió con un producto sin galería propia: la predeterminada.
-    if (previo.pendiente_producto === 'SOLICITUD' && delProspecto) {
-      return enviar(delProspecto, 'PRODUCTO_INDICADO', GALERIA_INTRO_PRODUCTO);
-    }
+  // Solo la pregunta del bot ("¿Para qué producto son sus etiquetas?") deja la
+  // galería pendiente; se envía con lo que responda, en el turno siguiente.
+  if (!yaEnviada && previo.pendiente_producto === 'SOLICITUD' && accion !== 'COTIZAR_P4') {
+    const respondida = delTurno?.por_producto ? delTurno : delProspecto;
+    const estado = { ...previo, pendiente_producto: null, pendiente_at: null };
+    if (respondida) return enviar(respondida, 'PRODUCTO_INDICADO', GALERIA_INTRO_PRODUCTO);
+    return { galeria: null, texto: null, texto_reemplaza: false, estado };
   }
 
-  const motivo = motivoGaleriaTrabajos(respuesta);
-  if (!motivo || yaEnviada) return null;
-  if (conocida) {
-    const envio = enviar(conocida, motivo, null);
-    return { ...envio, texto: null, texto_reemplaza: false };
+  const motivo = motivoGaleriaTrabajos({ textoTurno, accion });
+  // Sin producto claro no se envía una galería al azar.
+  if (!motivo || yaEnviada || !conocida) {
+    // Un pendiente viejo (versiones anteriores) no debe disparar después.
+    return previo.pendiente_producto
+      ? { galeria: null, texto: null, texto_reemplaza: false, estado: { ...previo, pendiente_producto: null, pendiente_at: null } }
+      : null;
   }
-  // Sin producto claro no se envía una galería al azar: espera a que lo nombre.
-  if (previo.pendiente_producto) return null;
-  return {
-    galeria: null,
-    texto: null,
-    texto_reemplaza: false,
-    estado: { ...previo, pendiente_producto: 'ENGANCHE', pendiente_at: new Date().toISOString() }
-  };
+  const envio = enviar(conocida, motivo, null);
+  return { ...envio, texto: null, texto_reemplaza: false };
 }

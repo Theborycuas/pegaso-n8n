@@ -557,13 +557,13 @@ flowchart TD
 | Guardar mensaje transición humano | Postgres insert `mensajes` | Guarda el mensaje de transición (SALIENTE) | Preparar mensaje transición humano | Preparar envío WhatsApp |
 | Finalizar derivación humana | Code | Contrato final del handoff (no cambia decisiones ni prioridad); conserva `notificacion_id` y `notificacion_reserva`. Lee además: Preparar mensaje transición humano | Preparar mensaje transición humano | IF: ¿Requiere notificación? |
 | IF: ¿Requiere notificación? | IF `requiere_notificacion` | **Ambas salidas van al mismo nodo** (ver §18) | Finalizar derivación humana | [T] y [F] Peparar notificacion humano |
-| Peparar notificacion humano | Code (módulo `code/preventa/notificacion-humano.js`) | Notificación interna: categoría (`INTERESADO_PAGO`, `PAGO_REPORTADO`, `CIERRE_COMERCIAL_ACEPTADO`, …), prioridad, asunto (comprobante: `SE RECIBIÓ UN COMPROBANTE DE PAGO`), texto y HTML del email. Procesa cada item; en un reintento usa `payload` del aviso guardado | IF: ¿Requiere notificación? · Reservar avisos humanos pendientes | Brevo - Enviar notificación humana |
+| Peparar notificacion humano | Code (módulo `code/preventa/notificacion-humano.js`) | Notificación interna: categoría (`INTERESADO_PAGO`, `PAGO_REPORTADO`, `CIERRE_COMERCIAL_ACEPTADO`, …), prioridad, asunto (comprobante: `SE RECIBIÓ UN COMPROBANTE DE PAGO`), texto y HTML del email. Procesa cada item; en un reintento usa `payload` del aviso guardado. Descarta los items sin datos del aviso (sin ids, teléfono, motivo ni mensaje): no arma correo con «Sin nombre» y «N/D» | IF: ¿Requiere notificación? · Reservar avisos humanos pendientes | Brevo - Enviar notificación humana |
 | Brevo - Enviar notificación humana | HTTP POST `api.brevo.com/v3/smtp/email` (credencial Header Auth; `onError: continueErrorOutput`; timeout 20 s) | Envía el email interno (también el reporte STATUSIA) | Peparar notificacion humano · Preparar reporte STATUSIA | [ok] Confirmar aviso humano enviado · [err] Resend - Enviar notificación humana |
 | Resend - Enviar notificación humana | HTTP POST `api.resend.com/emails` (credencial Header Auth; `onError: continueErrorOutput`; timeout 20 s) | Respaldo de email si Brevo falla. Toma asunto y HTML de Peparar notificacion humano o, en la ruta STATUSIA, de Preparar reporte STATUSIA | Brevo [err] | [ok] Confirmar aviso humano enviado · [err] Programar reintento aviso humano |
 | Confirmar aviso humano enviado | Postgres executeQuery `notificaciones_humano` | Marca `ENVIADA` solo si coincide la reserva. En la ruta STATUSIA recibe null y no actualiza nada | Brevo [ok] · Resend [ok] | — (**fin**) |
 | Programar reintento aviso humano | Postgres executeQuery `notificaciones_humano` | Devuelve el aviso a `PENDIENTE` con espera exponencial (60 s, 120 s… hasta 1 h) | Resend [err] | — (**fin**) |
 | Reintentar avisos humanos | Schedule Trigger (cada 10 min) | Inicia la recuperación de avisos | — | Reservar avisos humanos pendientes |
-| Reservar avisos humanos pendientes | Postgres executeQuery `notificaciones_humano` | Reserva hasta 10 avisos `PENDIENTE` vencidos o `ENVIANDO` con reserva caducada (`FOR UPDATE SKIP LOCKED`), suma un intento y devuelve `payload`, `notificacion_id` y `notificacion_reserva` | Reintentar avisos humanos | Peparar notificacion humano |
+| Reservar avisos humanos pendientes | Postgres executeQuery `notificaciones_humano` | Reserva hasta 10 avisos `PENDIENTE` vencidos o `ENVIANDO` con reserva caducada (`FOR UPDATE SKIP LOCKED`), suma un intento y devuelve `payload`, `notificacion_id` y `notificacion_reserva`. Termina en `SELECT … FROM reservadas`: sin avisos no devuelve items (un `UPDATE … RETURNING` sin filas hacía que n8n emitiera `{"success": true}` y saliera un correo vacío cada 10 min) | Reintentar avisos humanos | Peparar notificacion humano |
 
 ---
 
@@ -825,15 +825,17 @@ Si la persona vuelve a escribir, entra como prospecto nuevo: el número ya no co
 
 ## 23. Galería de trabajos
 
-En etiquetas, el bot envía una galería de fotos y videos de trabajos del tipo de producto del prospecto y cierra con «Le adjunto varios de nuestros trabajos.». Lo hace en dos casos:
+En etiquetas, el bot envía una galería de fotos y videos de trabajos del tipo de producto del prospecto y cierra con «Le adjunto varios de nuestros trabajos.». No la suelta a discreción: solo en estos casos.
 
 - **A pedido (V3.37).** La regla pre-IA `MUESTRAS_TRABAJOS` (`pideMuestrasTrabajos`) reconoce «¿tiene imágenes de muestra?», «puede enviarme fotos de trabajos…» y similares, y responde sin IA.
   - Si el producto se conoce, sale su galería tras «Claro, con gusto 🤗.».
   - Si no se conoce, pregunta «¿Para qué producto son sus etiquetas?» (`pendiente_producto = SOLICITUD`) y la envía con la respuesta, o la `predeterminada` si el producto no tiene palabra conocida.
   - En ese turno, la petición tiene prioridad sobre las medidas sugeridas de agua.
-- **Enganche.** Después de responder cireles («impresión offset»), material («Polipropileno») o la ciudad («somos de Quito»), solo si el producto se conoce. Si no, queda `pendiente_producto = ENGANCHE` y sale cuando el prospecto nombre un producto con galería.
+- **Material (V3.38).** El mensaje del prospecto pregunta por el material o su resistencia (`preguntaMaterialEtiquetas`), solo si el producto se conoce.
+- **Cotización (V3.38).** Con `COTIZAR_P4`, solo si el producto se conoce; «Preparar envío WhatsApp» además exige `cotizacion_producible === true` en «Construir mensaje comercial».
+- Ya no sale tras responder cireles o la ciudad, ni porque la respuesta mencione el Polipropileno. Sin producto conocido no queda pendiente; un `pendiente_producto` antiguo se limpia sin enviar.
 
-Cada galería sale una sola vez por conversación (`contexto_comercial.galeria_trabajos.claves_enviadas`). Si vuelve a pedirla, responde «Más arriba le compartimos varios de nuestros trabajos 👆.». Tampoco sale si en el historial reciente un asesor ya escribió «Le adjunto varios/algunos de nuestros trabajos». No sale en cotizaciones, derivaciones, datos de pago, productos de catálogo ni cuando la respuesta se omite.
+Cada galería sale una sola vez por conversación (`contexto_comercial.galeria_trabajos.claves_enviadas`). Si vuelve a pedirla, responde «Más arriba le compartimos varios de nuestros trabajos 👆.». Tampoco sale si en el historial reciente un asesor ya escribió «Le adjunto varios/algunos de nuestros trabajos». No sale en derivaciones, datos de pago, cotizaciones no producibles, productos de catálogo ni cuando la respuesta se omite.
 
 Los links viven en la fila `GALERIA_TRABAJOS` de `configuracion_bot` (`schema/galeria-trabajos.sql`, módulo `code/preventa/galeria-trabajos.js`). Cada galería tiene `clave`, `palabras` y `medios`. Se elige la primera galería cuyas palabras aparezcan en el mensaje actual y, si no, en el historial entrante:
 - LACTEOS cubre lácteos y alimentos;
@@ -851,8 +853,8 @@ flowchart LR
 
 | Nodo | Tipo | Qué hace | Recibe de | Envía a |
 |---|---|---|---|---|
-| Resolver contexto comercial (V3.37) | Code | Decide la galería con `decidirGaleriaTrabajos` sobre el mensaje y la respuesta final, y ajusta el texto (petición, pregunta del producto, ya compartida). Emite `enviar_galeria_trabajos`, `galeria_trabajos` (`tipo`, `url`), `galeria_trabajos_clave`, `texto_cierre_galeria` y guarda `contexto_comercial.galeria_trabajos` (`clave`, `motivo`, `medios`, `enviada_at`) | — | — |
-| Preparar envío WhatsApp (V3.8) | Code | Arma un cuerpo YCloud por medio, sin caption, para que WhatsApp los agrupe, y `ycloud_request_cierre_galeria`. No aplica con los videos de tarjetas | — | — |
+| Resolver contexto comercial (V3.38) | Code | Decide la galería con `decidirGaleriaTrabajos` sobre el mensaje del prospecto y la acción, y ajusta el texto (petición, pregunta del producto, ya compartida). Emite `enviar_galeria_trabajos`, `galeria_trabajos` (`tipo`, `url`), `galeria_trabajos_clave`, `galeria_trabajos_motivo`, `texto_cierre_galeria` y guarda `contexto_comercial.galeria_trabajos` (`clave`, `motivo`, `medios`, `enviada_at`) | — | — |
+| Preparar envío WhatsApp (V3.9) | Code | Arma un cuerpo YCloud por medio, sin caption, para que WhatsApp los agrupe, y `ycloud_request_cierre_galeria`. No aplica con los videos de tarjetas ni con una cotización no producible | — | — |
 | IF: ¿Enviar galería trabajos? | IF `enviar_galeria_trabajos` | | IF: ¿Enviar nota IVA? [F] | Preparar galería trabajos |
 | Preparar galería trabajos | Code | Un item por medio. Lee además: Preparar envío WhatsApp | IF galería [T] | Autorizar salida WhatsApp 9 |
 | Autorizar salida WhatsApp 9 | Postgres executeQuery | La guardia común de salida, una vez por medio: si el cliente escribe o un humano toma la conversación durante la galería, los medios restantes no salen | Preparar galería trabajos | IF permiso salida WhatsApp 9 |

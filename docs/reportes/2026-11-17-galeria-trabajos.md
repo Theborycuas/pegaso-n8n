@@ -1,6 +1,6 @@
-# Galería de trabajos: a pedido y en el enganche
+# Galería de trabajos: a pedido, por material y con la cotización
 
-Estado: implementado en local el 17 de noviembre de 2026. **No publicado ni en commit.** Se activa al cargar la fila `GALERIA_TRABAJOS` en `configuracion_bot`. Sin esa fila el flujo se comporta igual que antes.
+Estado: V3.37 publicada (commit bbca5f8). **V3.38 en local, sin publicar ni commit**: la galería deja de salir tras cireles, ciudad o cualquier respuesta que mencione el material. Se activa al cargar la fila `GALERIA_TRABAJOS` en `configuracion_bot`. Sin esa fila el flujo se comporta igual que antes.
 
 ## Qué hace
 
@@ -20,17 +20,21 @@ En las conversaciones de etiquetas, el bot envía una galería de fotos y videos
 
 Si las medidas ya se conocen, el cierre no vuelve a pedirlas. En el turno en que pide fotos de etiquetas de agua, la galería tiene prioridad sobre las medidas sugeridas para botellas y bidones. Ese bloque de precios sigue saliendo cuando pregunta el precio sin medidas.
 
-### Momentos de enganche
+### Pregunta por el material o recibe la cotización (V3.38)
 
-Después de estas respuestas, **solo si el producto se conoce**:
+Los asesores no sueltan fotos a discreción. Fuera de la petición de muestras, la galería sale solo en estos dos momentos y **solo si el producto se conoce**:
 
-| Momento | Se reconoce porque la respuesta dice |
+| Momento | Se reconoce por |
 |---|---|
-| Pregunta por cireles | «impresión offset» |
-| Pregunta por el material | «Polipropileno» |
-| Ciudad: el bot dice desde dónde escribimos | «somos de Quito», «somos de la ciudad de Quito», «también estamos en Quito» |
+| El prospecto pregunta por el material | Su mensaje: «material», «¿de qué están hechas?», «¿son de papel?», «¿resisten el agua / la refrigeración?», «¿se despegan?», «impermeables» |
+| Se le envía la cotización de etiquetas | La acción `COTIZAR_P4`, y en «Preparar envío WhatsApp» que la cotización haya salido producible |
 
-Si el producto no se conoce, no se envía una galería al azar: queda pendiente y sale cuando el prospecto nombre un producto con galería.
+En los dos casos sale después de la respuesta, sin texto adicional, y cierra con «Le adjunto varios de nuestros trabajos.».
+
+Ya **no** sale:
+- tras responder cireles o desde qué ciudad escribimos;
+- porque una respuesta mencione el Polipropileno, por ejemplo al pedir medidas tras «¿Precio de las etiquetas adhesivas?»;
+- si no se conoce el producto: no queda pendiente ni sale más tarde. Solo la pregunta «¿Para qué producto son sus etiquetas?», que el bot hace cuando piden fotos, espera la respuesta, y solo en el turno siguiente.
 
 El orden es el mismo que usan los asesores en WhatsApp Business:
 
@@ -41,7 +45,8 @@ El orden es el mismo que usan los asesores en WhatsApp Business:
 **Una sola vez cada galería.** El envío queda registrado en `contexto_comercial.galeria_trabajos` (`clave`, `motivo`, `medios`, `claves_enviadas`, `pendiente_producto`, `enviada_at`). Tampoco se envía si en el historial reciente un asesor ya escribió «Le adjunto varios de nuestros trabajos», como en las capturas.
 
 **No se envía** en estos casos:
-- cotizaciones, derivaciones a humano o datos de pago;
+- derivaciones a humano o datos de pago;
+- cotizaciones no producibles;
 - tarjetas, flyers y otros productos de catálogo;
 - respuestas omitidas, por ejemplo cuando la respuesta automática del anuncio ya contestó;
 - si en ese mismo turno salen la imagen `IMAGEN_TRABAJOS` o un catálogo.
@@ -116,9 +121,9 @@ Detalle en [FLUJO-WORKFLOW-PEGASO.md §23](../FLUJO-WORKFLOW-PEGASO.md#23-galer�
 | Nodo | Cambio |
 |---|---|
 | Obtener configuración MODO_PRUEBA | Lee también `GALERIA_TRABAJOS` |
-| Resolver contexto comercial | V3.35 → **V3.37**. Decide la galería con el módulo `code/preventa/galeria-trabajos.js`, ajusta el texto (petición, pregunta del producto, ya compartida) y la registra en el contexto. Las medidas sugeridas de agua no ocupan el turno de una petición de fotos |
+| Resolver contexto comercial | V3.35 → **V3.38**. Decide la galería con el módulo `code/preventa/galeria-trabajos.js`, ajusta el texto (petición, pregunta del producto, ya compartida) y la registra en el contexto. Las medidas sugeridas de agua no ocupan el turno de una petición de fotos. V3.38: solo petición, pregunta de material o cotización; emite `galeria_trabajos_motivo` |
 | Preparar contexto IA | Incluye el módulo de galería para la regla pre-IA `MUESTRAS_TRABAJOS` (`code/preventa/preguntas-frecuentes.js`) |
-| Preparar envío WhatsApp | V3.7 → **V3.8**. Arma los cuerpos YCloud de la galería y del cierre |
+| Preparar envío WhatsApp | V3.7 → **V3.9**. Arma los cuerpos YCloud de la galería y del cierre. V3.9: con la cotización, solo si `Construir mensaje comercial` la dejó producible |
 | 9 nodos nuevos | `IF: ¿Enviar galería trabajos?`, `Preparar galería trabajos` (Code), `Autorizar salida WhatsApp 9`, `IF permiso salida WhatsApp 9`, `YCloud Enviar galería trabajos`, `Esperar cierre galería`, `Autorizar salida WhatsApp 10`, `IF permiso salida WhatsApp 10` y `YCloud Enviar cierre galería`. Cuelgan de la rama falsa de `IF: ¿Enviar nota IVA?`, que estaba libre, y usan la credencial existente YCloud API. Las guardias siguen la convención que exige la prueba «Cada envío YCloud tiene una guardia SQL…» |
 
 ## Límites
@@ -137,27 +142,27 @@ node scripts/prepare-update.mjs
 node scripts/check-encoding.mjs
 ```
 
-- Pasan las 196 pruebas del repositorio. Las de PostgreSQL 17 temporal se ejecutan por archivo (30 + 47): en paralelo, dos archivos con contenedor compiten entre sí. Hay 17 pruebas en `tests/galeria-trabajos.test.mjs`:
+- Pasan las 198 pruebas del repositorio. Las de PostgreSQL 17 temporal se ejecutan por archivo (30 + 47): en paralelo, dos archivos con contenedor compiten entre sí. Hay 19 pruebas en `tests/galeria-trabajos.test.mjs`:
   - reconocer la petición de fotos y no confundirla con «le envié la foto de mi diseño»;
+  - reconocer la pregunta de material;
   - la regla pre-IA `MUESTRAS_TRABAJOS`;
-  - las conversaciones de la captura: fotos de agua → galería AGUA; «¿tiene imágenes de muestra?» → pregunta del producto → «yogurt» → LÁCTEOS;
-  - un producto sin palabra conocida → predeterminada;
-  - el enganche sin producto queda pendiente;
+  - las conversaciones de las capturas: fotos de agua → galería AGUA; «¿tiene imágenes de muestra?» → pregunta del producto → «yogurt» → LÁCTEOS; «¿Precio de las etiquetas adhesivas?», «Me ayuda con la ubicación» y «¿En qué ciudad se encuentran?» → sin galería;
+  - material y cotización solo con producto conocido; un pendiente antiguo se limpia sin enviar;
   - una sola vez por galería, también si la envió un asesor;
   - otra galería si pide otro producto;
-  - cotización y derivación excluidas;
+  - derivación y datos de pago excluidos; cotización no producible excluida;
   - cuerpos YCloud sin caption;
   - un item por medio;
   - cableado del flujo: lotes de 1, `executeOnce` y la guardia de salida antes de cada envío (también lo comprueba «Cada envío YCloud tiene una guardia SQL…», con 11 envíos).
-- Validadores correctos: 74 Code Nodes compilados. Los prompts y el cálculo de precios son idénticos a producción.
+- Validadores correctos: 74 Code Nodes compilados, 258 nodos. El flujo no cambia de nodos ni conexiones.
 
 ## Pasos para publicar
 
-1. Con autorización, ejecutar `push.ps1`.
-2. Volver a ejecutar `schema/galeria-trabajos.sql`: amplía las palabras de LACTEOS (alimentos) y AGUA (detergentes y líquidos).
-3. Probar desde un número de prueba:
+1. Con autorización, ejecutar `push.ps1`. La fila `GALERIA_TRABAJOS` no cambia.
+2. Probar desde un número de prueba:
+   - «¿Precio de las etiquetas adhesivas?» y «¿En qué ciudad se encuentran?»: respuesta sin galería;
    - «Puede enviarme fotos de trabajos de etiquetas de agua?»: «Claro, con gusto 🤗.», galería AGUA y cierre;
    - en otro número, «¿Tiene imágenes de muestra?»: pregunta del producto; «para embutidos»: galería LACTEOS;
-   - «¿Cobran cireles?» con el producto ya dicho: respuesta, galería y cierre;
    - repetir la pregunta: la galería no se repite;
-   - «Precio de etiquetas para botellones» seguido de «¿Qué material son?»: galería AGUA.
+   - en otro número, «Precio de etiquetas para botellones» seguido de «¿Qué material son?»: galería AGUA;
+   - en otro número, etiquetas para yogurt con medidas y cantidad: cotización, galería LACTEOS y cierre.
